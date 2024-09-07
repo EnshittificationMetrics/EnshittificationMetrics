@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>
+The Four Stages of the Downward Enshittification Spiral:<br>
+ - Stage 1 - Attraction - great UX; innovation and features<br>
+ - Stage 2 - Monetization - introduce ads, premium features, subscription models; increased data collection<br>
+ - Stage 3 - Exploitation - algorithms tweaked for revenue, terms for creators less favorable, intrusive ads, paywalls<br>
+ - Stage 4 - Exodus - dissatisfied users, negative reviews, migration to alternatives, platform doubles down on profit maximization<br>
+</h2>
+
+<h1>
+Enshittification References:
+</h1>
+
+<ul>
+	{% for item in references %}
+		<strong>{{ item.text }}</strong><br>
+		<a href="{{ item.url }}" target="_blank">{{ item.url }}</a><br>
+		{{ item.date_pub }}<br>
+		{{ item.summary }}<br>
+		<br>
+	{% endfor %}
+</ul>
+
+<h2>
+Enshittification related words/concepts:
+</h2>
+</h3>
+ - <strong>Anti-enshittification</strong> (noun) - Efforts or measures taken to prevent or reverse the degradation of a platform or service, aiming to maintain or improve user experience by avoiding profit-driven changes that negatively impact it.<br>
+ - <strong>Disenshittify</strong> (verb) - Process of reversing the degradation of a platform or service by removing or reducing the profit-driven changes that negatively impact user experience.<br>
+ - <strong>Enshittening</strong> (noun) - Process by which a tech platform degrades over time due to prioritizing profit over user experience.<br>
+ - <strong>Enshittification</strong> (noun) - Coined by <a href="https://craphound.com/" target="_blank">Cory Doctorow</a>; transformation of a tech platform from a user-centric service to a profit-centric one.<br>
+ - <strong>Enshittificatory</strong> (adjective) - Actions or processes that contribute to the degradation of a platform or service through increasing commercialization.<br>
+ - <strong>Enshittifiers</strong> (noun) - Entities or individuals responsible for enshittification.<br>
+ - <strong>Enshittifies</strong> (verb) - Actions or processes that degrade a platform or service.<br>
+ - <strong>Enshittify</strong> (verb) - Process of degrading a platform or service by implementing profit-driven changes that negatively impact user experience.<br>
+ - <strong>Enshittifying</strong> (verb) - Ongoing process of a platform or service progressively degrading in quality.<br>
+ - <strong>Enshittocene</strong> (noun) - Era characterized by the widespread degradation of digital platforms and services.<br>
+ - <strong>Platform Capitalism</strong> (noun) -  A kind of capitalism centered on data, used to organize relationships between buyers, sellers, and goods.
+ - <strong>Surveillance Capitalism</strong> (noun) - Economic system commodifying personal data for profit; collecting, analyzing, and selling user data to third parties (generally without consent) to predict and influence behavior for commercial gain.<br>
+ - <strong>Terminal Enshittification</strong> (noun) - Final stage of a platform's decline; eventual collapse or irrelevance.<br>
+</h3>
+
+{% endblock %}

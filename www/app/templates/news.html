@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Enshittification News:</h1>
+<ul>
+	{% for item in news %}
+
+		<strong>{{ item.text }}</strong><br>
+
+		{% if item.url %}
+			<a href="{{ item.url }}" target="_blank">{{ item.url }}</a><br>
+		{% endif %}
+
+		{{ item.date_pub }}<br>
+
+		{{ item.summary }}<br>
+
+		Entities:
+		{% if item.ent_names %}
+			{% for ent in item.ent_names %}
+				{{ ent }}, 
+			{% endfor %}
+		{% else %}
+			None
+		{% endif %}<br>
+
+		<br>
+	{% endfor %}
+</ul>
+
+{% endblock %}

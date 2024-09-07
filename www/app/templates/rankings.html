@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Enshittification Rankings:</h1>
+
+Sort: <br>
+<a href=""><strong>by ID</strong></a> ~ 
+<!-- {# remove by ID once others are implemented #} -->
+<a href="">Alphabetically</a> ~ 
+<a href="">by Stage</a> ~ 
+<a href="">by Age</a> ~ 
+<i>(not yet implemented)</i><br>
+<br>
+
+Filter/Group: <br>
+Category Type (<strong>All</strong>, Social, Cloud) ~ 
+<!-- {# use {{ item.category }} for category filter #} -->
+Status (Live, Potential, <strong>Not Disabled</strong>, Disabled) ~ 
+<i>(not yet implemented)</i><br>
+<br>
+
+<table border="3">
+	<thead>
+		<tr>
+			<th>Stage 1</th>
+			<th>Stage 2</th>
+			<th>Stage 3</th>
+			<th>Stage 4</th>
+			<th>Dates</th>
+			<th>Corporate family</th>
+			<th>Summary</th>
+		</tr>
+	</thead>
+	<tbody>
+	{% for item in entities %}
+		{% if item.status != "disabled" %}
+			<tr>
+				<td>
+					{% if item.stage_current == 1 %}
+						<strong>{{ item.name }}</strong>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.stage_current == 2 %}
+						<strong>{{ item.name }}</strong>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.stage_current == 3 %}
+						<strong>{{ item.name }}</strong>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.stage_current == 4 %}
+						<strong>{{ item.name }}</strong>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.date_started and (item.date_started != 'UNK') %}
+						{{ item.date_started }}
+					{% endif %}
+					{% if item.date_ended and (item.date_ended != 'None') %}
+						<strong>to {{ item.date_ended }}</strong>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.corp_fam and (item.corp_fam != 'None') %}
+						{{ item.corp_fam }}<br>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.summary %}
+						{{ item.summary }}
+					{% endif %}
+				</td>
+			</tr>
+		{% endif %}
+	{% endfor %}
+	</tbody>
+</table>
+
+{% endblock %}

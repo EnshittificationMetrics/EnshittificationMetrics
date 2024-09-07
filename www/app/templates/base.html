@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+	<head>
+		<title>EnshittificationMetrics</title>
+		<link rel="icon" type="image/x-icon" sizes="32x32"   href="{{ url_for('static', filename='enshitfavicon-32x32.png') }}">
+		<link rel="icon" type="image/x-icon" sizes="512x512" href="{{ url_for('static', filename='enshitfavicon-512x512.png') }}">
+	</head>
+	<body>
+		<h1>Enshittification Metrics:</h1>
+		Menu:<br>
+		<a href="{{ url_for('rankings') }}"  >rankings</a> ~ 
+		<a href="{{ url_for('news') }}"      >news</a> ~ 
+		<a href="{{ url_for('art') }}"       >art</a> ~ 
+		<a href="{{ url_for('references') }}">references</a> ~ 
+		<a href="{{ url_for('about') }}"     >about</a> ~ 
+		<a href="{{ url_for('index') }}"     >home</a><br>
+		<br>
+		
+		Selector for functional stage:<br>
+		<a href=""><strong>Stage 1</strong></a> ~ 
+		<a href="">Stage 2</a> ~ 
+		<a href="">Stage 3</a> ~ 
+		<a href="">Stage 4</a> ~ 
+		(not yet implemented)<br>
+		<br>
+		
+		(mode = {{mode}})<br>
+		{% if mode == 'dev' %}
+			<i>Dev stuff:<br>
+			<a href="{{ url_for('report') }}"       >report all</a> ~ 
+			<a href="{{ url_for('manual_add') }}"   >manual add</a> ~ 
+			<a href="{{ url_for('manual_edit') }}"  >manual edit</a> ~ 
+			<a href="{{ url_for('manual_delete') }}">manual delete</a><br>
+			</i><br>
+		{% endif %}
+		
+		{% block content %}{% endblock %}
+	</body>
+</html>

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Manually add/edit entity:</h1>
+
+		Existing:<br>
+		Status: {{ entity.status }}<br>
+		Name: {{ entity.name }}<br>
+		stage_current: {{ entity.stage_current }}<br>
+
+		stage_history: 
+		{% if entity.stage_history %}
+			{% for stage in entity.stage_history %}
+				{{ stage }}, 
+			{% endfor %}
+		{% else %}
+			None
+		{% endif %}<br>
+
+		stage_EM4view: {{ entity.stage_EM4view }}<br>
+		date_started: {{ entity.date_started }}<br>
+		date_ended: {{ entity.date_ended }}<br>
+		Summary: {{ entity.summary }}<br>
+		corp_fam: {{ entity.corp_fam }}<br>
+		Category: {{ entity.category }}<br>
+		<br>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <p>
+        {{ form.status.label }}<br>
+        {{ form.status }}<br>
+    </p>
+    <p>
+        <strong>{{ form.name.label }}</strong><br>
+        {{ form.name(size=64) }}<br>
+    </p>
+    <p>
+        {{ form.stage_current.label }}<br>
+        {{ form.stage_current }}<br>
+    </p>
+	<p>
+	stage_history:<br>
+	<div id="stage_history">
+	{% for subform in form.stage_history %}
+		{{ subform.date.label }}<br>
+		{{ subform.date(size=32) }}<br>
+		{{ subform.stage.label }}<br>
+		{{ subform.stage(size=32) }}<br>
+	{% endfor %}
+	</div>
+	<button type="button" onclick="addField()">add stage history item</button>
+	</p>
+    <p>
+        {{ form.stage_EM4view.label }}<br>
+        {{ form.stage_EM4view }}<br>
+    </p>
+    <p>
+        {{ form.date_started.label }}<br>
+        {{ form.date_started(size=10) }}<br>
+    </p>
+    <p>
+        {{ form.date_ended.label }}<br>
+        {{ form.date_ended(size=10) }}<br>
+    </p>
+    <p>
+        {{ form.summary.label }}<br>
+        {{ form.summary(size=1024) }}<br>
+    </p>
+    <p>
+        {{ form.corp_fam.label }}<br>
+        {{ form.corp_fam(size=64) }}<br>
+    </p>
+    <p>
+        {{ form.category.label }}:<br>
+        {{ form.category }}<br>
+    </p>
+    <p>{{ form.submit() }}</p>
+</form>
+
+<script>
+	function addField() {
+		var newField = document.createElement("input");
+		newField.setAttribute("type", "text");
+		newField.setAttribute("name", "stage_history-" + document.querySelectorAll("input[type='text']").length + "-item");
+		newField.setAttribute("size", 32);
+		document.querySelector("form div").appendChild(newField);
+	}
+</script>
+
+{% endblock %}

@@ -1,0 +1,25 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+flask-migrate = "*"
+flask-sqlalchemy = "*"
+python-dotenv = "*"
+flask-login = "*"
+requests = "*"
+beautifulsoup4 = "*"
+html5lib = "*"
+flask-wtf = "*"
+# langchain-core = "*"
+# langchain-mistralai = "*"
+# langchain = "*"
+# duckduckgo-search = "*"
+# langchain-community = "*"
+# wikipedia = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Manually add/edit reference:</h1>
+
+		Existing:<br>
+		ID # {{ reference.id }}<br>
+		Text: {{ reference.text }}<br>
+		URL: {{ reference.url }}<br>
+		Date: {{ reference.date_pub }}<br>
+		Summary: {{ reference.summary }}<br>
+		<br>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <p>
+        {{ form.date_pub.label }}<br>
+        {{ form.date_pub(size=10) }}<br>
+    </p>
+    <p>
+        {{ form.url.label }}<br>
+        {{ form.url(size=64) }}<br>
+    </p>
+    <p>
+        {{ form.text.label }}<br>
+        {{ form.text(size=128) }}<br>
+    </p>
+    <p>
+        {{ form.summary.label }}<br>
+        {{ form.summary(size=1024) }}<br>
+    </p>
+    <p>{{ form.submit() }}</p>
+</form>
+
+{% endblock %}

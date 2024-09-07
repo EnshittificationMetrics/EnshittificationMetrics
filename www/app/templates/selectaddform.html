@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Select item type to add:</h1>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <p>
+        {{ form.target_table.label }}<br>
+        {{ form.target_table }}<br>
+    </p>
+    <p>{{ form.submit() }}</p>
+</form>
+
+{% endblock %}

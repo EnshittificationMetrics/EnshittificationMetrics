@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Entities:</h2>
+<ul>
+	{% for item in entities %}
+		{{ item.id }}<br>
+		<strong>{{ item.name }}</strong><br>
+
+		status:
+		{% if item.status == "live" %}
+			<strong>live</strong>
+		{% elif item.status == "potential" %}
+			<strong><font color="green">potential</font></strong>
+		{% elif item.status == "disabled" %}
+			<font color="red">disabled</font>
+		{% else %}
+			{{ item.status }}
+		{% endif %}
+		<br>
+
+		stage_current: <strong>{{ item.stage_current }}</strong> ~ 
+		stage_EM4view: {{ item.stage_EM4view }}<br>
+
+		stage_history:
+		{% if item.stage_history %}
+			{% for hist in item.stage_history %}
+				{{ hist }}
+			{% endfor %}
+		{% else %}
+			None
+		{% endif %}<br>
+
+		date_started: {{ item.date_started }} ~ 
+		date_ended: {{ item.date_ended }}<br>
+		summary: {{ item.summary }}<br>
+		corp_fam: {{ item.corp_fam }} ~ 
+		category: {{ item.category }}<br>
+		<br>
+	{% endfor %}
+</ul>
+
+<h2>News:</h2>
+<ul>
+	{% for item in news %}
+		{{ item.id }}<br>
+		<strong>{{ item.text }}</strong><br>
+		{{ item.url }}<br>
+		{{ item.date_pub }}<br>
+		{{ item.summary }}<br>
+		Related entity/entities:
+		{% if item.ent_names %}
+			{% for ent in item.ent_names %}
+				{{ ent }}
+			{% endfor %}
+		{% else %}
+			None
+		{% endif %}<br>
+		<br>
+	{% endfor %}
+</ul>
+
+<h2>Art:</h2>
+<ul>
+	{% for item in art %}
+		{{ item.id }}<br>
+		<strong>{{ item.text }}</strong><br>
+		{{ item.url }}<br>
+		{{ item.date_pub }}<br>
+		{{ item.summary }}<br>
+
+		Related entity/entities:
+		{% if item.ent_names %}
+			{% for ent in item.ent_names %}
+				{{ ent }}
+			{% endfor %}
+		{% else %}
+			None
+		{% endif %}<br>
+
+		<br>
+	{% endfor %}
+</ul>
+
+<h2>References:</h2>
+<ul>
+	{% for item in references %}
+		{{ item.id }}<br>
+		<strong>{{ item.text }}</strong><br>
+		{{ item.url }}<br>
+		{{ item.date_pub }}<br>
+		{{ item.summary }}<br>
+		<br>
+	{% endfor %}
+</ul>
+
+{% endblock %}

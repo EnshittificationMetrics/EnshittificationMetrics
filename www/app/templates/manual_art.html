@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Manually add/edit art:</h1>
+
+		Existing:<br>
+		ID # {{ art.id }}<br>
+		Text: {{ art.text }}<br>
+		URL: {{ art.url }}<br>
+		Date: {{ art.date_pub }}<br>
+		Summary: {{ art.summary }}<br>
+		Entities: 
+		{% if art.ent_names %}
+			{% for ent in art.ent_names %}
+				{{ ent }}, 
+			{% endfor %}
+		{% else %}
+			None
+		{% endif %}<br>
+		<br>
+
+<form method="POST">
+	{{ form.hidden_tag() }}
+	<p>
+		{{ form.date_pub.label }}<br>
+		{{ form.date_pub(size=10) }}<br>
+	</p>
+	<p>
+		{{ form.url.label }}<br>
+		{{ form.url(size=64) }}<br>
+	</p>
+	<p>
+		{{ form.text.label }}<br>
+		{{ form.text(size=128) }}<br>
+	</p>
+	<p>
+		{{ form.summary.label }}<br>
+		{{ form.summary(size=1024) }}<br>
+	</p>
+	<p>
+	<div id="ent_names">
+	{% for subform in form.ent_names %}
+		{{ subform.item.label }}<br>
+		{{ subform.item(size=32) }}<br>
+	{% endfor %}
+	</div>
+	<button type="button" onclick="addField()">add entity item</button>
+	</p>
+	<p>{{ form.submit() }}</p>
+</form>
+
+<script>
+	function addField() {
+		var newField = document.createElement("input");
+		newField.setAttribute("type", "text");
+		newField.setAttribute("name", "ent_names-" + document.querySelectorAll("input[type='text']").length + "-item");
+		newField.setAttribute("size", 32);
+		document.querySelector("form div").appendChild(newField);
+	}
+</script>
+
+{% endblock %}
