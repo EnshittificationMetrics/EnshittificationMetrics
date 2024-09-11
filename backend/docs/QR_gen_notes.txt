@@ -1,0 +1,15 @@
+qrencode -o card.png -l H -s 4 "https://www.enshittificationmetrics.com/about"
+
+--level={L|M|Q|H}
+-l {L|M|Q|H}
+Use L (Low) (7% data restore) when you need the QR code to store more data and it's unlikely to be damaged.
+Use M (Medium) (15% data restore) for general use where minimal damage may occur.
+Use Q (Quartile) (25% data restore) for cases where you expect moderate wear, like flyers or brochures.
+Use H (High) (30% data restore) if the QR code will be subjected to potential damage, like outdoor environments or where the code may get scratched or partially obscured.
+
+--size=NUMBER
+-s NUMBER
+controls the pixel size of each module in the QR code
+Larger module sizes (--size values) produce bigger QR codes, which can be easier to scan from a distance or when printed on large surfaces (e.g., posters).
+Smaller module sizes make more compact QR codes, which are ideal for smaller prints (e.g., business cards), but may be harder to scan if reduced too much.
+Default size = 3
