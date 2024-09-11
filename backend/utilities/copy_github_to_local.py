@@ -25,7 +25,7 @@ def main():
     if check_for_updates(clone_dir):
         fetch_and_pull(clone_dir)
         place_files(clone_dir, dest_dir_www, dest_dir_back)
-    logging.info(f'Completed.')
+    logging.info(f'Completed.\n')
 
 def check_for_updates(repo_dir):
     subprocess.run(["git", "fetch"], check=True, cwd=repo_dir)
