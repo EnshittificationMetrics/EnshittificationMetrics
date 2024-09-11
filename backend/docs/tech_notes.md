@@ -19,13 +19,40 @@ Enshittification Metrics Technical Notes:
 -- pipenv run python3 populate_blanks.py
 
 
-## GITHUB:
+## GITHUB (development):
 - https://github.com/zake8/EnshittificationMetrics
 - username: zake@steelrabbit.com
 - password: BW
 
 
-# PRODUCITON ENVIRONMENT:
+## GITHUB (push to production):
+- cd ~
+- git clone https://github.com/EnshittificationMetrics/EnshittificationMetrics github
+- cd github
+- git config user.name "bristol4@enshittificationmetrics.com" # don't use --global as there are more than one repo syncing w/ on this box\
+- git config user.email "bristol4@enshittificationmetrics.com"
+- gh auth login # relogon; HTTPS; user Personal Access Token
+- git config --list
+- cd repository
+- git pull origin main  # or `git pull origin master` depending on your default branch
+
+
+
+# PRODUCTION ENVIRONMENT:
+
+
+## GITHUB
+- email: bristol4@enshittificationmetrics.com
+- pw: BW
+- un: EnshittificationMetrics
+- repo: EnshittificationMetrics
+- https://github.com/EnshittificationMetrics/EnshittificationMetrics
+- MFA: Authy; codes in BW
+- Personal access tokens (classic) for github public repo access in BW
+-- icon in upper right / "your organizations" / "developer settings" / "Personal access tokens" / "tokens (classic)"
+-- "generate new token" / "generate new token (classic)" / code from Authy
+-- Name / expiration / check "repo", "workflow", and, "read:org" / "generate"
+-- download and securely save token and exit
 
 
 ## DNS and DOMAIN (DreamHost):
@@ -171,14 +198,33 @@ Stripe:
 - edit jail.local and enable: apache-auth, apache-badbots, and apache-nohome (sshd already enabled)
 - sudo fail2ban-client status # returns: Jail list:   apache-auth, apache-badbots, apache-nohome, sshd
 - Note: logs here: /var/log/fail2ban.log
-#### setup cron jobs to backend
+#### setup cron jobs to backend (listed in flows)
 - set crontab -e to: 20 21 * * * /usr/bin/python3 /home/bsea/em/utilities/cronntfy.py
 - set crontab -e to: 20 * * * * cd /home/bsea/em/ && pipenv run python3 slashdot_scrape.py >> /home/bsea/em/scrape.log 2>&1
 - set crontab -e to: 0 10 * * * cd /home/bsea/em/ && pipenv run python3 populate_blanks.py >> /home/bsea/em/scrape.log 2>&1
 - set crontab -e to: 0 12 * * * /usr/bin/python3 /home/bsea/em/utilities/rotate_db_backup.py
+- set crontab -e to: 50 1-23/2 * * * /usr/bin/python3 /home/bsea/em/utilities/copy_github_to_local.py
+#### setup GitHub code pull (replaces "copy in code" above)
+- mkdir /home/bsea/github
+- cd /home/bsea/github
+- git init # only first time
+- git branch -M main # only first time
+- git remote add origin https://github.com/EnshittificationMetrics/EnshittificationMetrics.git
+- git config --global user.email "bristol4@enshittificationmetrics.com"
+- git config --global user.name "bristol4@enshittificationmetrics.com"
+- git status # test to see if working
+- git config --list # to see git config
+- sudo apt update
+- sudo apt install gh # GitHub CLI
+- gh auth login # minimum required scopes are 'repo', 'read:org', 'workflow'
+-- HTTPS
+-- Y
+-- paste "Access EM repo; gh auth login" personal access token (classic)
 
 
-## Flow:
+## Flows:
+
+### user accesses web content
 - Internet user navigates to https://www.enshittificationmetrics.com
 - DreamHost ns1.dreamhost.com DNS A points www.enshittificationmetrics.com to 143.198.73.217
 - DigitalOcean cloud firewall "Bristol-One" transited
@@ -190,3 +236,17 @@ Stripe:
 - Flask /var/www/em/EnshittificationMetrics.py (front-end) code renders dynamic HTML content 
 - MySQL /var/www/em/instance/em.db database holds all content
 - some_few.py (cron) scrapes web and populates .db (back-end) 
+
+### cron jobs (listed in build)
+- cronntfy.py daily at 21:20 UCT
+- slashdot_scrape.py hourly at 20 min after the hour
+- populate_blanks.py daily at 10:00 UCT
+- rotate_db_backup.py daily at 12:00 UTC
+- copy_github_to_local.py 1:50, 3:50, 5:50, ..., 23:50
+
+### code
+- code built and tested in https://github.com/zake8/EnshittificationMetrics on "leet850" in /home/leet/EnshittificationMetrics/
+- ...
+- prod code posted in "prod github"
+- ...
+- code pulled onto "em02"'s /home/bsea/em/ and /var/www/em/
