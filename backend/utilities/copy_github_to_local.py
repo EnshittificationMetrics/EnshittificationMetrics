@@ -72,18 +72,26 @@ def place_files(src, dest_www, dest_back):
             dst_file = os.path.join(dst_dirpath, filename)
             # copy only if doesn't exist or newer
             if not os.path.exists(dst_file):
-                shutil.copy2(src_file, dst_file)  # copy2 preserves metadata (e.g., timestamps)
-                # print(f'Copied new file {dst_file}') # for testing
-                logging.info(f'Copied new file {dst_file}')
-                files_copied += 1
+                try:
+                    shutil.copy2(src_file, dst_file)  # copy2 preserves metadata (e.g., timestamps)
+                    # print(f'Copied new file {dst_file}') # for testing
+                    logging.info(f'Copied new file {dst_file}')
+                    files_copied += 1
+                except Exception as e:
+                    logging.error(f'In attempting to copy new file {dst_file}, got error: {e}')
+                    # print(f'In attempting to copy new file {dst_file}, got error: {e}') # for testing
             else:
                 src_mtime = os.path.getmtime(src_file) # Source file modification time
                 dst_mtime = os.path.getmtime(dst_file) # Destination file modification time
                 if src_mtime > dst_mtime:
-                    shutil.copy2(src_file, dst_file) # copy2 preserves metadata (e.g., timestamps)
-                    # print(f'Copied updated file {dst_file}') # for testing
-                    logging.info(f'Copied updated file {dst_file}')
-                    files_copied += 1
+                    try:
+                        shutil.copy2(src_file, dst_file) # copy2 preserves metadata (e.g., timestamps)
+                        # print(f'Copied updated file {dst_file}') # for testing
+                        logging.info(f'Copied updated file {dst_file}')
+                        files_copied += 1
+                    except Exception as e:
+                        logging.error(f'In attempting to copy updated file {dst_file}, got error: {e}')
+                        # print(f'In attempting to copy updated file {dst_file}, got error: {e}') # for testing
     logging.info(f'Copied {files_copied} files.')
 
 if __name__ == '__main__':
