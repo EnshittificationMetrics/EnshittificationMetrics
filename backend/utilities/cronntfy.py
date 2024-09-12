@@ -20,7 +20,7 @@ def GetMachineID():
 
 def main():
     logging.basicConfig(level=logging.INFO, 
-                        filename='/home/bsea/cronz.log', 
+                        filename='/home/bsea/em/utilities/cronz.log', 
                         filemode='a', 
                         format='%(asctime)s -%(levelname)s - %(message)s'
     )
@@ -30,7 +30,7 @@ def main():
     lenminusfour = len(alertmsgb) - 4
     alertmsgb = alertmsgb[0:lenminusfour] # truncate off 100s of seconds and beyond
     print(f'{alertmsgt}; print to console. {alertmsgb}')
-    logging.info(f'{alertmsgt}; logging to log. {alertmsgb}')
+    logging.info(f'{alertmsgt}; {alertmsgb}')
     if ntfypost: requests.post('https://ntfy.sh/000ntfy000topic000backup000', 
         headers={'Title' : alertmsgt}, data=(alertmsgb))
 
