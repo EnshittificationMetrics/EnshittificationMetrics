@@ -2,13 +2,21 @@
 
 import os
 import sys
+import logging
 script_directory = os.path.dirname(os.path.abspath(__file__))
 if script_directory.startswith('/home/bsea/em'):
     mode = 'prod'
     sys.path.append('/var/www/em')
+    logpath = '/home/bsea/em/scrape.log'
 else:
     mode = 'dev'
     sys.path.append('/home/leet/EnshittificationMetrics/www/')
+    logpath = './scrape.log'
+logging.basicConfig(level=logging.INFO,
+                    filename = logpath,
+                    filemode = 'a',
+                    format='%(asctime)s -%(levelname)s - %(message)s')
+
 from app import app, db
 from app.models import Entity, News
 from dotenv import load_dotenv
@@ -18,10 +26,14 @@ from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 from langchain_mistralai.chat_models import ChatMistralAI
 # from langchain_community.llms import Ollama
 import re
+import requests
+import socket
 
-
+ntfypost = True #newest as of 9/11
 llm_api_key = os.getenv('MISTRAL_API_KEY')
 llm_temp = 0.25
+hostn = socket.gethostname()
+alert_title = f'EM on {hostn} judgement'
 
 
 JUDGMENT_TEMPLATE = """
@@ -43,6 +55,7 @@ SUMMARY_TEMPLATE = """
 Provide a brief one or two sentence summary of the text. 
 Summary will be show by, or in mouse-over, link to full item. 
 Summary should get at the nature of the meaning, or gist, or heart, of the text. 
+Text to summarize follows. 
 {text}
 """
 
@@ -99,6 +112,8 @@ def semantic_processing(title, url, date, content):
         # items = [result.name for result in entities] # orig line before weeding out disableds
     escaped_items = [re.escape(item) for item in items]
     pattern = '|'.join(escaped_items)
+    ### May remove this logging if all works and it clutters up scrape.log too much
+    logging.info(f'==> Entities searching for in post text: {pattern}')
     matches = re.findall(pattern, text, re.IGNORECASE)
     if not matches:
         # if no relevant entity listed, do nothing
@@ -132,10 +147,20 @@ def semantic_processing(title, url, date, content):
         for entity in entities:
             record = Entity.query.filter_by(name=entity).first()
             if record:
+                # set entity stage
                 record.stage_current = stage_int_value
+                # add stage to entity stage history
                 if record.stage_history is None:
                     record.history = []
                 record.stage_history.append([date, stage_int_value])
+                # if needed, transition entity from potential to live with stage population
+                if record.status == 'potential':
+                    record.status = 'live'
+                alert_data = f'Set {entity} to stage {stage_int_value}! '
+                judgment += alert_data
+                alert_data += f'(Per text from "{title}" referencing "{url}".)'
+                if ntfypost: requests.post('https://ntfy.sh/000ntfy000EM000', 
+                    headers={'Title' : alert_title}, data=(alert_data))
         db.session.commit()
     return judgment
 

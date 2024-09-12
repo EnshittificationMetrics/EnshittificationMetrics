@@ -245,8 +245,13 @@ Stripe:
 - copy_github_to_local.py 1:50, 3:50, 5:50, ..., 23:50
 
 ### code
-- code built and tested in https://github.com/zake8/EnshittificationMetrics on "leet850" in /home/leet/EnshittificationMetrics/
-- ...
-- prod code posted in "prod github"
-- ...
-- code pulled onto "em02"'s /home/bsea/em/ and /var/www/em/
+- built and tested on "leet850" in /home/leet/EnshittificationMetrics/
+- manually git pushed to https://github.com/zake8/EnshittificationMetrics (dev github)
+
+- on "leet850" copy_local_to_github.py is run 
+-- copies /home/leet/EnshittificationMetrics/ to /home/leet/github
+-- git pushes /home/leet/github to https://github.com/EnshittificationMetrics/EnshittificationMetrics (prod github)
+
+- on "em02" copy_github_to_local.py is crontab run every two hours
+-- git pulls from https://github.com/EnshittificationMetrics/EnshittificationMetrics to /home/bsea/github
+-- copies /home/bsea/github to /home/bsea/em and /var/www/em
