@@ -167,7 +167,7 @@ Stripe:
 - sudo usermod -aG www-rwx bsea # add bsea to group (to write to www DB from backend)
 - getent group www-rwx # to see who is in the group
 - sudo chown -R :www-rwx /var/www/em # set rights for em folder and down
-- sudo chmod -R 2775 /var/www/em # set rights for em folder and down
+- sudo chmod -R 2775 /var/www/em # set rights for em folder and down (lead 2, Set GUID, ensures that the copied or created files inherit the directory's group ownership, not the user's primary group)
 - on /home/bsea/ set x for others (Directory Traversal Permissions), so www-data can access; all rest already set (*** write this line as chmod cmd)
 - sudo chown -R bsea: /home/bsea/em # set owner in home, as copied in via root via WinSCP
 #### setup Python virtual environments

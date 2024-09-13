@@ -85,8 +85,10 @@ def place_files(src, dest_www, dest_back):
                 dst_mtime = os.path.getmtime(dst_file) # Destination file modification time
                 if src_mtime > dst_mtime:
                     try:
-                        shutil.copy2(src_file, dst_file) # copy2 preserves metadata (e.g., timestamps)
+                        subprocess.run(['cp', src_file, dst_file], check=True)
                         # print(f'Copied updated file {dst_file}') # for testing
+                        # shutil.copy2, cp -p, and, cp --preserve=timestamps, all fail to overwrite a target not owned by them
+                        # shutil.copy2(src_file, dst_file) # copy2 preserves metadata (e.g., timestamps)
                         logging.info(f'Copied updated file {dst_file}')
                         files_copied += 1
                     except Exception as e:
