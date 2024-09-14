@@ -11,7 +11,7 @@ from flask_login import LoginManager
 app = Flask(__name__)
 script_directory = os.path.dirname(os.path.abspath(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(script_directory, 'instance', 'em.db')
-load_dotenv(os.path.join(script_directory, '..', '.env') # Load the .env file located one directory up
+load_dotenv(os.path.join(script_directory, '..', '.env')) # Load the .env file located one directory up
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
