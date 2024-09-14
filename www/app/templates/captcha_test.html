@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+
+	<h1>captcha_test</h1>
+	<form action="/captcha_test" method="post">
+		{{ captcha_html(captcha)|safe }}
+		<input type="submit" value="Submit" />
+	</form>
+
+{% endblock %}

@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import os
 from dotenv import load_dotenv
+from flask_login import LoginManager
 
 
 app = Flask(__name__)
@@ -14,7 +15,8 @@ load_dotenv(f'{script_directory}/.env')
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
+login = LoginManager(app)
+login.login_view = 'login'
 
 ### Removed due to complexity. Setup as cron job. (Fails horribly as root cron, setup as user cron seems to work.)
 ### Tried @app.before_first_request but it is depreciated, tried @app.before_request but it runs on every route click and needs

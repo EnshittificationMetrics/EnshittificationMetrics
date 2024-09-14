@@ -2,8 +2,9 @@ from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from flask_login import UserMixin
-from app import db
+from app import db, login
 from sqlalchemy.ext.mutable import MutableList
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class Entity(UserMixin, db.Model):
@@ -58,8 +59,59 @@ class References(UserMixin, db.Model):
         return '<References {}>'.format(self.text)
 
 
+# references:
+# int:           so.Mapped[int] = so.mapped_column()
+# string:        so.Mapped[Optional[str]] = so.mapped_column(sa.String(20), nullable=True)
+# float:         so.Mapped[Optional[float]] = so.mapped_column()
+# list:          so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
+
+
+class User(UserMixin, db.Model):
+    id:            so.Mapped[int] = so.mapped_column(primary_key=True)
+    username:      so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
+    email:         so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
+    password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+    full_name:     so.Mapped[Optional[str]] = so.mapped_column(sa.String(120), default='')
+    phone_number:  so.Mapped[Optional[str]] = so.mapped_column(sa.String(20), nullable=True)
+    role:          so.Mapped[Optional[str]] = so.mapped_column(sa.String(64), default='regular')
+    #              "guest" - auto logged on as if no account specified; limited accesses
+    #              "regular" - default value for new account creations
+    #              "administrator" - gets into "dev" routes
+    #              "disabled" - denied any login
+    func_stage:    so.Mapped[int] = so.mapped_column(default = 1)
+    #              To view/use site in; Stage 1 ~ Stage 2 ~ Stage 3 ~ Stage 4
+    per_page:      so.Mapped[int] = so.mapped_column(default = 20)
+    #              20, 50, etc.
+    display_order: so.Mapped[str] = so.mapped_column(sa.String(16), default='recent first')
+    #              recent first, oldest first
+    ranking_sort:  so.Mapped[str] = so.mapped_column(sa.String(10), default='Stage')
+    #              Alpha ~ by Stage ~ by Age
+    ranking_cats:  so.Mapped[str] = so.mapped_column(sa.String(16), default='All')
+    #              All, Social, Cloud, B2B, B2C, C2C, tech platform, P2P
+    ranking_stat:  so.Mapped[str] = so.mapped_column(sa.String(10), default='Live')
+    #              Live, Potential, Not Disabled, Disabled
+    viewing_mode:  so.Mapped[str] = so.mapped_column(sa.String(10), default='light')
+    #              light, dark
+    to_view:       so.Mapped[str] = so.mapped_column(sa.String(4), default='XXXX')
+    #              checkbox 1, 2, 3, and/or, 4 stages to view; XXXX
+
+    def __repr__(self):
+        return '<User {}>'.format(self.username)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
+@login.user_loader
+def load_user(id):
+    return db.session.get(User, int(id))
+
+
 # to make changes to class(es):
 # pipenv shell
 # flask db init # onetime use!
 # flask db migrate -m "some change" # generates migration script
-# flask db upgrade # applys changes to the database
+# flask db upgrade # applies changes to the database

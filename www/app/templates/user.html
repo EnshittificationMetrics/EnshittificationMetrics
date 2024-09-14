@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <table cellspacing="5" cellpadding="5" border="5">
+        <tr valign="top">
+            <th colspan="2">
+                <h1>{{ user.username }}'s profile:</h1>
+                {% if user == current_user %}
+                    <p>
+                    <a href="{{ url_for('edit_profile', username=current_user.username) }}">Edit Profile</a>
+                    ~~~  
+                    <a href="{{ url_for('change_password', username=current_user.username) }}">Change Password</a>
+                    </p> 
+                {% endif %}
+            </th>
+            <tr>
+                <td>Username:</td>
+                <td><h1>{{ user.username }}</h1></td>
+            </tr>
+            <tr>
+                <td>Full Name:</td>
+                <td><h1>{{ user.full_name }}</h1></td>
+            </tr>
+            <tr>
+                <td>Email:</td>
+                <td><h1>{{ user.email }}</h1></td>
+            </tr>
+            <tr>
+                <td>Phone Number:</td>
+                <td><h1>{{ user.phone_number }}</h1></td>
+            </tr>
+            <tr>
+                <td>ID:</td>
+                <td><h1>{{ user.id }}</h1></td>
+            </tr>
+            {% if user.role %}
+            <tr>
+                <td>Role:</td>
+                <td><h1>{{ user.role }}</h1></td>
+            </tr>
+            {% endif %}
+        </tr>
+    </table>
+    <br>
+    <!-- <a href="{{ url_for('captcha_test', username=current_user.username) }}">captcha_test</a> -->
+{% endblock %}

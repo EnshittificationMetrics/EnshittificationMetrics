@@ -220,6 +220,18 @@ Stripe:
 -- HTTPS
 -- Y
 -- paste "Access EM repo; gh auth login" personal access token (classic)
+#### user management
+- Note: Initially, with fresh DB, would have to create "Guest" in web UI, then set to role=guest per below, also create and set an admin
+- cd www pipefile location
+- pipenv shell
+- flask shell
+- query = sa.select(User)
+- users = db.session.scalars(query)
+- for u in users:
+- ... print(u.id, u.username, u.role)
+- z = db.session.get(User, 2) # 2 is example, use listed index values
+- z.role = 'disabled' # guest, regular, administrator, or, disabled
+- db.session.commit()
 
 
 ## Flows:

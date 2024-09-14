@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, IntegerField, FieldList, FormField, SelectField
-from wtforms.validators import ValidationError, DataRequired, NumberRange
+from wtforms import StringField, SubmitField, IntegerField, FieldList, FormField, SelectField, PasswordField, BooleanField
+from wtforms.validators import ValidationError, DataRequired, NumberRange, Email, EqualTo
 from app.models import Entity, News, Art, References
 from app import db
 import sqlalchemy as sa
+from app.models import User
 
 
 class CSRFExemptForm(FlaskForm):
@@ -103,3 +104,51 @@ class SelectAddForm(FlaskForm):
         ('References', 'References')])
     submit = SubmitField('Submit Select')
 
+
+# Entity, ref, art, news, manual edit, and sub forms above
+# user session forms below
+
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    remember_me = BooleanField('Remember Me')
+    submit = SubmitField('Sign In')
+
+
+class RegistrationForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    password2 = PasswordField(
+        'Repeat Password', validators=[DataRequired(), EqualTo('password')])
+    full_name = StringField('Full Name')
+    phone_number = StringField('Phone Number')
+    submit = SubmitField('Register')
+
+    def validate_username(self, username):
+        user = db.session.scalar(sa.select(User).where(
+            User.username == username.data))
+        if user is not None:
+            raise ValidationError('Please use a different username.')
+
+    def validate_email(self, email):
+        user = db.session.scalar(sa.select(User).where(
+            User.email == email.data))
+        if user is not None:
+            raise ValidationError('Please use a different email address.')
+
+
+class EditProfileForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    full_name = StringField('Full Name')
+    phone_number = StringField('Phone Number')
+    submit = SubmitField('Submit')
+
+
+class ChangePasswordForm(FlaskForm):
+    password = PasswordField('Current (Old) Password', validators=[DataRequired()])
+    new_password = PasswordField('New Password', validators=[DataRequired()])
+    new_password2 = PasswordField(
+        'Repeat New Password', validators=[DataRequired(), EqualTo('new_password')])
+    submit = SubmitField('Register')
