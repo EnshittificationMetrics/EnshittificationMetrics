@@ -29,11 +29,14 @@ import re
 import requests
 import socket
 
-ntfypost = True #newest as of 9/11
+hostn = socket.gethostname()
+
+# posts on judgments made
+ntfypost = True
+alert_title = f'EM on {hostn} judgement'
+
 llm_api_key = os.getenv('MISTRAL_API_KEY')
 llm_temp = 0.25
-hostn = socket.gethostname()
-alert_title = f'EM on {hostn} judgement'
 
 
 JUDGMENT_TEMPLATE = """
