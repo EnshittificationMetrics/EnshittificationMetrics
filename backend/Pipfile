@@ -4,20 +4,22 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-# flask-migrate = "*"
+flask-migrate = "*"
 flask-sqlalchemy = "*"
 python-dotenv = "*"
-# flask-login = "*"
+flask-login = "*"
 requests = "*"
 beautifulsoup4 = "*"
 html5lib = "*"
-# flask-wtf = "*"
+flask-wtf = "*"
 langchain-core = "*"
 langchain-mistralai = "*"
 langchain = "*"
 duckduckgo-search = "*"
 langchain-community = "*"
 wikipedia = "*"
+flask-simple-captcha = "*"
+email-validator = "*"
 
 [dev-packages]
 
