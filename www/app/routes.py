@@ -30,6 +30,7 @@ from flask_mail import Mail, Message
 from dotenv import load_dotenv
 from urllib.parse import urlsplit
 
+load_dotenv(../.env)
 hostn = socket.gethostname()
 
 # posts on new user registrations
