@@ -410,3 +410,367 @@ def change_password():
                             form=form, 
                             captcha=new_captcha_dict)
 
+
+# dev / administrator only routes - locked down
+
+@app.route('/report')
+@login_required
+def report():
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    entities = Entity.query.all()
+    news = News.query.all()
+    art = Art.query.all()
+    references = References.query.all()
+    return render_template('report.html', 
+                           entities = entities, 
+                           news = news, 
+                           art = art, 
+                           references = references)
+
+
+@app.route('/manual_add', methods=['GET', 'POST'])
+@login_required
+def manual_add():
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = SelectAddForm()
+    if form.validate_on_submit():
+        match form.target_table.data:
+            case "Entity":
+                return redirect(url_for('manual_entity'))
+            case "News":
+                return redirect(url_for('manual_news'))
+            case "Art":
+                return redirect(url_for('manual_art'))
+            case "References":
+                return redirect(url_for('manual_reference'))
+            case _:
+                flash('Invalid target_table value.')
+                logging.error(f'Invalid target_table value in routes.py manual_add function match.')
+                return redirect(url_for('manual_add'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        return render_template('selectaddform.html', 
+                               form = form)
+
+
+@app.route('/manual_edit', methods=['GET', 'POST'])
+@login_required
+def manual_edit():
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = SelectForm()
+    if form.validate_on_submit():
+        id = form.target_id.data
+        match form.target_table.data:
+            case "Entity":
+                return redirect(url_for('manual_entity_edit', id = id))
+            case "News":
+                return redirect(url_for('manual_news_edit', id = id))
+            case "Art":
+                return redirect(url_for('manual_art_edit', id = id))
+            case "References":
+                return redirect(url_for('manual_reference_edit', id = id))
+            case _:
+                flash('Invalid target_table value.')
+                logging.error(f'Invalid target_table value in routes.py manual_edit function match.')
+                return redirect(url_for('manual_edit'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        return render_template('selectform.html', 
+                               form = form,
+                               header_text = 'edit')
+
+
+@app.route('/manual_delete', methods=['GET', 'POST'])
+@login_required
+def manual_delete():
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = SelectForm()
+    if form.validate_on_submit():
+        match form.target_table.data:
+            # case "Entity":
+            #     delete_record = Entity.query.get_or_404(form.target_id.data)
+            #     logging.info(f'Deleting {delete_record.name} (Entity ID #{form.target_id.data})')
+            #     db.session.delete(delete_record)
+            #     db.session.commit()
+            #     flash(f'Deleted entity ID #{form.target_id.data}')
+            #     return redirect(url_for('rankings'))
+            # case "News":
+            #     delete_record = News.query.get_or_404(form.target_id.data)
+            #     logging.info(f'Deleting {delete_record.text} (News ID #{form.target_id.data})')
+            #     db.session.delete(delete_record)
+            #     db.session.commit()
+            #     flash(f'Deleted news ID #{form.target_id.data}')
+            #     return redirect(url_for('news'))
+            # case "Art":
+            #     delete_record = Art.query.get_or_404(form.target_id.data)
+            #     logging.info(f'Deleting {delete_record.text} (Art ID #{form.target_id.data})')
+            #     db.session.delete(delete_record)
+            #     db.session.commit()
+            #     flash(f'Deleted art ID #{form.target_id.data}')
+            #     return redirect(url_for('art'))
+            # case "References":
+            #     delete_record = References.query.get_or_404(form.target_id.data)
+            #     logging.info(f'Deleting {delete_record.text} (Reference ID #{form.target_id.data})')
+            #     db.session.delete(delete_record)
+            #     db.session.commit()
+            #     flash(f'Deleted reference ID #{form.target_id.data}')
+            #     return redirect(url_for('references'))
+            case _:
+                flash('Invalid target_table value.')
+                logging.error(f'Invalid target_table value in routes.py manual_delete function match.')
+                return redirect(url_for('manual_delete'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        return render_template('selectform.html', 
+                               form = form,
+                               header_text = 'delete (no undo)')
+
+
+@app.route('/manual_entity_add', methods=['GET', 'POST'])
+@login_required
+def manual_entity():
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = EntityAddForm()
+    if form.validate_on_submit():
+        # entity = Entity(status        = form.status.data, 
+        #                 name          = form.name.data, 
+        #                 stage_current = form.stage_current.data, 
+        #                 stage_history = form.stage_history.data, 
+        #                 stage_EM4view = form.stage_EM4view.data, 
+        #                 date_started  = form.date_started.data, 
+        #                 date_ended    = form.date_ended.data, 
+        #                 summary       = form.summary.data, 
+        #                 corp_fam      = form.corp_fam.data, 
+        #                 category      = form.category.data)
+        # db.session.add(entity)
+        # db.session.commit()
+        flash(f'Added {form.name.data}')
+        return redirect(url_for('rankings'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        blank = Entity(id            = 0,
+                       status        = 'empty',
+                       name          = 'empty',
+                       stage_current = 1,
+                       stage_history = [ ['YYYY MMM DD', 1], ['YYYY MMM DD', 2] ],
+                       stage_EM4view = 1,
+                       date_started  = 'empty',
+                       date_ended    = 'empty',
+                       summary       = 'empty',
+                       corp_fam      = 'empty',
+                       category      = 'empty')
+        return render_template('manual_entity.html', 
+                               form = form,
+                               entity = blank)
+
+
+@app.route('/manual_news_add', methods=['GET', 'POST'])
+@login_required
+def manual_news():
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = NewsForm()
+    if form.validate_on_submit():
+        # news = News(date_pub  = form.date_pub.data, 
+        #             url       = form.url.data, 
+        #             text      = form.text.data, 
+        #             summary   = form.summary.data, 
+        #             ent_names = form.ent_names.data)
+        # db.session.add(news)
+        # db.session.commit()
+        flash(f'Added {form.text.data}')
+        return redirect(url_for('news'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        blank = News(id       = 0,
+                     date_pub = 'empty',
+                     url      = 'empty', 
+                     text     = 'empty', 
+                     summary  = 'empty',
+                     ent_names = ['empty1', 'empty2'])
+        return render_template('manual_news.html', 
+                               form = form,
+                               news = blank)
+
+
+@app.route('/manual_art_add', methods=['GET', 'POST'])
+@login_required
+def manual_art():
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = ArtForm()
+    if form.validate_on_submit():
+        ent_names = [item['item'] for item in form.ent_names.data]
+        # art = Art(date_pub  = form.date_pub.data, 
+        #           url       = form.url.data, 
+        #           text      = form.text.data, 
+        #           summary   = form.summary.data, 
+        #           ent_names = ent_names)
+        # db.session.add(art)
+        # db.session.commit()
+        flash(f'Added {form.text.data}')
+        return redirect(url_for('art'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        blank = Art(id       = 0,
+                    date_pub = 'empty',
+                    url      = 'empty', 
+                    text     = 'empty', 
+                    summary  = 'empty',
+                    ent_names = ['empty1', 'empty2'])
+        return render_template('manual_art.html', 
+                               form = form, 
+                               art = blank)
+
+
+@app.route('/manual_reference_add', methods=['GET', 'POST'])
+@login_required
+def manual_reference():
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = ReferencesForm()
+    if form.validate_on_submit():
+        # ref = References(date_pub = form.date_pub.data, 
+        #                  url      = form.url.data, 
+        #                  text     = form.text.data, 
+        #                  summary  = form.summary.data)
+        # db.session.add(ref)
+        # db.session.commit()
+        flash(f'Added {form.text.data}')
+        return redirect(url_for('references'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        blank = References(id       = 0,
+                           date_pub = 'empty',
+                           url      = 'empty', 
+                           text     = 'empty', 
+                           summary  = 'empty')
+        return render_template('manual_reference.html', 
+                               form = form, 
+                               reference = blank)
+
+
+@app.route('/manual_entity_edit/<id>', methods=['GET', 'POST'])
+@login_required
+def manual_entity_edit(id):
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = EntityEditForm()
+    entity = Entity.query.get_or_404(id)
+    if form.validate_on_submit():
+        # entity.status        = form.status.data
+        # entity.name          = form.name.data
+        # entity.stage_current = form.stage_current.data
+        # entity.stage_history = form.stage_history.data
+        # entity.stage_EM4view = form.stage_EM4view.data
+        # entity.date_started  = form.date_started.data
+        # entity.date_ended    = form.date_ended.data
+        # entity.summary       = form.summary.data
+        # entity.corp_fam      = form.corp_fam.data
+        # entity.category      = form.category.data
+        # db.session.commit()
+        flash(f'Edited {form.name.data}')
+        return redirect(url_for('rankings'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        form.status.data = entity.status
+        form.name.data = entity.name
+        form.stage_current.data = entity.stage_current
+        ### form.stage_history.data = entity.stage_history
+        form.stage_EM4view.data = entity.stage_EM4view
+        form.date_started.data = entity.date_started
+        form.date_ended.data = entity.date_ended
+        form.summary.data = entity.summary
+        form.corp_fam.data = entity.corp_fam
+        form.category.data = entity.category
+        return render_template('manual_entity.html', 
+                               form = form, 
+                               entity = entity)
+
+
+@app.route('/manual_news_edit/<id>', methods=['GET', 'POST'])
+@login_required
+def manual_news_edit(id):
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = NewsForm()
+    news = News.query.get_or_404(id)
+    if form.validate_on_submit():
+        # news.date_pub = form.date_pub.data
+        # news.url      = form.url.data
+        # news.text     = form.text.data
+        # news.summary  = form.summary.data
+        # news.ent_names= form.ent_names.data
+        # db.session.commit()
+        flash(f'Edited {form.text.data}')
+        return redirect(url_for('news'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        form.date_pub.data = news.date_pub
+        form.url.data = news.url
+        form.text.data = news.text
+        form.summary.data = news.summary
+        ### ent_names
+        return render_template('manual_news.html', 
+                               form = form, 
+                               news = news)
+
+
+@app.route('/manual_art_edit/<id>', methods=['GET', 'POST'])
+@login_required
+def manual_art_edit(id):
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = ArtForm()
+    art = Art.query.get_or_404(id)
+    if form.validate_on_submit():
+        # art.date_pub = form.date_pub.data
+        # art.url      = form.url.data
+        # art.text     = form.text.data
+        # art.summary  = form.summary.data
+        # art.ent_names= form.ent_names.data
+        # db.session.commit()
+        flash(f'Edited {form.text.data}')
+        return redirect(url_for('art'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        form.date_pub.data = art.date_pub
+        form.url.data = art.url
+        form.text.data = art.text
+        form.summary.data = art.summary
+        ### ent_names
+        return render_template('manual_art.html', 
+                               form = form, 
+                               art = art)
+
+
+@app.route('/manual_reference_edit/<id>', methods=['GET', 'POST'])
+@login_required
+def manual_reference_edit(id):
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    form = ReferencesForm()
+    reference = References.query.get_or_404(id)
+    if form.validate_on_submit():
+        # reference.date_pub = form.date_pub.data
+        # reference.url      = form.url.data
+        # reference.text     = form.text.data
+        # reference.summary  = form.summary.data
+        # db.session.commit()
+        flash(f'Edited {form.text.data}')
+        return redirect(url_for('references'))
+    else:
+        if request.method == 'POST': print(f'form.errors = {form.errors}')
+        form.date_pub.data = reference.date_pub
+        form.url.data = reference.url
+        form.text.data = reference.text
+        form.summary.data = reference.summary
+        return render_template('manual_reference.html', 
+                               form = form, 
+                               reference = reference)
+
