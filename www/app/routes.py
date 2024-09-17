@@ -3,10 +3,8 @@
 import os
 script_directory = os.path.dirname(os.path.abspath(__file__))
 if script_directory.startswith('/var/www/em/'):
-    mode = 'prod'
     logpath = '/var/www/em/log.log'
 else:
-    mode = 'dev'
     logpath = './log.log'
 
 import logging
@@ -17,14 +15,39 @@ logging.basicConfig(level = logging.INFO,
 
 from app import app, db
 from app.forms import EntityAddForm, EntityEditForm, NewsForm, ArtForm, ReferencesForm, SelectForm, SelectAddForm
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm
 from app.models import Entity, News, Art, References, User
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, current_user, login_required
 # https://flask-login.readthedocs.io/en/latest/#
 from flask_simple_captcha import CAPTCHA
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlalchemy as sa
+import socket
+# pipenv install Flask pyotp Flask-Mail
+import pyotp
+from flask_mail import Mail, Message
+from dotenv import load_dotenv
+from urllib.parse import urlsplit
+
+hostn = socket.gethostname()
+
+# posts on new user registrations
+ntfypost = True
+alert_title = f'EM on {hostn} user activity'
+
+# TOTP controls
+validity_period = 90 # default 30 (seconds); validity period for TOTP object
+interval_grace_period = 1 # default 0; flexibility, how many previous or future intervals (time steps) are allowed during verification
+
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY') # secure Flask session management
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+
+mail = Mail(app)
 
 CAPTCHA_CONFIG = {
     'SECRET_CAPTCHA_KEY': 'LONG_KEY',
@@ -47,8 +70,7 @@ app = SIMPLE_CAPTCHA.init_app(app)
 @app.route('/')
 @app.route('/index')
 def index():
-    return render_template('index.html', 
-                           mode = mode)
+    return render_template('index.html')
 
 
 @app.route('/rankings')
@@ -57,38 +79,33 @@ def rankings():
     # sort by: Alphabetically ~ by Stage ~ by Age
     # Filter by Category Type: All, Social, Cloud
     return render_template('rankings.html', 
-                           entities = entities,
-                           mode = mode)
+                           entities = entities)
 
 
 @app.route('/news')
 def news():
     news = News.query.all()
     return render_template('news.html', 
-                           news = news,
-                           mode = mode)
+                           news = news)
 
 
 @app.route('/art')
 def art():
     art = Art.query.all()
     return render_template('art.html', 
-                           art = art,
-                           mode = mode)
+                           art = art)
 
 
 @app.route('/references')
 def references():
     references = References.query.all()
     return render_template('references.html', 
-                           references = references,
-                           mode = mode)
+                           references = references)
 
 
 @app.route('/about')
 def about():
-    return render_template('about.html',
-                           mode = mode)
+    return render_template('about.html')
 
 
 # Authentication routes
@@ -215,7 +232,12 @@ def register():
             db.session.add(user)
             db.session.commit()
             flash('Congratulations, you are now a registered user!')
-            logging.info(f'=*=*=*> New user registered! full_name="{form.full_name.data}" username="{form.username.data}" email="{form.email.data}" phone #="{form.phone_number.data}"')
+            logging.info(f'=*=*=*> New user registered! full_name="{form.full_name.data}" \
+                username="{form.username.data}" email="{form.email.data}" phone #="{form.phone_number.data}"')
+            if ntfypost:
+                alert_data = f'New user "{form.username.data}" registered; full name "{form.full_name.data}", \
+                    email domain "{form.email.data.split('@')[-1]}", phone area-code "{form.phone_number.data[0:3]}"'
+                requests.post('https://ntfy.sh/000ntfy000EM000', headers={'Title' : alert_title}, data=(alert_data))
             return redirect(url_for('login'))
     elif request.method == 'GET':
         return render_template('register.html', 
@@ -234,7 +256,52 @@ def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
     return render_template('user.html', 
                             title=f'{username}',
-                            user=user)
+                            user=user,
+                            form = OtpcodeForm())
+
+
+@app.route('/send_otp')
+def send_otp():
+    email = current_user.email
+    otp = pyotp.random_base32()  # Generate a secret for TOTP
+    session['otp_secret'] = otp  # Store the OTP secret in session
+    totp = pyotp.TOTP(otp, interval = validity_period)  # Time-based OTP (TOTP)
+    otp_code = totp.now()   # Get the current OTP
+    msg = Message('Your OTP Code', sender = app.config['MAIL_USERNAME'], recipients = [email])
+    msg.body = f"\nSalutations,\n \
+                Your TOTP code for validating (email) user registration on EnshittificationMetrics.com is: {otp_code}\n \
+                Ideally enter it into the webpage within a minute or so of sending it. \n \
+                No one should ever ask you for this code, nor is there any value in keeping this code or email.\n \
+                Thanks,\n \
+                EnshittificationMetrics.com\n"
+    mail.send(msg)
+    next_page = request.args.get('next')
+    if not next_page or urlsplit(next_page).netloc != '':
+        next_page = url_for('index')  # fallback to the index page
+    return redirect(next_page)
+
+
+@app.route('/verify_otp', methods=['POST'])
+def verify_otp():
+    form = OtpcodeForm()
+    if form.validate_on_submit():
+        user_input = form.otp_code.data
+        totp = pyotp.TOTP(session['otp_secret'], interval = validity_period)
+        if totp.verify(user_input, valid_window = interval_grace_period):
+            try:
+                current_user.validations = 'email' # will have to tweak behavior when adding SMS/TXT validation...
+                db.session.commit()
+                flash(f'TOTP valid - {current_user.email} validated.')
+            except Exception as e:
+                session.rollback()
+                logging.error(f'Error {e} on assignment or commit of "validations = email" for current_user.username (with email "{current_user.email}")')
+                flash(f'TOTP valid - {current_user.email} would be validated, however some error occured in saving validation to database.')
+        else:
+            flash(f'TOTP not valid, time window missed, or some other error - {current_user.email} not validated. Please try again.')
+    next_page = request.args.get('next')
+    if not next_page or urlsplit(next_page).netloc != '':
+        next_page = url_for('index')  # fallback to the index page
+    return redirect(next_page)
 
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
@@ -258,10 +325,17 @@ def edit_profile():
                                     form=form, 
                                     captcha=new_captcha_dict)
         else:
-            current_user.username     = form.username.data
-            current_user.email        = form.email.data
-            current_user.full_name    = form.full_name.data
-            current_user.phone_number = form.phone_number.data
+            # change only if different and new is not blank
+            if (current_user.username != form.username.data) and (form.username.data != ''):
+                current_user.username = form.username.data
+            if (current_user.email != form.email.data) and (form.email.data != ''):
+                current_user.email = form.email.data
+                current_user.validations = '' # will have to tweak behavior when adding SMS/TXT validation...
+                # above line to reset email validation if email is changed after being validated
+            if (current_user.full_name != form.full_name.data) and (form.full_name.data != ''): 
+                current_user.full_name = form.full_name.data
+            if (current_user.phone_number != form.phone_number.data) and (form.phone_number.data != ''):
+                current_user.phone_number = form.phone_number.data
             try:
                 db.session.commit()
             except exc.IntegrityError as e:

@@ -2,32 +2,38 @@
 
 {% block content %}
     <h1>Edit Profile:</h1>
-    Note: May have to enter all fields, even ones not changing.<br>
+    Note: If you leave a field blank (or exactly the same), it shouldn't be changed.<br>
+    Note: To remove some existing value, enter &quot;N/A&quot; or &quot;removed&quot; or something.<br>
+    Note: If you change your email, you'll have to validate again. (In &quot;profile&quot; page.)<br>
     <form action="" method="post">
         {{ form.hidden_tag() }}
         <p>
-            {{ form.username.label }}<br>
+            {{ form.username.label }} was/is: (not yet implemented)<br>
+            {{ form.username.label }}: 
             {{ form.username(size=32) }}<br>
             {% for error in form.username.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
-            {{ form.email.label }}<br>
+            {{ form.email.label }} was/is: (not yet implemented)<br>
+            {{ form.email.label }}: 
             {{ form.email(size=120) }}<br>
             {% for error in form.email.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
-            {{ form.full_name.label }}<br>
+            {{ form.full_name.label }} was/is: (not yet implemented)<br>
+            {{ form.full_name.label }}: 
             {{ form.full_name(size=120) }}<br>
             {% for error in form.full_name.errors %}
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
         <p>
-            {{ form.phone_number.label }}<br>
+            {{ form.phone_number.label }} was/is: (not yet implemented)<br>
+            {{ form.phone_number.label }}: 
             {{ form.phone_number(size=20) }}<br>
             {% for error in form.phone_number.errors %}
             <span style="color: red;">[{{ error }}]</span>

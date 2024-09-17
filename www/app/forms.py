@@ -152,3 +152,8 @@ class ChangePasswordForm(FlaskForm):
     new_password2 = PasswordField(
         'Repeat New Password', validators=[DataRequired(), EqualTo('new_password')])
     submit = SubmitField('Register')
+
+
+class OtpcodeForm(FlaskForm):
+    otp_code = StringField('Emailed code')
+    submit = SubmitField('Okay')

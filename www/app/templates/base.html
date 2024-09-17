@@ -8,15 +8,16 @@
 	<body>
 		<h1>Enshittification Metrics:</h1>
 		Menu:<br>
-		<a href="{{ url_for('rankings') }}"  >rankings</a> ~ 
-		<a href="{{ url_for('news') }}"      >news</a> ~ 
-		<a href="{{ url_for('art') }}"       >art</a> ~ 
-		<a href="{{ url_for('references') }}">references</a> ~ 
-		<a href="{{ url_for('about') }}"     >about</a> ~ 
-		<a href="{{ url_for('index') }}"     >home</a> ~ 
+		<a href="{{ url_for('rankings') }}"     >rankings</a> ~ 
+		<a href="{{ url_for('news') }}"         >news</a> ~ 
+		<a href="{{ url_for('art') }}"          >art</a> ~ 
+		<a href="{{ url_for('references') }}"   >references</a> ~ 
+		<a href="{{ url_for('about') }}"        >about</a> ~ 
+		<a href="{{ url_for('index') }}"        >home</a> ~ 
 		{% if current_user.is_anonymous %}
-		<a href="{{ url_for('login') }}"     >login</a> ~ 
-		<a href="{{ url_for('register') }}"  >register</a><br>
+		<a href="{{ url_for('login') }}"        >login</a> ~ 
+		<a href="{{ url_for('register') }}"     >register</a> ~ 
+		<a href="{{ url_for('guest_sign_in') }}">login as guest</a><br>
 		{% else %}
 		<a href="{{ url_for('user', username=current_user.username) }}">{{ current_user.username }} profile</a> ~ 
 		<a href="{{ url_for('logout') }}"    >logout</a><br>
@@ -31,8 +32,7 @@
 		(not yet implemented)<br>
 		<br>
 		
-		(mode = {{mode}})<br>
-		{% if mode == 'dev' %}
+		{% if current_user.role == 'administrator' %}
 			<i>Dev stuff:<br>
 			<a href="{{ url_for('report') }}"       >report all</a> ~ 
 			<a href="{{ url_for('manual_add') }}"   >manual add</a> ~ 

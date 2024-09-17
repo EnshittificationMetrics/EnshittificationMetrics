@@ -7,8 +7,7 @@
                 <h1>{{ user.username }}'s profile:</h1>
                 {% if user == current_user %}
                     <p>
-                    <a href="{{ url_for('edit_profile', username=current_user.username) }}">Edit Profile</a>
-                    ~~~  
+                    <a href="{{ url_for('edit_profile', username=current_user.username) }}">Edit Profile</a> ~ 
                     <a href="{{ url_for('change_password', username=current_user.username) }}">Change Password</a>
                     </p> 
                 {% endif %}
@@ -23,7 +22,19 @@
             </tr>
             <tr>
                 <td>Email:</td>
-                <td><h1>{{ user.email }}</h1></td>
+                <td><h1>{{ user.email }}</h1>
+                {% if current_user.validations == 'email'%}
+                    email validated
+                {% else %}
+                    <a href="/send_otp?next={{ url_for('user', username=current_user.username) }}">Send validation code</a><br><br>
+                    <form action="/verify_otp?next={{ url_for('user', username=current_user.username) }}" method="post">
+                        {{ form.hidden_tag() }}
+                        {{ form.otp_code.label }}
+                        {{ form.otp_code(size=6) }}
+                        {{ form.submit() }}
+                    </form>
+                {% endif %}
+                </td>
             </tr>
             <tr>
                 <td>Phone Number:</td>

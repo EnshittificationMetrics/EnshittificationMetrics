@@ -66,10 +66,13 @@ Enshittification Metrics Technical Notes:
 
 ## EMAIL (DreamHost):
 - https://webmail.dreamhost.com
-- "Bristol4atEM"
-- username: bristol4@enshittificationmetrics.com
-- password: BW
 - (panel.dreamhost.com access via zake@steelrabbit.com, password in BW)
+- "Bristol Four"
+-- username: bristol4@enshittificationmetrics.com
+-- password: BW
+- "Continence Validation"
+-- username: continence@enshittificationmetrics.com
+-- password: BW
 
 
 ## buymeacoffee.com

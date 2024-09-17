@@ -78,6 +78,9 @@ class User(UserMixin, db.Model):
     #              "regular" - default value for new account creations
     #              "administrator" - gets into "dev" routes
     #              "disabled" - denied any login
+    validations:   so.Mapped[Optional[str]] = so.mapped_column(sa.String(64), default='')
+    #              '', 'email', figure out sms/txt and/or multiple later...
+    last_access:   so.Mapped[Optional[str]] = so.mapped_column(sa.String(11), default='')
     func_stage:    so.Mapped[int] = so.mapped_column(default = 1)
     #              To view/use site in; Stage 1 ~ Stage 2 ~ Stage 3 ~ Stage 4
     per_page:      so.Mapped[int] = so.mapped_column(default = 20)
