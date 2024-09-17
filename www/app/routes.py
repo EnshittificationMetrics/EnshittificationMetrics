@@ -221,8 +221,6 @@ def register():
         else:
             set_role = 'regular'
             email_value = form.email.data
-            if email_value.endswith("@vingtsunsito.com"): ### temp test, re-code once email verification is in place
-                set_role = 'vts'
             user = User(username=form.username.data, 
                         email=form.email.data, 
                         full_name=form.full_name.data, 
@@ -412,6 +410,55 @@ def change_password():
 
 
 # dev / administrator only routes - locked down
+
+
+@app.route('/show_values')
+@login_required
+def show_values():
+    if current_user.role != 'administrator':
+        return render_template('/index')
+    show_values = []
+    show_values.append(f'==> MISC\n')
+    show_values.append(f'script_directory: {script_directory}\n')
+    show_values.append(f'logpath: {logpath}\n')
+    show_values.append(f'==> NTFY\n')
+    show_values.append(f'hostn: {hostn}\n')
+    show_values.append(f'ntfypost: {ntfypost}\n')
+    show_values.append(f'alert_title: {alert_title}\n')
+    show_values.append(f'==> TOTP\n')
+    show_values.append(f'validity_period: {validity_period}\n')
+    show_values.append(f'interval_grace_period: {interval_grace_period}\n')
+    show_values.append(f'==> MAIL\n')
+    show_values.append(f"app.config['SECRET_KEY']: not shown\n")
+    show_values.append(f"app.config['MAIL_SERVER']: {app.config['MAIL_SERVER']}\n")
+    show_values.append(f"app.config['MAIL_PORT']: {app.config['MAIL_PORT']}\n")
+    show_values.append(f"app.config['MAIL_USE_TLS']: {app.config['MAIL_USE_TLS']}\n")
+    show_values.append(f"app.config['MAIL_USERNAME']: {app.config['MAIL_USERNAME']}\n")
+    show_values.append(f"app.config['MAIL_PASSWORD']: not shown\n")
+    show_values.append(f'==> CAPTCHA\n')
+    show_values.append(f'CAPTCHA_CONFIG: {CAPTCHA_CONFIG}\n')
+    show_values.append(f'==> current_user\n')
+    show_values.append(f'current_user.id: {current_user.id}\n')
+    show_values.append(f'current_user.username: {current_user.username}\n')
+    show_values.append(f'current_user.email: {current_user.email}\n')
+    show_values.append(f'current_user.password_hash: not shown\n')
+    show_values.append(f'current_user.full_name: {current_user.full_name}\n')
+    show_values.append(f'current_user.phone_number: {current_user.phone_number}\n')
+    show_values.append(f'current_user.role: {current_user.role}\n')
+    show_values.append(f'current_user.validations: {current_user.validations}\n')
+    show_values.append(f'current_user.last_access: {current_user.last_access}\n')
+    show_values.append(f'current_user.func_stage: {current_user.func_stage}\n')
+    show_values.append(f'current_user.per_page: {current_user.per_page}\n')
+    show_values.append(f'current_user.display_order: {current_user.display_order}\n')
+    show_values.append(f'current_user.ranking_sort:  {current_user.ranking_sort}\n')
+    show_values.append(f'current_user.ranking_cats: {current_user.ranking_cats}\n')
+    show_values.append(f'current_user.ranking_stat: {current_user.ranking_stat}\n')
+    show_values.append(f'current_user.viewing_mode: {current_user.viewing_mode}\n')
+    show_values.append(f'current_user.to_view: {current_user.to_view}\n')
+    show_values.append(f'==> END\n')
+    return render_template('show_values.html',
+                           show_values = show_values)
+
 
 @app.route('/report')
 @login_required
