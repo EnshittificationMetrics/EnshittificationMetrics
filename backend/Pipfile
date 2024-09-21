@@ -20,6 +20,9 @@ langchain-community = "*"
 wikipedia = "*"
 flask-simple-captcha = "*"
 email-validator = "*"
+flask = "*"
+pyotp = "*"
+flask-mail = "*"
 
 [dev-packages]
 
