@@ -4,8 +4,10 @@ import os
 script_directory = os.path.dirname(os.path.abspath(__file__))
 if script_directory.startswith('/var/www/em/'):
     logpath = '/var/www/em/log.log'
+    my_name = 'enshittificationmetrics.com'
 else:
     logpath = './log.log'
+    my_name = '192.168.50.125:5000'
 
 import logging
 logging.basicConfig(level = logging.INFO,
@@ -29,6 +31,7 @@ import pyotp
 from flask_mail import Mail, Message
 from dotenv import load_dotenv
 from urllib.parse import urlsplit
+import requests
 
 load_dotenv('../.env')
 hostn = socket.gethostname()
@@ -71,11 +74,21 @@ app = SIMPLE_CAPTCHA.init_app(app)
 @app.route('/')
 @app.route('/index')
 def index():
+    if 'user_referrer' not in session:
+        temp_value = get_referrer()
+        if temp_value:
+            if my_name not in temp_value:
+                session['user_referrer'] = temp_value
     return render_template('index.html')
 
 
 @app.route('/rankings')
 def rankings():
+    if 'user_referrer' not in session:
+        temp_value = get_referrer()
+        if temp_value:
+            if my_name not in temp_value:
+                session['user_referrer'] = temp_value
     entities = Entity.query.all()
     # sort by: Alphabetically ~ by Stage ~ by Age
     # Filter by Category Type: All, Social, Cloud
@@ -99,6 +112,11 @@ def art():
 
 @app.route('/references')
 def references():
+    if 'user_referrer' not in session:
+        temp_value = get_referrer()
+        if temp_value:
+            if my_name not in temp_value:
+                session['user_referrer'] = temp_value
     references = References.query.all()
     return render_template('references.html', 
                            references = references)
@@ -106,6 +124,11 @@ def references():
 
 @app.route('/about')
 def about():
+    if 'user_referrer' not in session:
+        temp_value = get_referrer()
+        if temp_value:
+            if my_name not in temp_value:
+                session['user_referrer'] = temp_value
     return render_template('about.html')
 
 
@@ -127,6 +150,11 @@ def captcha_test():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if 'user_referrer' not in session:
+        temp_value = get_referrer()
+        if temp_value:
+            if my_name not in temp_value:
+                session['user_referrer'] = temp_value
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     form = LoginForm()
@@ -148,6 +176,14 @@ def login():
                 return redirect(url_for('login'))
             login_user(user, remember=form.remember_me.data)
             logging.info(f'=*=*=*> User "{current_user.username}" logged in.')
+            ip_addr = get_client_ip()
+            logging.info(f'IP = {ip_addr}')
+            logging.info(f'Agent = {get_user_agent()}')
+            if 'user_referrer' not in session:
+                session['user_referrer'] = 'None'
+            logging.info(f'Referrer = {session['user_referrer']}')
+            logging.info(f'Domain = {get_domain_from_ip(ip_addr)}')
+            logging.info(f'ISP = {get_isp_from_ip(ip_addr)}')
             if current_user.role == 'disabled':
                 logging.info(f'=*=*=*> Disabled user "{current_user.username}" as their role is "{current_user.role}".')
                 logout_user()
@@ -170,9 +206,14 @@ def login():
 
 @app.route('/guest_sign_in')
 def guest_sign_in():
+    if 'user_referrer' not in session:
+        temp_value = get_referrer()
+        if temp_value:
+            if my_name not in temp_value:
+                session['user_referrer'] = temp_value
     if current_user.is_authenticated:
         return redirect(url_for('index'))
-        form = LoginForm()
+        form = LoginForm() ### delete this line? Not used...?
     new_captcha_dict = SIMPLE_CAPTCHA.create()
     user = db.session.scalar(
         sa.select(User).where(User.username == 'Guest'))
@@ -181,6 +222,14 @@ def guest_sign_in():
         return redirect(url_for('login'))
     login_user(user, remember=False)
     logging.info(f'=*=*=*> User "{current_user.username}" logged in.')
+    ip_addr = get_client_ip()
+    logging.info(f'IP = {ip_addr}')
+    logging.info(f'Agent = {get_user_agent()}')
+    if 'user_referrer' not in session:
+        session['user_referrer'] = 'None'
+    logging.info(f'Referrer = {session['user_referrer']}')
+    logging.info(f'Domain = {get_domain_from_ip(ip_addr)}')
+    logging.info(f'ISP = {get_isp_from_ip(ip_addr)}')
     if current_user.role == 'disabled':
         logging.info(f'=*=*=*> Disabled user "{current_user.username}" as their role is "{current_user.role}".')
         logout_user()
@@ -206,6 +255,11 @@ def logout():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if 'user_referrer' not in session:
+        temp_value = get_referrer()
+        if temp_value:
+            if my_name not in temp_value:
+                session['user_referrer'] = temp_value
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     form = RegistrationForm()
@@ -410,8 +464,52 @@ def change_password():
                             captcha=new_captcha_dict)
 
 
-# dev / administrator only routes - locked down
+# telemetry data gathers
 
+def get_client_ip():
+    if request.headers.getlist("X-Forwarded-For"):
+        ip = request.headers.getlist("X-Forwarded-For")[0]
+        # application is behind a reverse proxy like Apache with mod_proxy or a load balancer
+    else:
+        ip = request.remote_addr
+    return ip
+
+
+def get_user_agent():
+    user_agent = request.headers.get('User-Agent')
+    return user_agent
+
+
+def get_referrer():
+    referrer = request.headers.get('Referer') # Referrer misspelled in HTTP
+    return referrer
+
+
+def get_domain_from_ip(ip_address):
+    try:
+        domain = socket.gethostbyaddr(ip_address)
+        return domain[0]  # Returns the primary domain name
+    except socket.herror:
+        return f'No domain name found'
+
+
+def get_isp_from_ip(ip_address):
+    try:
+        response = requests.get(f"https://ipinfo.io/{ip_address}/json")
+        data = response.json()
+        return {
+            "ip": data.get("ip"),
+            "hostname": data.get("hostname"),
+            "city": data.get("city"),
+            "region": data.get("region"),
+            "country": data.get("country"),
+            "org": data.get("org")  # This gives the ISP/organization
+        }
+    except requests.RequestException as e:
+        return {"error": str(e)}
+
+
+# dev / administrator only routes - locked down
 
 @app.route('/show_values')
 @login_required
@@ -683,10 +781,10 @@ def manual_reference():
         return render_template('/index')
     form = ReferencesForm()
     if form.validate_on_submit():
-        # ref = References(date_pub = form.date_pub.data, 
-        #                  url      = form.url.data, 
-        #                  text     = form.text.data, 
-        #                  summary  = form.summary.data)
+        ref = References(date_pub = form.date_pub.data, 
+                         url      = form.url.data, 
+                         text     = form.text.data, 
+                         summary  = form.summary.data)
         # db.session.add(ref)
         # db.session.commit()
         flash(f'Added {form.text.data}')
