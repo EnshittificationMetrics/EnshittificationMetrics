@@ -1,6 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
+
+{% with messages = get_flashed_messages() %}
+	{% if messages %}
+		<ul>
+		{% for message in messages %}
+			<div class="flash-mess">
+			<li>{{ message }}</li>
+			</div>
+		{% endfor %}
+		</ul>
+	{% endif %}
+{% endwith %}
+
     <h1>Edit Profile:</h1>
     Note: If you leave a field blank (or exactly the same), it shouldn't be changed.<br>
     Note: To remove some existing value, enter &quot;N/A&quot; or &quot;removed&quot; or something.<br>

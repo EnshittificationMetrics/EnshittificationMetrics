@@ -2,6 +2,18 @@
 
 {% block content %}
 
+{% with messages = get_flashed_messages() %}
+	{% if messages %}
+		<ul>
+		{% for message in messages %}
+			<div class="flash-mess">
+			<li>{{ message }}</li>
+			</div>
+		{% endfor %}
+		</ul>
+	{% endif %}
+{% endwith %}
+
 <h1>Enshittification Rankings:</h1>
 
 Sort: <br>

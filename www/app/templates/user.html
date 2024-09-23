@@ -1,33 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <table cellspacing="5" cellpadding="5" border="5">
-        <tr valign="top">
-            <th colspan="2">
-                <h1>{{ user.username }}'s profile:</h1>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <ul>
+        {% for message in messages %}
+            <div class="flash-mess">
+            <li>{{ message }}</li>
+            </div>
+        {% endfor %}
+        </ul>
+    {% endif %}
+{% endwith %}
+
+<table cellspacing="5" cellpadding="5" border="5">
+    <tr valign="top">
+        <th colspan="2">
+            <h1>{{ user.username }}'s profile:</h1>
+            {% if user.role != 'guest' %}
                 {% if user == current_user %}
                     <p>
-                    <a href="{{ url_for('edit_profile', username=current_user.username) }}">Edit Profile</a> ~ 
-                    <a href="{{ url_for('change_password', username=current_user.username) }}">Change Password</a>
+                    <a href="{{ url_for('edit_profile', username=user.username) }}">Edit Profile</a> ~ 
+                    <a href="{{ url_for('change_password', username=user.username) }}">Change Password</a>
                     </p> 
                 {% endif %}
-            </th>
-            <tr>
-                <td>Username:</td>
-                <td><h1>{{ user.username }}</h1></td>
-            </tr>
-            <tr>
-                <td>Full Name:</td>
-                <td><h1>{{ user.full_name }}</h1></td>
-            </tr>
+            {% endif %}
+        </th>
+        <tr>
+            <td>Username:</td>
+            <td><h1>{{ user.username }}</h1></td>
+        </tr>
+        <tr>
+            <td>Full Name:</td>
+            <td><h1>{{ user.full_name }}</h1></td>
+        </tr>
+        {% if user.role != 'guest' %}
             <tr>
                 <td>Email:</td>
                 <td><h1>{{ user.email }}</h1>
-                {% if current_user.validations == 'email'%}
+                {% if user.validations == 'email' %}
                     email validated
                 {% else %}
-                    <a href="/send_otp?next={{ url_for('user', username=current_user.username) }}">Send validation code</a><br><br>
-                    <form action="/verify_otp?next={{ url_for('user', username=current_user.username) }}" method="post">
+                    <a href="/send_otp?next={{ url_for('user', username=user.username) }}">Send validation code</a><br><br>
+                    <form action="/verify_otp?next={{ url_for('user', username=user.username) }}" method="post">
                         {{ form.hidden_tag() }}
                         {{ form.otp_code.label }}
                         {{ form.otp_code(size=6) }}
@@ -40,18 +56,20 @@
                 <td>Phone Number:</td>
                 <td><h1>{{ user.phone_number }}</h1></td>
             </tr>
-            <tr>
-                <td>ID:</td>
-                <td><h1>{{ user.id }}</h1></td>
-            </tr>
-            {% if user.role %}
-            <tr>
-                <td>Role:</td>
-                <td><h1>{{ user.role }}</h1></td>
-            </tr>
-            {% endif %}
+        {% endif %}
+        <tr>
+            <td>ID:</td>
+            <td><h1>{{ user.id }}</h1></td>
         </tr>
-    </table>
-    <br>
-    <!-- <a href="{{ url_for('captcha_test', username=current_user.username) }}">captcha_test</a> -->
+        {% if user.role %}
+        <tr>
+            <td>Role:</td>
+            <td><h1>{{ user.role }}</h1></td>
+        </tr>
+        {% endif %}
+    </tr>
+</table>
+<br>
+<!-- <a href="{{ url_for('captcha_test', username=current_user.username) }}">captcha_test</a> -->
+
 {% endblock %}

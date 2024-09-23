@@ -40,14 +40,21 @@ llm_temp = 0.25
 
 
 JUDGMENT_TEMPLATE = """
-Judge the enshittification stage of the entity/entities, {entities}.
+Judge the enshittification stage of the entity/entities: {entities}.
+(Note that there may be some tricky entity names, for example: 
+"X" is what "Twitter" was renamed to and is ofter refered to as "X, formerly Twitter" as just the letter x is vague and may not be referring to the entity at all, 
+"Nothing" is a common word, so will need to reference content to see if this is the smartphone hardware vendor or not, 
+"EA" is a common letter combination, so need to reference content to see if this is the video game company or not, 
+"Ring" is a common word, so reference content to see if this is the smart doorbell company or not.)
+(Note to not to 'blame the messenger', for example a news story might simply be delivered on Slashdot, 
+and so this is just the news aggregator, not the entity to be judged.)
 Enshittification stages / life-cycle is defined as follows.
-"None"    - Irrelevant text insofar as enshittification. 
+"None"    - Irrelevant text insofar as enshittification.
 "Stage 1" - Attraction - great UX; innovation and features
 "Stage 2" - Monetization - introduce ads, premium features, subscription models; increased data collection
 "Stage 3" - Exploitation - algorithms tweaked for revenue, terms for creators less favorable, intrusive ads, paywalls
 "Stage 4" - Exodus - dissatisfied users, negative reviews, migration to alternatives, platform doubles down on profit maximization
-Note that flag for the word enshittification, or some variant, in this text is {enshit_hit}.
+Note that true/false flag for the word enshittification, or some variant, in this text is {enshit_hit}.
 Return "None", "Stage 1", "Stage 2", "Stage 3", or, "Stage 4". Please start response with none or stage number, then can follow with optional explanation. 
 Text to judge follows. 
 {text}

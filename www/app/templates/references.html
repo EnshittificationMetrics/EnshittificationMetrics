@@ -10,6 +10,18 @@ The Four Stages of the Downward Enshittification Spiral:<br>
  - Stage 4 - Exodus - dissatisfied users, negative reviews, migration to alternatives, platform doubles down on profit maximization<br>
 </h2>
 
+{% with messages = get_flashed_messages() %}
+	{% if messages %}
+		<ul>
+		{% for message in messages %}
+			<div class="flash-mess">
+			<li>{{ message }}</li>
+			</div>
+		{% endfor %}
+		</ul>
+	{% endif %}
+{% endwith %}
+
 <h1>
 Enshittification References:
 </h1>
