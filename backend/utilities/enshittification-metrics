@@ -1,0 +1,51 @@
+monthly
+nocompress
+notifempty
+delaycompress
+missingok
+
+/home/bsea/em/scrape.log {
+	su bsea bsea
+	rotate 48
+	maxsize 500k
+}
+
+/home/bsea/em/utilities/cronz.log {
+	su bsea bsea
+	rotate 3
+	minsize 12k
+}
+
+/home/bsea/em/utilities/EM_github_pull.log {
+	su bsea bsea
+	rotate 5
+	maxsize 150k
+}
+
+/var/www/em/app/instance/db_backup.log {
+	su bsea www-rwx
+	rotate 6
+	minsize 15k
+}
+
+/var/www/em/log.log {
+	su www-data www-rwx
+	rotate 48
+	maxsize 200k
+}
+
+# enshittification-metrics
+# www and backend log rotation configs
+# goes in /etc/logrotate.d
+
+# samples of other potential configs to use
+
+# If fail2ban runs as non-root it still needs to have write access
+# to logfiles.
+# create 640 fail2ban adm
+# create 640 root adm
+
+# olddir <relative_directory>
+
+# shred
+

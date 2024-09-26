@@ -207,6 +207,7 @@ Stripe:
 - set crontab -e to: 0 10 * * * cd /home/bsea/em/ && pipenv run python3 populate_blanks.py >> /home/bsea/em/scrape.log 2>&1
 - set crontab -e to: 0 12 * * * /usr/bin/python3 /home/bsea/em/utilities/rotate_db_backup.py
 - set crontab -e to: 50 1-23/2 * * * /usr/bin/python3 /home/bsea/em/utilities/copy_github_to_local.py
+- sudo cp /home/bsea/em/utilities/enshittification-metrics /etc/logrotate.d/enshittification-metrics
 #### setup GitHub code pull (replaces "copy in code" above)
 - mkdir /home/bsea/github
 - cd /home/bsea/github
