@@ -27,15 +27,19 @@
                 {% endif %}
             {% endif %}
         </th>
+
         <tr>
             <td>Username:</td>
             <td><h1>{{ user.username }}</h1></td>
         </tr>
+
         <tr>
             <td>Full Name:</td>
             <td><h1>{{ user.full_name }}</h1></td>
         </tr>
+
         {% if user.role != 'guest' %}
+
             <tr>
                 <td>Email:</td>
                 <td><h1>{{ user.email }}</h1>
@@ -52,21 +56,54 @@
                 {% endif %}
                 </td>
             </tr>
+
             <tr>
                 <td>Phone Number:</td>
                 <td><h1>{{ user.phone_number }}</h1></td>
             </tr>
+
         {% endif %}
-        <tr>
-            <td>ID:</td>
-            <td><h1>{{ user.id }}</h1></td>
-        </tr>
+
         {% if user.role %}
         <tr>
             <td>Role:</td>
             <td><h1>{{ user.role }}</h1></td>
         </tr>
         {% endif %}
+
+        {% if user.func_stage %}
+        <tr>
+            <td>Functional Stage to use <br>Enshittification Metrics in:</td>
+            <td><h1>{{ user.func_stage }}</h1></td>
+        </tr>
+        {% endif %}
+
+        {% if user.viewing_mode %}
+        <tr>
+            <td>Viewing Mode:</td>
+            <td><h1>{{ user.viewing_mode }}</h1></td>
+        </tr>
+        {% endif %}
+
+        {% if user.ranking_cats %}
+        <tr>
+            <td>Ranking Categories:</td>
+            <td><h1>{{ user.ranking_cats }}</h1></td>
+        </tr>
+        {% endif %}
+
+        {% if user.last_access %}
+        <tr>
+            <td>Last Access:</td>
+            <td><h1>{{ user.last_access }}</h1></td>
+        </tr>
+        {% endif %}
+
+        <tr>
+            <td>ID:</td>
+            <td><h1>{{ user.id }}</h1></td>
+        </tr>
+
     </tr>
 </table>
 <br>

@@ -20,7 +20,7 @@ from app.forms import EntityAddForm, EntityEditForm, NewsForm, ArtForm, Referenc
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm
 from app.models import Entity, News, Art, References, User
 from flask import render_template, redirect, url_for, flash, request, session
-from flask_login import login_user, logout_user, current_user, login_required
+from flask_login import login_user, logout_user, current_user, login_required, user_loaded_from_cookie
 # https://flask-login.readthedocs.io/en/latest/#
 from flask_simple_captcha import CAPTCHA
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -32,6 +32,7 @@ from flask_mail import Mail, Message
 from dotenv import load_dotenv
 from urllib.parse import urlsplit
 import requests
+import datetime
 
 load_dotenv('../.env')
 hostn = socket.gethostname()
@@ -175,6 +176,9 @@ def login():
                 flash('Invalid username or password')
                 return redirect(url_for('login'))
             login_user(user, remember=form.remember_me.data)
+            # Flask-Login sets 365 day (default) expiration time for "remember me" cookie.
+            user.last_access = datetime.datetime.now(datetime.timezone.utc).strftime('%Y %b %d') # ex: '2024 Sep 26'
+            db.session.commit()
             logging.info(f'=*=*=*> User "{current_user.username}" logged in.')
             ip_addr = get_client_ip()
             logging.info(f'IP = {ip_addr}')
@@ -202,6 +206,13 @@ def login():
                             title='Sign In (return)', 
                             form=form,
                             captcha=new_captcha_dict)
+
+
+@user_loaded_from_cookie.connect # flask-Login signal custom handler
+def log_remember_me_login(sender, user):
+    user.last_access = datetime.datetime.now(datetime.timezone.utc).strftime('%Y %b %d')
+    db.session.commit()
+    logging.info(f'=*=*=*> User "{user.username}" logged in via flask_login login_user "remember me" cookie.')
 
 
 @app.route('/guest_sign_in')
@@ -321,12 +332,12 @@ def send_otp():
     totp = pyotp.TOTP(otp, interval = validity_period)  # Time-based OTP (TOTP)
     otp_code = totp.now()   # Get the current OTP
     msg = Message('Your OTP Code', sender = app.config['MAIL_USERNAME'], recipients = [email])
-    msg.body = f"\nSalutations,\n \
-                Your TOTP code for validating (email) user registration on EnshittificationMetrics.com is: {otp_code}\n \
-                Ideally enter it into the webpage within a minute or so of sending it. \n \
-                No one should ever ask you for this code, nor is there any value in keeping this code or email.\n \
-                Thanks,\n \
-                EnshittificationMetrics.com\n"
+    msg.body = f"Salutations,\n" \
+               f"Your TOTP code for validating (email) user registration on EnshittificationMetrics.com is: {otp_code}\n" \
+               f"Ideally enter it into the webpage within a minute or so of sending it. \n" \
+               f"No one should ever ask you for this code, nor is there any value in keeping this code or email.\n" \
+               f"Thanks,\n" \
+               f"EnshittificationMetrics.com\n"
     mail.send(msg)
     next_page = request.args.get('next')
     if not next_page or urlsplit(next_page).netloc != '':
@@ -515,7 +526,7 @@ def get_isp_from_ip(ip_address):
 @login_required
 def show_values():
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     show_values = []
     show_values.append(f'==> MISC\n')
     show_values.append(f'script_directory: {script_directory}\n')
@@ -563,7 +574,7 @@ def show_values():
 @login_required
 def report():
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     entities = Entity.query.all()
     news = News.query.all()
     art = Art.query.all()
@@ -579,7 +590,7 @@ def report():
 @login_required
 def manual_add():
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = SelectAddForm()
     if form.validate_on_submit():
         match form.target_table.data:
@@ -605,7 +616,7 @@ def manual_add():
 @login_required
 def manual_edit():
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = SelectForm()
     if form.validate_on_submit():
         id = form.target_id.data
@@ -633,38 +644,38 @@ def manual_edit():
 @login_required
 def manual_delete():
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = SelectForm()
     if form.validate_on_submit():
         match form.target_table.data:
-            # case "Entity":
-            #     delete_record = Entity.query.get_or_404(form.target_id.data)
-            #     logging.info(f'Deleting {delete_record.name} (Entity ID #{form.target_id.data})')
-            #     db.session.delete(delete_record)
-            #     db.session.commit()
-            #     flash(f'Deleted entity ID #{form.target_id.data}')
-            #     return redirect(url_for('rankings'))
-            # case "News":
-            #     delete_record = News.query.get_or_404(form.target_id.data)
-            #     logging.info(f'Deleting {delete_record.text} (News ID #{form.target_id.data})')
-            #     db.session.delete(delete_record)
-            #     db.session.commit()
-            #     flash(f'Deleted news ID #{form.target_id.data}')
-            #     return redirect(url_for('news'))
-            # case "Art":
-            #     delete_record = Art.query.get_or_404(form.target_id.data)
-            #     logging.info(f'Deleting {delete_record.text} (Art ID #{form.target_id.data})')
-            #     db.session.delete(delete_record)
-            #     db.session.commit()
-            #     flash(f'Deleted art ID #{form.target_id.data}')
-            #     return redirect(url_for('art'))
-            # case "References":
-            #     delete_record = References.query.get_or_404(form.target_id.data)
-            #     logging.info(f'Deleting {delete_record.text} (Reference ID #{form.target_id.data})')
-            #     db.session.delete(delete_record)
-            #     db.session.commit()
-            #     flash(f'Deleted reference ID #{form.target_id.data}')
-            #     return redirect(url_for('references'))
+            case "Entity":
+                delete_record = Entity.query.get_or_404(form.target_id.data)
+                logging.info(f'Deleting {delete_record.name} (Entity ID #{form.target_id.data})')
+                # db.session.delete(delete_record)
+                # db.session.commit()
+                flash(f'Deleted entity ID #{form.target_id.data}')
+                return redirect(url_for('rankings'))
+            case "News":
+                delete_record = News.query.get_or_404(form.target_id.data)
+                logging.info(f'Deleting {delete_record.text} (News ID #{form.target_id.data})')
+                # db.session.delete(delete_record)
+                # db.session.commit()
+                flash(f'Deleted news ID #{form.target_id.data}')
+                return redirect(url_for('news'))
+            case "Art":
+                delete_record = Art.query.get_or_404(form.target_id.data)
+                logging.info(f'Deleting {delete_record.text} (Art ID #{form.target_id.data})')
+                # db.session.delete(delete_record)
+                # db.session.commit()
+                flash(f'Deleted art ID #{form.target_id.data}')
+                return redirect(url_for('art'))
+            case "References":
+                delete_record = References.query.get_or_404(form.target_id.data)
+                logging.info(f'Deleting {delete_record.text} (Reference ID #{form.target_id.data})')
+                # db.session.delete(delete_record)
+                # db.session.commit()
+                flash(f'Deleted reference ID #{form.target_id.data}')
+                return redirect(url_for('references'))
             case _:
                 flash('Invalid target_table value.')
                 logging.error(f'Invalid target_table value in routes.py manual_delete function match.')
@@ -680,19 +691,19 @@ def manual_delete():
 @login_required
 def manual_entity():
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = EntityAddForm()
     if form.validate_on_submit():
-        # entity = Entity(status        = form.status.data, 
-        #                 name          = form.name.data, 
-        #                 stage_current = form.stage_current.data, 
-        #                 stage_history = form.stage_history.data, 
-        #                 stage_EM4view = form.stage_EM4view.data, 
-        #                 date_started  = form.date_started.data, 
-        #                 date_ended    = form.date_ended.data, 
-        #                 summary       = form.summary.data, 
-        #                 corp_fam      = form.corp_fam.data, 
-        #                 category      = form.category.data)
+        entity = Entity(status        = form.status.data, 
+                        name          = form.name.data, 
+                        stage_current = form.stage_current.data, 
+                        stage_history = form.stage_history.data, 
+                        stage_EM4view = form.stage_EM4view.data, 
+                        date_started  = form.date_started.data, 
+                        date_ended    = form.date_ended.data, 
+                        summary       = form.summary.data, 
+                        corp_fam      = form.corp_fam.data, 
+                        category      = form.category.data)
         # db.session.add(entity)
         # db.session.commit()
         flash(f'Added {form.name.data}')
@@ -719,14 +730,14 @@ def manual_entity():
 @login_required
 def manual_news():
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = NewsForm()
     if form.validate_on_submit():
-        # news = News(date_pub  = form.date_pub.data, 
-        #             url       = form.url.data, 
-        #             text      = form.text.data, 
-        #             summary   = form.summary.data, 
-        #             ent_names = form.ent_names.data)
+        news = News(date_pub  = form.date_pub.data, 
+                    url       = form.url.data, 
+                    text      = form.text.data, 
+                    summary   = form.summary.data, 
+                    ent_names = form.ent_names.data)
         # db.session.add(news)
         # db.session.commit()
         flash(f'Added {form.text.data}')
@@ -748,15 +759,15 @@ def manual_news():
 @login_required
 def manual_art():
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = ArtForm()
     if form.validate_on_submit():
         ent_names = [item['item'] for item in form.ent_names.data]
-        # art = Art(date_pub  = form.date_pub.data, 
-        #           url       = form.url.data, 
-        #           text      = form.text.data, 
-        #           summary   = form.summary.data, 
-        #           ent_names = ent_names)
+        art = Art(date_pub  = form.date_pub.data, 
+                  url       = form.url.data, 
+                  text      = form.text.data, 
+                  summary   = form.summary.data, 
+                  ent_names = ent_names)
         # db.session.add(art)
         # db.session.commit()
         flash(f'Added {form.text.data}')
@@ -778,7 +789,7 @@ def manual_art():
 @login_required
 def manual_reference():
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = ReferencesForm()
     if form.validate_on_submit():
         ref = References(date_pub = form.date_pub.data, 
@@ -805,7 +816,7 @@ def manual_reference():
 @login_required
 def manual_entity_edit(id):
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = EntityEditForm()
     entity = Entity.query.get_or_404(id)
     if form.validate_on_submit():
@@ -843,7 +854,7 @@ def manual_entity_edit(id):
 @login_required
 def manual_news_edit(id):
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = NewsForm()
     news = News.query.get_or_404(id)
     if form.validate_on_submit():
@@ -871,7 +882,7 @@ def manual_news_edit(id):
 @login_required
 def manual_art_edit(id):
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = ArtForm()
     art = Art.query.get_or_404(id)
     if form.validate_on_submit():
@@ -899,7 +910,7 @@ def manual_art_edit(id):
 @login_required
 def manual_reference_edit(id):
     if current_user.role != 'administrator':
-        return render_template('/index')
+        return render_template('index.html')
     form = ReferencesForm()
     reference = References.query.get_or_404(id)
     if form.validate_on_submit():
