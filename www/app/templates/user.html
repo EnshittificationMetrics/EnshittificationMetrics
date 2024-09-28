@@ -74,14 +74,14 @@
         {% if user.func_stage %}
         <tr>
             <td>Functional Stage to use <br>Enshittification Metrics in:</td>
-            <td><h1>{{ user.func_stage }}</h1></td>
+            <td><h1>Stage {{ user.func_stage }}</h1></td>
         </tr>
         {% endif %}
 
         {% if user.viewing_mode %}
         <tr>
             <td>Viewing Mode:</td>
-            <td><h1>{{ user.viewing_mode }}</h1></td>
+            <td><h1>{{ user.viewing_mode }} mode</h1></td>
         </tr>
         {% endif %}
 
@@ -101,7 +101,7 @@
 
         <tr>
             <td>ID:</td>
-            <td><h1>{{ user.id }}</h1></td>
+            <td><h1>#{{ user.id }}</h1></td>
         </tr>
 
     </tr>

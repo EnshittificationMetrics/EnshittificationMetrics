@@ -17,8 +17,8 @@ logging.basicConfig(level = logging.INFO,
 
 from app import app, db
 from app.forms import EntityAddForm, EntityEditForm, NewsForm, ArtForm, ReferencesForm, SelectForm, SelectAddForm
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm, SurveyNewUserForm
-from app.models import Entity, News, Art, References, User, SurveyNewUser
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm
+from app.models import Entity, News, Art, References, User
 from flask import render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, current_user, login_required, user_loaded_from_cookie
 # https://flask-login.readthedocs.io/en/latest/#
@@ -139,8 +139,7 @@ def about():
 def captcha_test():
     if request.method == 'GET':
         new_captcha_dict = SIMPLE_CAPTCHA.create()
-        return render_template('captcha_test.html', 
-                               captcha=new_captcha_dict)
+        return render_template('captcha_test.html', captcha=new_captcha_dict)
     if request.method == 'POST':
         c_hash = request.form.get('captcha-hash')
         c_text = request.form.get('captcha-text')
@@ -178,7 +177,6 @@ def login():
                 return redirect(url_for('login'))
             login_user(user, remember=form.remember_me.data)
             # Flask-Login sets 365 day (default) expiration time for "remember me" cookie.
-            flash("If you haven't done it yet, please take the survey when you get a chance.")
             user.last_access = datetime.datetime.now(datetime.timezone.utc).strftime('%Y %b %d') # ex: '2024 Sep 26'
             db.session.commit()
             logging.info(f'=*=*=*> User "{current_user.username}" logged in.')
@@ -234,7 +232,6 @@ def guest_sign_in():
         flash('Invalid username')
         return redirect(url_for('login'))
     login_user(user, remember=False)
-    flash('Take a look around and explore as Guest, then please take the survey.')
     logging.info(f'=*=*=*> User "{current_user.username}" logged in.')
     ip_addr = get_client_ip()
     logging.info(f'IP = {ip_addr}')
@@ -289,7 +286,7 @@ def register():
                                     captcha=new_captcha_dict)
         else:
             set_role = 'regular'
-            email_value = form.email.data ### why this line?
+            email_value = form.email.data
             user = User(username=form.username.data, 
                         email=form.email.data, 
                         full_name=form.full_name.data, 
@@ -523,67 +520,6 @@ def get_isp_from_ip(ip_address):
         return {"error": str(e)}
 
 
-@app.route('/survey', methods=['GET', 'POST'])
-def survey():
-    content = 'survey_new_user'
-    form = SurveyNewUserForm()
-    new_captcha_dict = SIMPLE_CAPTCHA.create()
-    if request.method == 'GET':
-        if current_user.is_anonymous:
-            content = 'please_logon'
-            return render_template('survey.html', 
-                                   content = content)
-        else:
-            return render_template('survey.html', 
-                                   content = content, 
-                                   form = form, 
-                                   captcha = new_captcha_dict)
-    elif request.method == 'POST':
-        if form.validate_on_submit():
-            c_hash = request.form.get('captcha-hash')
-            c_text = request.form.get('captcha-text')
-            if not SIMPLE_CAPTCHA.verify(c_text, c_hash):
-                flash('CAPTCHA verification failed.')
-                return render_template('survey.html', 
-                                       content = content, 
-                                       form = form, 
-                                       captcha = new_captcha_dict)
-            else:
-                survey_datetime = datetime.datetime.now(datetime.timezone.utc).strftime('%Y %b %d @ %H:%M') # ex: '2024 Sep 27 @ 23:26'
-                survey = SurveyNewUser(discovery = form.discovery.data, 
-                                       thoughts = form.thoughts.data, 
-                                       suggestions = form.suggestions.data, 
-                                       monetization = form.monetization.data, 
-                                       datetime = survey_datetime, 
-                                       username = current_user.username)
-                db.session.add(survey)
-                db.session.commit()
-                flash('Survey submitted successfully.')
-                answers = f'User "{current_user.username}" submitted survey at {survey_datetime}: \n' \
-                          f'discovery: {form.discovery.data} \n' \
-                          f'suggestions: {form.suggestions.data} \n' \
-                          f'monetization: {form.monetization.data}'
-                logging.info(f'=*=*=*> {answers}')
-                if ntfypost:
-                    requests.post('https://ntfy.sh/000ntfy000EM000', headers={'Title' : alert_title}, data=(answers))
-                next_page = request.args.get('next')
-                if not next_page or urlsplit(next_page).netloc != '':
-                    next_page = url_for('index')
-                return redirect(next_page)
-        else:
-            flash("Some field(s) didn't validate - please edit answers as needed and resubmit.")
-            return render_template('survey.html', 
-                                   content = content, 
-                                   form = form, 
-                                   captcha = new_captcha_dict)
-    else:
-        flash('Must call survey by GET or POST!')
-        return render_template('survey.html', 
-                               content = content, 
-                               form = form, 
-                               captcha = new_captcha_dict)
-
-
 # dev / administrator only routes - locked down
 
 @app.route('/show_values')
@@ -715,29 +651,29 @@ def manual_delete():
             case "Entity":
                 delete_record = Entity.query.get_or_404(form.target_id.data)
                 logging.info(f'Deleting {delete_record.name} (Entity ID #{form.target_id.data})')
-                db.session.delete(delete_record)
-                db.session.commit()
+                # db.session.delete(delete_record)
+                # db.session.commit()
                 flash(f'Deleted entity ID #{form.target_id.data}')
                 return redirect(url_for('rankings'))
             case "News":
                 delete_record = News.query.get_or_404(form.target_id.data)
                 logging.info(f'Deleting {delete_record.text} (News ID #{form.target_id.data})')
-                db.session.delete(delete_record)
-                db.session.commit()
+                # db.session.delete(delete_record)
+                # db.session.commit()
                 flash(f'Deleted news ID #{form.target_id.data}')
                 return redirect(url_for('news'))
             case "Art":
                 delete_record = Art.query.get_or_404(form.target_id.data)
                 logging.info(f'Deleting {delete_record.text} (Art ID #{form.target_id.data})')
-                db.session.delete(delete_record)
-                db.session.commit()
+                # db.session.delete(delete_record)
+                # db.session.commit()
                 flash(f'Deleted art ID #{form.target_id.data}')
                 return redirect(url_for('art'))
             case "References":
                 delete_record = References.query.get_or_404(form.target_id.data)
                 logging.info(f'Deleting {delete_record.text} (Reference ID #{form.target_id.data})')
-                db.session.delete(delete_record)
-                db.session.commit()
+                # db.session.delete(delete_record)
+                # db.session.commit()
                 flash(f'Deleted reference ID #{form.target_id.data}')
                 return redirect(url_for('references'))
             case _:
@@ -768,8 +704,8 @@ def manual_entity():
                         summary       = form.summary.data, 
                         corp_fam      = form.corp_fam.data, 
                         category      = form.category.data)
-        db.session.add(entity)
-        db.session.commit()
+        # db.session.add(entity)
+        # db.session.commit()
         flash(f'Added {form.name.data}')
         return redirect(url_for('rankings'))
     else:
@@ -802,8 +738,8 @@ def manual_news():
                     text      = form.text.data, 
                     summary   = form.summary.data, 
                     ent_names = form.ent_names.data)
-        db.session.add(news)
-        db.session.commit()
+        # db.session.add(news)
+        # db.session.commit()
         flash(f'Added {form.text.data}')
         return redirect(url_for('news'))
     else:
@@ -832,8 +768,8 @@ def manual_art():
                   text      = form.text.data, 
                   summary   = form.summary.data, 
                   ent_names = ent_names)
-        db.session.add(art)
-        db.session.commit()
+        # db.session.add(art)
+        # db.session.commit()
         flash(f'Added {form.text.data}')
         return redirect(url_for('art'))
     else:
@@ -860,8 +796,8 @@ def manual_reference():
                          url      = form.url.data, 
                          text     = form.text.data, 
                          summary  = form.summary.data)
-        db.session.add(ref)
-        db.session.commit()
+        # db.session.add(ref)
+        # db.session.commit()
         flash(f'Added {form.text.data}')
         return redirect(url_for('references'))
     else:
@@ -884,17 +820,17 @@ def manual_entity_edit(id):
     form = EntityEditForm()
     entity = Entity.query.get_or_404(id)
     if form.validate_on_submit():
-        entity.status        = form.status.data
-        entity.name          = form.name.data
-        entity.stage_current = form.stage_current.data
-        entity.stage_history = form.stage_history.data
-        entity.stage_EM4view = form.stage_EM4view.data
-        entity.date_started  = form.date_started.data
-        entity.date_ended    = form.date_ended.data
-        entity.summary       = form.summary.data
-        entity.corp_fam      = form.corp_fam.data
-        entity.category      = form.category.data
-        db.session.commit()
+        # entity.status        = form.status.data
+        # entity.name          = form.name.data
+        # entity.stage_current = form.stage_current.data
+        # entity.stage_history = form.stage_history.data
+        # entity.stage_EM4view = form.stage_EM4view.data
+        # entity.date_started  = form.date_started.data
+        # entity.date_ended    = form.date_ended.data
+        # entity.summary       = form.summary.data
+        # entity.corp_fam      = form.corp_fam.data
+        # entity.category      = form.category.data
+        # db.session.commit()
         flash(f'Edited {form.name.data}')
         return redirect(url_for('rankings'))
     else:
@@ -922,12 +858,12 @@ def manual_news_edit(id):
     form = NewsForm()
     news = News.query.get_or_404(id)
     if form.validate_on_submit():
-        news.date_pub = form.date_pub.data
-        news.url      = form.url.data
-        news.text     = form.text.data
-        news.summary  = form.summary.data
-        news.ent_names= form.ent_names.data
-        db.session.commit()
+        # news.date_pub = form.date_pub.data
+        # news.url      = form.url.data
+        # news.text     = form.text.data
+        # news.summary  = form.summary.data
+        # news.ent_names= form.ent_names.data
+        # db.session.commit()
         flash(f'Edited {form.text.data}')
         return redirect(url_for('news'))
     else:
@@ -950,12 +886,12 @@ def manual_art_edit(id):
     form = ArtForm()
     art = Art.query.get_or_404(id)
     if form.validate_on_submit():
-        art.date_pub = form.date_pub.data
-        art.url      = form.url.data
-        art.text     = form.text.data
-        art.summary  = form.summary.data
-        art.ent_names= form.ent_names.data
-        db.session.commit()
+        # art.date_pub = form.date_pub.data
+        # art.url      = form.url.data
+        # art.text     = form.text.data
+        # art.summary  = form.summary.data
+        # art.ent_names= form.ent_names.data
+        # db.session.commit()
         flash(f'Edited {form.text.data}')
         return redirect(url_for('art'))
     else:
@@ -978,11 +914,11 @@ def manual_reference_edit(id):
     form = ReferencesForm()
     reference = References.query.get_or_404(id)
     if form.validate_on_submit():
-        reference.date_pub = form.date_pub.data
-        reference.url      = form.url.data
-        reference.text     = form.text.data
-        reference.summary  = form.summary.data
-        db.session.commit()
+        # reference.date_pub = form.date_pub.data
+        # reference.url      = form.url.data
+        # reference.text     = form.text.data
+        # reference.summary  = form.summary.data
+        # db.session.commit()
         flash(f'Edited {form.text.data}')
         return redirect(url_for('references'))
     else:

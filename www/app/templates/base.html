@@ -14,13 +14,14 @@
 		<a href="{{ url_for('references') }}"   >references</a> ~ 
 		<a href="{{ url_for('about') }}"        >about</a> ~ 
 		<a href="{{ url_for('index') }}"        >home</a> ~ 
+		<a href="{{ url_for('survey') }}"       >survey</a> ~ 
 		{% if current_user.is_anonymous %}
 		<a href="{{ url_for('login') }}"        >login</a> ~ 
 		<a href="{{ url_for('register') }}"     >register</a> ~ 
 		<a href="{{ url_for('guest_sign_in') }}">login as guest</a><br>
 		{% else %}
 		<a href="{{ url_for('user', username=current_user.username) }}">{{ current_user.username }} profile</a> ~ 
-		<a href="{{ url_for('logout') }}"    >logout</a><br>
+		<a href="{{ url_for('logout') }}"       >logout</a><br>
 		{% endif %}
 		<br>
 		
@@ -34,11 +35,12 @@
 		
 		{% if current_user.role == 'administrator' %}
 			<i>Dev stuff:<br>
+			Entities, News, Art, References: 
 			<a href="{{ url_for('report') }}"       >report all</a> ~ 
 			<a href="{{ url_for('manual_add') }}"   >manual add</a> ~ 
 			<a href="{{ url_for('manual_edit') }}"  >manual edit</a> ~ 
-			<a href="{{ url_for('manual_delete') }}">manual delete</a> ~ 
-			<a href="{{ url_for('show_values') }}">show values</a><br>
+			<a href="{{ url_for('manual_delete') }}">manual delete</a> <br>
+			<a href="{{ url_for('show_values') }}  ">show current user values</a><br>
 			</i><br>
 		{% endif %}
 		

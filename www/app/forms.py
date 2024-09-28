@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, IntegerField, FieldList, FormField, SelectField, PasswordField, BooleanField
+from wtforms import StringField, SubmitField, IntegerField, FieldList, FormField, SelectField, PasswordField, BooleanField, TextAreaField
 from wtforms.validators import ValidationError, DataRequired, NumberRange, Email, EqualTo
 from app.models import Entity, News, Art, References
 from app import db
@@ -157,3 +157,10 @@ class ChangePasswordForm(FlaskForm):
 class OtpcodeForm(FlaskForm):
     otp_code = StringField('Emailed code')
     submit = SubmitField('Okay')
+
+class SurveyNewUserForm(FlaskForm):
+    discovery =    TextAreaField('How did you find EnshittificationMetrics.com?')
+    thoughts =     TextAreaField('What do you think of the site?')
+    suggestions =  TextAreaField('Any suggestions or ideas for improvements or for additional features?')
+    monetization = TextAreaField('Any ideas on how to monetize, without enshittifing ourselves?')
+    submit = SubmitField('Submit')

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<p>Please note, positive / constructive suggestions, comments, and discussion, are welcome on our sub Reddit 
+<a href="https://www.reddit.com/r/Enshitif_Metrics/" target="_blank"><strong>r/Enshitif_Metrics</strong></a>!</p>
+
+{% with messages = get_flashed_messages() %}
+	{% if messages %}
+		<ul>
+		{% for message in messages %}
+			<div class="flash-mess">
+			<li>{{ message }}</li>
+			</div>
+		{% endfor %}
+		</ul>
+	{% endif %}
+{% endwith %}
+
+<h1>Survey</h1>
+
+{% if content == 'survey_new_user' %}
+
+	<form action="" method="post">
+		{{ form.hidden_tag() }}
+		<p>
+			{{ form.discovery.label }} <br>
+			{{ form.discovery(rows=1, cols=88) }}
+		</p>
+		<br>
+		<p>
+			{{ form.thoughts.label }} <br>
+			{{ form.thoughts(rows=3, cols=88) }}
+		</p>
+		<br>
+		<p>
+			{{ form.suggestions.label }} <br>
+			{{ form.suggestions(rows=5, cols=88) }}
+		</p>
+		<br>
+		<p>
+			{{ form.monetization.label }} <br>
+			{{ form.monetization(rows=4, cols=88) }}
+		</p>
+		<br>
+		<p>
+			{{ captcha_html(captcha)|safe }} <br>
+			(Be sure to fill in the captcha correctly before hitting submit.)
+		</p>
+		<br>
+		<p>{{ form.submit() }}</p>
+	</form>
+	<br>
+
+{% elif content == 'please_logon' %}
+
+	<p>To take survey, please 
+	<a href="{{ url_for('login', next='survey') }}">login</a>, or, 
+	<a href="{{ url_for('register', next='survey') }}">register</a> and then login, or, 
+	<a href="{{ url_for('guest_sign_in', next='survey') }}">login as guest</a>, first.</p>
+
+{% endif %}
+
+{% endblock %}

@@ -5,6 +5,7 @@ from flask_login import UserMixin
 from app import db, login
 from sqlalchemy.ext.mutable import MutableList
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import Text
 
 
 class Entity(UserMixin, db.Model):
@@ -59,13 +60,6 @@ class References(UserMixin, db.Model):
         return '<References {}>'.format(self.text)
 
 
-# references:
-# int:           so.Mapped[int] = so.mapped_column()
-# string:        so.Mapped[Optional[str]] = so.mapped_column(sa.String(20), nullable=True)
-# float:         so.Mapped[Optional[float]] = so.mapped_column()
-# list:          so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
-
-
 class User(UserMixin, db.Model):
     id:            so.Mapped[int] = so.mapped_column(primary_key=True)
     username:      so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
@@ -111,6 +105,27 @@ class User(UserMixin, db.Model):
 @login.user_loader
 def load_user(id):
     return db.session.get(User, int(id))
+
+
+class SurveyNewUser(UserMixin, db.Model):
+    id:            so.Mapped[int] = so.mapped_column(primary_key=True)
+    discovery:     so.Mapped[Optional[str]] = so.mapped_column(Text, nullable=True)
+    thoughts:      so.Mapped[Optional[str]] = so.mapped_column(Text, nullable=True)
+    suggestions:   so.Mapped[Optional[str]] = so.mapped_column(Text, nullable=True)
+    monetization:  so.Mapped[Optional[str]] = so.mapped_column(Text, nullable=True)
+    datetime:      so.Mapped[str] = so.mapped_column(sa.String(20), nullable=True)
+    username:      so.Mapped[str] = so.mapped_column(sa.String(64), nullable=True)
+
+    def __repr__(self):
+        return '<SurveyNewUser {}>'.format(self.text)
+
+
+# references:
+# int:           so.Mapped[int] = so.mapped_column()
+# string:        so.Mapped[Optional[str]] = so.mapped_column(sa.String(20), nullable=True)
+# float:         so.Mapped[Optional[float]] = so.mapped_column()
+# list:          so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
+# text:          so.Mapped[Optional[str]] = so.mapped_column(Text, nullable=True) # larger blocks of text
 
 
 # to make changes to class(es):
