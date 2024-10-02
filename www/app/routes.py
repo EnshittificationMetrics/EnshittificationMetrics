@@ -19,7 +19,7 @@ from app import app, db
 from app.forms import EntityAddForm, EntityEditForm, NewsForm, ArtForm, ReferencesForm, SelectForm, SelectAddForm
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm, SurveyNewUserForm
 from app.models import Entity, News, Art, References, User, SurveyNewUser
-from flask import render_template, redirect, url_for, flash, request, session
+from flask import render_template, redirect, url_for, flash, request, session, send_from_directory
 from flask_login import login_user, logout_user, current_user, login_required, user_loaded_from_cookie
 # https://flask-login.readthedocs.io/en/latest/#
 from flask_simple_captcha import CAPTCHA
@@ -37,7 +37,7 @@ import datetime
 load_dotenv('../.env')
 hostn = socket.gethostname()
 
-# posts on new user registrations
+# posts on new user registrations, and on taking survey
 ntfypost = True
 alert_title = f'EM on {hostn} user activity'
 
@@ -131,6 +131,14 @@ def about():
             if my_name not in temp_value:
                 session['user_referrer'] = temp_value
     return render_template('about.html')
+
+
+# This Flask robots.txt function will likely NOT be used at all as 
+# /etc/apache2/sites-enabled/*.conf's
+# <Directory /var/www/em/app/static> stanza will take care of it. 
+@app.route('/robots.txt')
+def robots_txt():
+    return send_from_directory(app.static_folder, 'robots.txt')
 
 
 # Authentication routes

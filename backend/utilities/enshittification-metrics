@@ -34,11 +34,16 @@ missingok
 	maxsize 200k
 }
 
+/home/bsea/em/utilities/delayed_upgrades.log {
+	rotate 6
+	maxsize 75k
+}
+
 # enshittification-metrics
 # www and backend log rotation configs
 # goes in /etc/logrotate.d
 
-# samples of other potential configs to use
+# samples of other potential configs to use:
 
 # If fail2ban runs as non-root it still needs to have write access
 # to logfiles.
