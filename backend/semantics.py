@@ -28,6 +28,8 @@ from langchain_mistralai.chat_models import ChatMistralAI
 import re
 import requests
 import socket
+import math
+from datetime import datetime
 
 hostn = socket.gethostname()
 
@@ -38,6 +40,10 @@ alert_title = f'EM on {hostn} judgement'
 llm_api_key = os.getenv('MISTRAL_API_KEY')
 llm_temp = 0.25
 
+# Exponential decay factor
+# Controls how fast weights decay with time
+# Smaller values = faster decay
+decay_factor = 30
 
 JUDGMENT_TEMPLATE = """
 Judge the enshittification stage of the entity/entities: {entities}.
@@ -157,22 +163,51 @@ def semantic_processing(title, url, date, content):
         for entity in entities:
             record = Entity.query.filter_by(name=entity).first()
             if record:
-                # set entity stage
-                record.stage_current = stage_int_value
                 # add stage to entity stage history
                 if record.stage_history is None:
                     record.history = []
                 record.stage_history.append([date, stage_int_value])
+                # set entity stage
+                record.stage_current = weighted_avg_stage_hist(record.stage_history)
+                # record.stage_current = stage_int_value # older code prior to weighted_avg_stage_hist
+                ### from "Entity.stage_history" pop oldest stuff off list when gets too big
                 # if needed, transition entity from potential to live with stage population
                 if record.status == 'potential':
                     record.status = 'live'
-                alert_data = f'Set {entity} to stage {stage_int_value}! '
+                alert_data = f'Set {entity} to stage {record.stage_current} (weighted avg), due to new news of stage {stage_int_value}! '
                 judgment += alert_data
                 alert_data += f'(Per text from "{title}" referencing "{url}".)'
+                logging.info(f'EM judgement: {alert_data}')
                 if ntfypost: requests.post('https://ntfy.sh/000ntfy000EM000', 
                     headers={'Title' : alert_title}, data=(alert_data))
         db.session.commit()
     return judgment
+
+
+def weighted_avg_stage_hist(stage_values):
+    # each (mutable) list item in stage_values should be date (str %Y-%b-%d) and stage value (int) pair
+    # ex: [['2024-AUG-17', 2], ['2024-AUG-18', 1], ['2024-SEP-06', 3], ['2024-SEP-06', 1], ['2024-SEP-09', 3], ['2024-SEP-11', 3]]
+    most_recent_date = max([datetime.strptime(entry[0], '%Y-%b-%d').date() for entry in stage_values])
+    total_weighted_value = 0
+    total_weight = 0
+    for date, value in stage_values:
+        # Calculate time difference in days
+        time_diff = (most_recent_date - datetime.strptime(date, '%Y-%b-%d').date()).days
+        # Calculate weight using exponential decay (more recent = higher weight)
+        weight = math.exp(-time_diff / decay_factor)
+        # Accumulate weighted value and weight
+        if type(value) == str:
+            value = int(value[-1]) # Catches some old entries where str "Stage 2" is instead of int "2"
+        total_weighted_value += value * weight
+        total_weight += weight
+    weighted_average = total_weighted_value / total_weight if total_weight != 0 else 0
+    # round float and keep btwn 1 and 4 (integer 1, 2, 3, or, 4)
+    stage_value = max(1, min(round(weighted_average), 4))
+    logging.info(f'Will remove these four logging lines once monitored and tuned; decay_factor: {decay_factor}')
+    logging.info(f'stage_values: {stage_values}')
+    logging.info(f'weighted_average: {weighted_average}')
+    logging.info(f'stage_value: {stage_value}')
+    return stage_value
 
 
 def remove_duplicates(input_list):
@@ -181,4 +216,3 @@ def remove_duplicates(input_list):
         if item not in unique_list:
             unique_list.append(item)
     return unique_list
-

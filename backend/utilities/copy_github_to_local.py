@@ -28,6 +28,7 @@ def main():
     logging.info(f'Completed.\n')
 
 def check_for_updates(repo_dir):
+    ### should wrap this in a try/except
     subprocess.run(["git", "fetch"], check=True, cwd=repo_dir)
     result = subprocess.run(["git", "status"], capture_output=True, text=True, cwd=repo_dir)
     if "Your branch is behind" in result.stdout:
@@ -39,7 +40,7 @@ def check_for_updates(repo_dir):
 
 def fetch_and_pull(repo_dir):
     try:
-        subprocess.run(["git", "fetch"], check=True, cwd=repo_dir) # don't really need this as just done in check_for_updates
+        subprocess.run(["git", "fetch"], check=True, cwd=repo_dir) # don't really need this as just done in check_for_updates, but don't want to rename function and doesn't really hurt
         subprocess.run(["git", "pull"], check=True, cwd=repo_dir)
         logging.info(f'Git fetched and pulled updates in {repo_dir}.')
     except subprocess.CalledProcessError as e:
@@ -53,7 +54,7 @@ def place_files(src, dest_www, dest_back):
         elif 'backend' in dirpath:
             dst = dest_back
         else:
-            continue # misc git related stuff we don't need to copy
+            continue # gh (readme, license) or misc git related stuff we don't need to copy
         rough_relative_path = os.path.relpath(dirpath, src)
         # print(f'rough_relative_path = {rough_relative_path}') # for testing
         # split relative path, remove first part (www or backend) and rejoin back together
