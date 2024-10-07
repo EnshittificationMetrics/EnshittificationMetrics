@@ -1,5 +1,6 @@
-# Upgrade only the packages whose updates are more than x days old
-# Reboot if required, or if no reboot in last y days
+# Automated OS maintenance
+# Upgrade only the packages whose updates are more than "days_delay" days old
+# Reboot if required, or if no reboot in last "days_force_reboot" days
 
 if __file__.startswith('/home/bsea/em/'):
     log_path = '/home/bsea/em/utilities/delayed_upgrades.log' # EM prod
@@ -50,8 +51,7 @@ def get_last_update_date(package_name):
     return None
 
 def upgrade_package(package_name, last_update_date):
-    print(f'Upgrading {package_name}... Updated {last_update_date}.')
-    ### run_command(f'sudo apt install -y {package_name}')
+    run_command(f'sudo apt install -y {package_name}')
     logging.info(f'Upgrading {package_name}... Updated {last_update_date}.')
 
 def get_uptime():
@@ -71,55 +71,56 @@ def get_uptime():
         return None
 
 def check_logged_in_users():
-    users = run_command("who")
-    return len(users) > 0
+    users = run_command("who -m") # with -m should show SSH and not WinSCP users
+    if len(users) > 0:
+        logging.info(f'who -m returned: {users}')
+        return True
+    return False
 
 # Check for active web server connections (Apache on port 80 or 443)
 def check_web_server_activity():
     connections = run_command("sudo ss -tuln | grep ':80\\|:443'")
-    return len(connections) > 0
+    if len(connections) > 0:
+        logging.info(f"sudo ss -tuln | grep ':80\\|:443' returned: {connections}")
+        return True
+    return False
 
 def check_open_files():
     open_files = run_command("lsof /var/www/")
-    return len(open_files) > 0
+    if len(open_files) > 0:
+        logging.info(f"lsof /var/www/ returned: {open_files}")
+        return True
+    return False
 
 def can_reboot():
     if check_logged_in_users():
-        print("Users are currently logged in. Reboot is not safe.")
         logging.warning(f'Users are currently logged in. Reboot is not safe.')
         return False
     if check_web_server_activity():
-        print("Web server is active. Reboot is not safe.")
         logging.warning(f'Web server is active. Reboot is not safe.')
         return False
     if check_open_files():
-        print("There are open files in the web server directory. Reboot is not safe.")
         logging.warning(f'There are open files in the web server directory. Reboot is not safe.')
         return False
-    print("No users logged in, no web server activity, no open files. Safe to reboot.")
     return True
 
 def force_reboot():
     if can_reboot():
-        print("Proceeding with reboot...")
         try:
-            print("Rebooting system...")
             logging.info(f'Rebooting system...')
             # Run the 'reboot' command
-            ### subprocess.run(['sudo', 'reboot'], check=True)
+            subprocess.run(['sudo', 'reboot'], check=True)
         except subprocess.CalledProcessError as e:
-            print(f"Error during reboot attempt: {e}")
             logging.error(f'Error during reboot attempt: {e}')
     else:
-        print("Reboot canceled due to active users or processes.")
-        # will try again tmw (next crontab run)
+        logging.warning("Reboot canceled due to active users or processes; should try again next crontab run.")
 
 def main():
+    runningas = run_command("whoami")
+    logging.info(f'Running {__FILE__} as {runningas}.')
     # update section
     upgradable_packages = get_upgradable_packages()
-    if not upgradable_packages:
-        print("No packages to upgrade.")
-    else:
+    if upgradable_packages:
         skipped_list = ''
         for package in upgradable_packages:
             last_update_date = get_last_update_date(package)
@@ -127,30 +128,29 @@ def main():
                 if last_update_date < some_days_ago:
                     upgrade_package(package, last_update_date)
                 else:
-                    print(f"{package} last updated on {last_update_date}, skipping as less than {days_delay} days old.")
+                    # print(f"{package} last updated on {last_update_date}, skipping as less than {days_delay} days old.")
                     skipped_list += f'{package} updated {last_update_date}, '
             else:
-                print(f"Could not retrieve changelog date for {package}, skipping.")
                 logging.error(f'Could not retrieve changelog date for package "{package}".')
                 logging.error(f'Need to figure out what was listed and tune "date_pattern" to deal with it.')
-        logging.info(f'Note: Skipped {skipped_list}')
-        ### time.sleep(5 * 60) # 5 min pause for updates to settle...
+        if skipped_list:
+            logging.info(f'Note: Skipped: {skipped_list}')
+        time.sleep(5 * 60) # 5 min pause for updates to settle...
     # reboot section
     reboot_file = "/var/run/reboot-required" # on Ubuntu
     if os.path.isfile(reboot_file):
-        print(f'Reboot needed per "{reboot_file}".')
+        logging.info(f'Reboot needed per "{reboot_file}".')
         force_reboot()
     else:
         uptime = get_uptime()
         if uptime:
             logging.info(f'Uptime is {uptime}.')
             if uptime > timedelta(days=days_force_reboot):
-                print(f'Rebooting due to no reboot in {uptime}; greater than {days_force_reboot}.')
+                logging.info(f'Rebooting due to no reboot in {uptime}; greater than {days_force_reboot}.')
                 force_reboot()
             else:
-                print(f'Not rebooting as not required and uptime ({uptime}) less than {days_force_reboot} days.')
+                logging.info(f'Not rebooting as not required and uptime ({uptime}) less than {days_force_reboot} days.')
         else:
-            print(f'Unable to get uptime.')
             logging.error(f'Unable to get uptime.')
     logging.info(f'Done run of {os.path.abspath(__file__)}\n')
 

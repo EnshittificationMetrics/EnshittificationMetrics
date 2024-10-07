@@ -1,0 +1,35 @@
+/* default style if no @media match */
+.container {
+    width: 85%;
+    padding: 15px;
+}
+
+/* desktop screens wider than 1024px */
+@media (min-width: 1024px) {
+    .container {
+        width: 80%;
+        padding: 20px;
+    }
+}
+
+/* tablet screens between 769px and 1023px */
+@media (min-width: 769px) and (max-width: 1023px) {
+    .container {
+        width: 90%;
+        padding: 15px;
+    }
+}
+
+/* mobile screens smaller than 768px */
+@media (max-width: 768px) {
+    .container {
+        width: 100%;
+        padding: 10px;
+    }
+}
+
+/* flash feedback messages */
+.flash-mess {
+    color: red;
+    font-weight: bold;
+}
