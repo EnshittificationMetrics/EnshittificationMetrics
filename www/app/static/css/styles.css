@@ -32,4 +32,18 @@
 .flash-mess {
     color: red;
     font-weight: bold;
+    border: 5px solid black;
+}
+
+/* Default light mode */
+body {
+    background-color: white;
+    color: black;
+    transition: background-color 0.25s, color 0.25s;
+}
+
+/* dark mode style */
+body.dark-mode {
+    background-color: #121212;
+    color: white;
 }

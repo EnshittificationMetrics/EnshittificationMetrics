@@ -19,7 +19,7 @@ from app import app, db
 from app.forms import EntityAddForm, EntityEditForm, NewsForm, ArtForm, ReferencesForm, SelectForm, SelectAddForm
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm, SurveyNewUserForm
 from app.models import Entity, News, Art, References, User, SurveyNewUser
-from flask import render_template, redirect, url_for, flash, request, session, send_from_directory
+from flask import render_template, redirect, url_for, flash, request, session, send_from_directory, jsonify
 from flask_login import login_user, logout_user, current_user, login_required, user_loaded_from_cookie
 # https://flask-login.readthedocs.io/en/latest/#
 from flask_simple_captcha import CAPTCHA
@@ -139,6 +139,17 @@ def about():
 @app.route('/robots.txt')
 def robots_txt():
     return send_from_directory(app.static_folder, 'robots.txt')
+
+
+@app.route('/update-viewing-mode', methods=['POST'])
+@login_required
+def update_viewing_mode():
+    data = request.get_json()
+    if 'viewing_mode' in data:
+        current_user.viewing_mode = data['viewing_mode']
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    return jsonify({'status': 'error'}), 400
 
 
 # Authentication routes

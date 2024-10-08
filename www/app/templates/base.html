@@ -21,11 +21,12 @@
 		{% if current_user.is_anonymous %}
 		<a href="{{ url_for('login') }}"        >login</a> ~ 
 		<a href="{{ url_for('register') }}"     >register</a> ~ 
-		<a href="{{ url_for('guest_sign_in') }}">login as guest</a><br>
+		<a href="{{ url_for('guest_sign_in') }}">login as guest</a> ~ 
 		{% else %}
 		<a href="{{ url_for('user', username=current_user.username) }}">{{ current_user.username }} profile</a> ~ 
-		<a href="{{ url_for('logout') }}"       >logout</a><br>
+		<a href="{{ url_for('logout') }}"       >logout</a> ~ 
 		{% endif %}
+		<button id="modeToggle">dark/light</button><br>
 		<br>
 		
 		Selector for functional stage:<br>
@@ -48,5 +49,6 @@
 		{% endif %}
 		
 		{% block content %}{% endblock %}
+		<script src="{{ url_for('static', filename='js/togglemodescript.js') }}"></script>
 	</body>
 </html>
