@@ -1,4 +1,4 @@
-# Automated OS maintenance
+    # Automated OS maintenance
 # Upgrade only the packages whose updates are more than "days_delay" days old
 # Reboot if required, or if no reboot in last "days_force_reboot" days
 
@@ -117,10 +117,12 @@ def force_reboot():
 
 def main():
     runningas = run_command("whoami")
-    logging.info(f'Running {__FILE__} as {runningas}.')
+    logging.info(f'Running {__file__} as: {runningas}')
     # update section
     upgradable_packages = get_upgradable_packages()
-    if upgradable_packages:
+    if not upgradable_packages:
+        logging.info(f'No upgradable package right now.')
+    else:
         skipped_list = ''
         for package in upgradable_packages:
             last_update_date = get_last_update_date(package)
@@ -146,7 +148,7 @@ def main():
         if uptime:
             logging.info(f'Uptime is {uptime}.')
             if uptime > timedelta(days=days_force_reboot):
-                logging.info(f'Rebooting due to no reboot in {uptime}; greater than {days_force_reboot}.')
+                logging.info(f'Should reboot due to no reboot in {uptime} (greater than {days_force_reboot} days).')
                 force_reboot()
             else:
                 logging.info(f'Not rebooting as not required and uptime ({uptime}) less than {days_force_reboot} days.')
