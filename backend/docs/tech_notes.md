@@ -1,6 +1,8 @@
 Enshittification Metrics Technical Notes:
 
+
 # PRODUCTION ENVIRONMENT:
+
 
 ## em02 (DigitalOcean droplet):
 #### Build droplet on DigitalOcean
