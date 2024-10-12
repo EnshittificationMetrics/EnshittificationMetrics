@@ -1,36 +1,34 @@
 #!/usr/bin/env python
 
-# git status checks GitHub repo for changes / updates
-# git pull pulls repo to clone_dir
-# copies clone_dir out to dest_dir_www and dest_dir_back
-### ISSUE: Need to reset dir/file owner/permissions???
-### ISSUE: Need to restart/reset Apache???
-### ISSUE: Does not clean up or deal with renamed or deleted files!
+"""
+Does git status check against GitHub repo for changes / updates.
+Does git pull of repo to clone_dir.
+Copies clone_dir out to dest_dir_www and dest_dir_back.
+Checks for some restarts needed.
+ISSUES: Does not clean up or deal with renamed or deleted files!
+"""
+
+# Define directories
+clone_dir = '/home/bsea/github'
+dest_dir_www = '/var/www/em'
+dest_dir_back = '/home/bsea/em'
 
 import logging
 logging.basicConfig(level = logging.INFO,
-                    filename = '/home/bsea/em/utilities/EM_github_pull.log',
+                    filename = dest_dir_www + '/utilities/EM_github_pull.log',
                     filemode = 'a',
                     format = '%(asctime)s -%(levelname)s - %(message)s')
 import subprocess
 import os
 import shutil
 
-def main():
-    # Define directories
-    clone_dir = '/home/bsea/github'
-    dest_dir_www = '/var/www/em'
-    dest_dir_back = '/home/bsea/em'
-    logging.info(f'Starting GitHub {clone_dir} sync and file copy to {dest_dir_www} and {dest_dir_back}.')
-    if check_for_updates(clone_dir):
-        fetch_and_pull(clone_dir)
-        place_files(clone_dir, dest_dir_www, dest_dir_back)
-    logging.info(f'Completed.\n')
-
 def check_for_updates(repo_dir):
-    ### should wrap this in a try/except
-    subprocess.run(["git", "fetch"], check=True, cwd=repo_dir)
-    result = subprocess.run(["git", "status"], capture_output=True, text=True, cwd=repo_dir)
+    try:
+        subprocess.run(["git", "fetch"], check=True, cwd=repo_dir)
+        result = subprocess.run(["git", "status"], capture_output=True, text=True, cwd=repo_dir)
+    except subprocess.CalledProcessError as e:
+        logging.error(f'Error during git fetch / status: {e}')
+        return False
     if "Your branch is behind" in result.stdout:
         logging.info(f'In {repo_dir} git fetch / status indicates updates available.')
         return True
@@ -45,6 +43,30 @@ def fetch_and_pull(repo_dir):
         logging.info(f'Git fetched and pulled updates in {repo_dir}.')
     except subprocess.CalledProcessError as e:
         logging.error(f'Error during fetch or pull: {e}')
+
+# What requires a restart:
+# -- Enabling/Disabling Apache Modules, SSL Certificate Changes       --> sudo systemctl restart apache2      (out of scope of this program)
+# -- Changes to /etc/apache2/sites-available/                         --> sudo systemctl reload apache2       (out of scope of this program)
+# -- Changes to mod-wsgi configuration                                --> sudo systemctl reload apache2       (in scope)
+# -- Python Code Changes (Flask app, views, models, app.py, views.py  --> touch /var/www/yourapp/yourapp.wsgi (in scope)
+# -- Install/update Python packages in virtual environment            --> touch /var/www/yourapp/yourapp.wsgi (in scope)
+# -- Changes to HTML, CSS, JavaScript, Jinja2 templates, static files --> none                                (in scope)
+
+def check_for_restart_needed(filename):
+    """ Sets apache_restart_needed flag for change to middleapp.wsgi, or touches middleapp.wsgi for changes to Flask .py or Python packages. """
+    match filename:
+        case 'middleapp.wsgi':
+            try:
+                subprocess.run(['touch', dest_dir_back + '/utilities/apache_reload_needed'], check=True)
+                logging.info(f'Set apache_reload_needed flag.')
+            except subprocess.CalledProcessError as e:
+                logging.error(f'Unable to set apache_restart_needed flag; got error: {e}')
+        case 'EnshittificationMetrics.py' | 'routes.py' | 'models.py' | 'forms.py' | 'Pipfile':
+            try:
+                subprocess.run(['touch', dest_dir_www + '/middleapp.wsgi'], check=True)
+                logging.info(f'Touched middleapp.wsgi.')
+            except subprocess.CalledProcessError as e:
+                logging.error(f'Unable to touch middleapp.wsgi; got error: {e}')
 
 def place_files(src, dest_www, dest_back):
     files_copied = 0
@@ -92,10 +114,18 @@ def place_files(src, dest_www, dest_back):
                         # shutil.copy2(src_file, dst_file) # copy2 preserves metadata (e.g., timestamps)
                         logging.info(f'Copied updated file {dst_file}')
                         files_copied += 1
-                    except Exception as e:
+                        check_for_restart_needed(filename)
+                    except subprocess.CalledProcessError as e:
                         logging.error(f'In attempting to copy updated file {dst_file}, got error: {e}')
                         # print(f'In attempting to copy updated file {dst_file}, got error: {e}') # for testing
     logging.info(f'Copied {files_copied} files.')
+
+def main():
+    logging.info(f'Starting GitHub {clone_dir} sync and file copy to {dest_dir_www} and {dest_dir_back}.')
+    if check_for_updates(clone_dir):
+        fetch_and_pull(clone_dir)
+        place_files(clone_dir, dest_dir_www, dest_dir_back)
+    logging.info(f'Completed.\n')
 
 if __name__ == '__main__':
     main()

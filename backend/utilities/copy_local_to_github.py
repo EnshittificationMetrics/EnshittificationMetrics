@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 
-# to be manually run when we want to push 
-# dev /home/leet/EnshittificationMetrics 
-# (already manually pushed to https://github.com/zake8/EnshittificationMetrics)
-# to 
-# prod https://github.com/EnshittificationMetrics/EnshittificationMetrics
-# (which is then auto pulled to prod web-server by another process)
-#
-# copies /home/leet/EnshittificationMetrics to /home/leet/github
-# git add, commit, push to https://github.com/EnshittificationMetrics/EnshittificationMetrics
-# 
-### ISSUE: Does not clean up or deal with renamed or deleted files!
-# 
-# to work from repo needs some authentication via Personal Access Token (PAT) for https
+"""
+To be manually run when we want to push dev /home/leet/EnshittificationMetrics 
+(already manually pushed to https://github.com/zake8/EnshittificationMetrics)
+to 
+prod https://github.com/EnshittificationMetrics/EnshittificationMetrics
+(which is then auto pulled to prod web-server by another process).
+
+Copies /home/leet/EnshittificationMetrics to /home/leet/github, then,
+git add, commit, push to https://github.com/EnshittificationMetrics/EnshittificationMetrics.
+
+ISSUE: Does not clean up or deal with renamed or deleted files!
+
+To work from repo needs some authentication via Personal Access Token (PAT) for https...
+"""
 
 import logging
 logging.basicConfig(level = logging.INFO,
@@ -24,6 +25,7 @@ import os
 import shutil
 
 def main():
+    """ Files and dirs to skip 'hardcoded' here. """
     routes_prod_fix = False # renames routes_prod.py, was True till 9/26/24 when set to False
     source_dir = '/home/leet/EnshittificationMetrics'
     clone_dir = '/home/leet/github'
@@ -92,7 +94,7 @@ def place_files(src, dst, dir_to_skip, files_to_skip):
     logging.info(f'Copied {files_copied} files.')
 
 def tweak(dir):
-    # rename {dir}/www/app/routes_prod.py to routes.py
+    """ Renames {dir}/www/app/routes_prod.py to routes.py """
     old_path_file = os.path.join(dir, 'www/app/routes_prod.py')
     path_file = os.path.join(dir, 'www/app/routes.py')
     if os.path.exists(path_file):

@@ -1,8 +1,6 @@
 Enshittification Metrics Technical Notes:
 
-
 # PRODUCTION ENVIRONMENT:
-
 
 ## em02 (DigitalOcean droplet):
 #### Build droplet on DigitalOcean
@@ -100,13 +98,15 @@ Enshittification Metrics Technical Notes:
 - edit jail.local and enable: apache-auth, apache-badbots, and apache-nohome (sshd already enabled)
 - sudo fail2ban-client status # returns: Jail list:   apache-auth, apache-badbots, apache-nohome, sshd
 - Note: logs here: /var/log/fail2ban.log
-#### setup cron jobs to backend (listed in flows)
+#### setup "bsea" cron jobs to backend
 - set crontab -e to: 20 21 * * * /usr/bin/python3 /home/bsea/em/utilities/cronntfy.py
 - set crontab -e to: 20 * * * * cd /home/bsea/em/ && pipenv run python3 slashdot_scrape.py >> /home/bsea/em/scrape.log 2>&1
 - set crontab -e to: 0 10 * * * cd /home/bsea/em/ && pipenv run python3 populate_blanks.py >> /home/bsea/em/scrape.log 2>&1
 - set crontab -e to: 0 12 * * * /usr/bin/python3 /home/bsea/em/utilities/rotate_db_backup.py
 - set crontab -e to: 50 1-23/2 * * * /usr/bin/python3 /home/bsea/em/utilities/copy_github_to_local.py
 - sudo cp /home/bsea/em/utilities/enshittification-metrics /etc/logrotate.d/enshittification-metrics
+#### setup "root" cron jobs to backend
+- None (yet)
 #### setup GitHub code pull (replaces "copy in code" above)
 - mkdir /home/bsea/github
 - cd /home/bsea/github

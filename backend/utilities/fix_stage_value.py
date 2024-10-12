@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# script converts from str 'stage 1' to int '1', for ex. (used early on in dev to deal w/ change in how stage stored)
+""" script converts from str 'stage 1' to int '1', for ex. (used early on in dev to deal w/ change in how stage stored) """
 
 from app import app, db
 from app.models import Entity

@@ -133,11 +133,13 @@ def about():
     return render_template('about.html')
 
 
-# This Flask robots.txt function will likely NOT be used at all as 
-# /etc/apache2/sites-enabled/*.conf's
-# <Directory /var/www/em/app/static> stanza will take care of it. 
 @app.route('/robots.txt')
 def robots_txt():
+    """
+    This Flask robots.txt function will likely NOT be used at all as 
+    /etc/apache2/sites-enabled/*.conf's
+    <Directory /var/www/em/app/static> stanza will take care of it. 
+    """
     return send_from_directory(app.static_folder, 'robots.txt')
 
 

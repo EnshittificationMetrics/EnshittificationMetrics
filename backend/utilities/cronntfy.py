@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-# Script to test end to end: cron --> python script --> console and logging and ntfy
-# v1.10
+"""
+Script to test end to end: cron --> python script --> console and logging and ntfy
+v1.10
+"""
 
 import datetime
 import requests
@@ -12,7 +14,7 @@ ntfypost = True
 titletest = "cronz notify; Enshittification Metrics droplet live!"
 
 def GetMachineID():
-    # hostname, or last four of hostname if more than 10 chars
+    """ Gets hostname, or last four of hostname if more than 10 chars """
     hostn = socket.gethostname()
     l = int( len(hostn) )
     if l > 10: hostn = hostn[l-4:l]

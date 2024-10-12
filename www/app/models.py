@@ -119,17 +119,22 @@ class SurveyNewUser(UserMixin, db.Model):
     def __repr__(self):
         return '<SurveyNewUser {}>'.format(self.text)
 
+"""
+References:
 
-# references:
-# int:           so.Mapped[int] = so.mapped_column()
-# string:        so.Mapped[Optional[str]] = so.mapped_column(sa.String(20), nullable=True)
-# float:         so.Mapped[Optional[float]] = so.mapped_column()
-# list:          so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
-# text:          so.Mapped[Optional[str]] = so.mapped_column(Text, nullable=True) # larger blocks of text
+int:    so.Mapped[int] = so.mapped_column()
+string: so.Mapped[Optional[str]] = so.mapped_column(sa.String(20), nullable=True)
+float:  so.Mapped[Optional[float]] = so.mapped_column()
+list:   so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
+text:   so.Mapped[Optional[str]] = so.mapped_column(Text, nullable=True) # larger blocks of text
+"""
 
 
-# to make changes to class(es):
-# pipenv shell
-# flask db init # onetime use!
-# flask db migrate -m "some change" # generates migration script
-# flask db upgrade # applies changes to the database
+"""
+To make changes to class(es):
+
+pipenv shell
+flask db init # onetime use!
+flask db migrate -m "some change" # generates migration script; use in dev after change/addition to models.py
+flask db upgrade # applies changes to the database; use in dev; only one need to run in prod, after pull of new models.py
+"""

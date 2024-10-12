@@ -10,12 +10,14 @@ from app.models import User
 
 
 class CSRFExemptForm(FlaskForm):
+    """
+    Each subform within the FieldList is expecting its own CSRF token, 
+    but the dynamically added fields don't have these tokens. 
+    This issue arises because Flask-WTF generates a CSRF token for each subform instance when the form is rendered, 
+    but when you add fields dynamically using JavaScript, they don’t automatically get the CSRF token
+    """
     class Meta:
         csrf = False
-# each subform within the FieldList is expecting its own CSRF token, 
-# but the dynamically added fields don't have these tokens. 
-# This issue arises because Flask-WTF generates a CSRF token for each subform instance when the form is rendered, 
-# but when you add fields dynamically using JavaScript, they don’t automatically get the CSRF token
 
 
 class HistItemForm(CSRFExemptForm):
@@ -48,8 +50,8 @@ class EntityEditForm(FlaskForm):
             raise ValidationError('Status, name, stage_current, and stage_EM4view are required.')
 
 
-# EntityAddForm is same as EntityEditForm except edit can use existing name whereas add can not use existing name
 class EntityAddForm(EntityEditForm):
+    """ EntityAddForm is same as EntityEditForm except edit can use existing name whereas add can not use existing name. """
     def validate_name(self, name):
         name_choice = db.session.scalar(sa.select(Entity).where(Entity.name == name.data))
         if name_choice is not None:
