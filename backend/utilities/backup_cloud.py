@@ -84,7 +84,7 @@ notes_rsync = """
 # destination = local_backup_path
 # run_rsync(source, destination)
 
-logging.info(f'Starting backup of {cloud_server_name}')
+logging.info(f'Starting selected backup of {cloud_server_name}')
 for backup_item in backup_list:
     source, destination = backup_item
     logging.info(f'rsync {source} to {destination}')

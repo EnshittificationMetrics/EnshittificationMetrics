@@ -85,6 +85,13 @@
         </tr>
         {% endif %}
 
+        {% if user.last_access %}
+        <tr>
+            <td>Last Access:</td>
+            <td><h1>{{ user.last_access }}</h1></td>
+        </tr>
+        {% endif %}
+
         {% if user.ranking_cats %}
         <tr>
             <td>Ranking Categories:</td>
@@ -92,10 +99,24 @@
         </tr>
         {% endif %}
 
-        {% if user.last_access %}
+        {% if user.ranking_stat %}
         <tr>
-            <td>Last Access:</td>
-            <td><h1>{{ user.last_access }}</h1></td>
+            <td>Ranking Statuses:</td>
+            <td><h1>{{ user.ranking_stat }}</h1></td>
+        </tr>
+        {% endif %}
+
+        {% if user.ranking_sort %}
+        <tr>
+            <td>Ranking Sort:</td>
+            <td><h1>{{ user.ranking_sort }}</h1></td>
+        </tr>
+        {% endif %}
+
+        {% if user.display_order %}
+        <tr>
+            <td>Ranking Order:</td>
+            <td><h1>{{ user.display_order }}</h1></td>
         </tr>
         {% endif %}
 

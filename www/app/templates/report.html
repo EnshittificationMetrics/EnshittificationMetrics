@@ -25,9 +25,11 @@
 
 		stage_history:
 		{% if item.stage_history %}
+			[
 			{% for hist in item.stage_history %}
-				{{ hist }}
+				{{ hist }},
 			{% endfor %}
+			]
 		{% else %}
 			None
 		{% endif %}<br>

@@ -25,6 +25,7 @@ from flask_login import login_user, logout_user, current_user, login_required, u
 from flask_simple_captcha import CAPTCHA
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlalchemy as sa
+from sqlalchemy import or_, asc, desc
 import socket
 # pipenv install Flask pyotp Flask-Mail
 import pyotp
@@ -90,11 +91,63 @@ def rankings():
         if temp_value:
             if my_name not in temp_value:
                 session['user_referrer'] = temp_value
-    entities = Entity.query.all()
-    # sort by: Alphabetically ~ by Stage ~ by Age
-    # Filter by Category Type: All, Social, Cloud
+    # entities = Entity.query.all() # initial old "query"
+    # SQLAlchemy queries are chained, each filter() adds to the query without overwriting it.
+
+    # Initialize the query
+    query = Entity.query
+    # current_user.ranking_stat - filter - Live, Potential, Not Disabled, Disabled
+    if current_user.ranking_stat.lower() == 'not disabled':
+        query = query.filter(Entity.status != 'disabled')
+    else:
+        query = query.filter(Entity.status == current_user.ranking_stat.lower())
+
+    # current_user.ranking_cats - filter - All, Social, Cloud, B2B, B2C, C2C, tech platform, P2P
+    if current_user.ranking_cats.lower() != 'all':
+        query = query.filter(or_(Entity.category.like(f"%{cat.strip()}%") for cat in current_user.ranking_cats.split(',')))
+
+    # current_user.display_order - sort by recent first, oldest first
+    if current_user.display_order.lower() == "oldest first":
+        sorting_order = desc # no quotes as this is a callable
+    else: # == recent first (default)
+        sorting_order = asc 
+
+    # current_user.ranking_sort - sort by Name ~ by Stage ~ by Age
+    if current_user.ranking_sort.lower() == "name":
+        query = query.order_by(sorting_order(Entity.name))
+    elif current_user.ranking_sort.lower() == "stage":
+        query = query.order_by(sorting_order(Entity.stage_current))
+    elif current_user.ranking_sort.lower() == "age":
+        query = query.order_by(sorting_order(Entity.date_started))
+
+    # Get the final results
+    entities = query.all()
     return render_template('rankings.html', 
                            entities = entities)
+
+
+@app.route('/update-filtersort', methods=['POST'])
+@login_required
+def update_filtersort():
+    data = request.get_json()
+    if 'ranking_cats' in data:
+        ### tweak from single value to multivalue
+        current_user.ranking_cats = data['ranking_cats']
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    if 'ranking_sort' in data:
+        current_user.ranking_sort = data['ranking_sort']
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    if 'ranking_stat' in data:
+        current_user.ranking_stat = data['ranking_stat']
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    if 'display_order' in data:
+        current_user.display_order = data['display_order']
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    return jsonify({'status': 'error'}), 400
 
 
 @app.route('/news')

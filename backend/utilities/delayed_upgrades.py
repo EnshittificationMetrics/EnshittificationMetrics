@@ -32,7 +32,11 @@ today = datetime.date.today()
 some_days_ago = today - datetime.timedelta(days=days_delay)
 
 def run_command(command):
-    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    except subprocess.CalledProcessError as e:
+        logging.error(f'Error during subprocess.run({command}) attempt: {e}')
+        return "" # works on all cases in this program while returning None fails
     return result.stdout
 
 def get_upgradable_packages():
@@ -60,7 +64,7 @@ def upgrade_package(package_name, last_update_date):
 
 def get_uptime():
     """ Runs the 'uptime' command, captures the output, converts to days, hours, and minutes. """
-    output = subprocess.check_output('uptime', shell=True).decode()
+    output = run_command('uptime')
     # extract days, hours, and minutes
     uptime_pattern = re.compile(r"up\s+(\d+)\s+days?,\s+(\d+):(\d+)")
     match = uptime_pattern.search(output)
@@ -113,23 +117,24 @@ def can_reboot():
     return True
 
 def force_reboot():
+    """ Run the 'reboot' command """
     if can_reboot():
-        try:
-            logging.info(f'Rebooting system...')
-            # Run the 'reboot' command
-            subprocess.run(['sudo', 'reboot'], check=True)
-        except subprocess.CalledProcessError as e:
-            logging.error(f'Error during reboot attempt: {e}')
+        logging.info(f'Rebooting system...')
+        run_command('sudo reboot')
     else:
         logging.warning("Reboot canceled due to active users or processes; should try again next crontab run.")
 
 def main():
     runningas = run_command("whoami")
     logging.info(f'Running {__file__} as: {runningas[0:-1]}')
+    
     # restart section
-    ### if existence of /home/leet/EnshittificationMetrics/backend/utilities/apache_reload_needed file:
-    ###     sudo systemctl reload apache2
-    ###     delete "apache_reload_needed" file
+    flag_path = os.path.dirname(log_path) + '/apache_reload_needed'
+    if os.path.exists(flag_path):
+        run_command("sudo systemctl reload apache2")
+        run_command(f"sudo rm {flag_path}")
+    # Note: 'apache_reload_needed' will (when needed) be created by 'copy_github_to_local.py'
+    
     # update section
     upgradable_packages = get_upgradable_packages()
     if not upgradable_packages:
@@ -150,6 +155,7 @@ def main():
         if skipped_list:
             logging.info(f'Note: Skipped: \n{skipped_list}')
         time.sleep(5 * 60) # 5 min pause for updates to settle...
+    
     # reboot section
     reboot_file = "/var/run/reboot-required" # on Ubuntu
     if os.path.isfile(reboot_file):

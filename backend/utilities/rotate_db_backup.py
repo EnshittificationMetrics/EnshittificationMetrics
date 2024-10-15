@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-# script to back up (rotate) em.db; stores local in same directory
+"""
+Backs up (rotates) em.db; stores locally in same directory.
+Backups in YYYY-MM-DD date format.
+At first of month deletes all two months ago except the first of that month.
+"""
 
 import os
 import logging
