@@ -120,7 +120,7 @@ def add_commit_push(repo_dir):
     try:
         subprocess.run(["git", "add", "."], check=True, cwd=repo_dir)
         subprocess.run(["git", "commit", "-m", '"updates"'], check=True, cwd=repo_dir)
-        subprocess.run(["git", "push"], check=True, cwd=repo_dir)
+        subprocess.run(["git", "push", "EnshittificationMetrics"], check=True, cwd=repo_dir)
         logging.info(f'Git added commited and pushed updates in {repo_dir}.')
     except subprocess.CalledProcessError as e:
         logging.error(f'Error during add or commit or push: {e}')

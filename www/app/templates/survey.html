@@ -5,18 +5,6 @@
 <p>Please note, positive / constructive suggestions, comments, and discussion, are welcome on our sub Reddit 
 <a href="https://www.reddit.com/r/Enshitif_Metrics/" target="_blank"><strong>r/Enshitif_Metrics</strong></a>!</p>
 
-{% with messages = get_flashed_messages() %}
-	{% if messages %}
-		<ul>
-		{% for message in messages %}
-			<div class="flash-mess">
-			<li>{{ message }}</li>
-			</div>
-		{% endfor %}
-		</ul>
-	{% endif %}
-{% endwith %}
-
 <h1>Survey</h1>
 
 {% if content == 'survey_new_user' %}

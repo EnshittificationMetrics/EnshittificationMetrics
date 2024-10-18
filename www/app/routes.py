@@ -17,7 +17,7 @@ logging.basicConfig(level = logging.INFO,
 
 from app import app, db
 from app.forms import EntityAddForm, EntityEditForm, NewsForm, ArtForm, ReferencesForm, SelectForm, SelectAddForm
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm, SurveyNewUserForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm, SurveyNewUserForm, PasswordCheckForm
 from app.models import Entity, News, Art, References, User, SurveyNewUser
 from flask import render_template, redirect, url_for, flash, request, session, send_from_directory, jsonify
 from flask_login import login_user, logout_user, current_user, login_required, user_loaded_from_cookie
@@ -395,10 +395,13 @@ def register():
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
+    new_captcha_dict = SIMPLE_CAPTCHA.create()
     return render_template('user.html', 
                             title=f'{username}',
                             user=user,
-                            form = OtpcodeForm())
+                            form = OtpcodeForm(),
+                            captcha=new_captcha_dict,
+                            form_p = PasswordCheckForm())
 
 
 @app.route('/send_otp')
@@ -550,6 +553,103 @@ def change_password():
                             title='Change Password (return)',
                             form=form, 
                             captcha=new_captcha_dict)
+
+
+@app.route('/exportaccount', methods=['POST'])
+@login_required
+def exportaccount():
+    from flask import Response
+    import csv
+    import io
+    form_p = PasswordCheckForm(request.form)
+    if form_p.validate_on_submit():
+        c_hash = request.form.get('captcha-hash')
+        c_text = request.form.get('captcha-text')
+        if not SIMPLE_CAPTCHA.verify(c_text, c_hash):
+            flash('CAPTCHA verification failed.')
+            logging.info(f'Bad CAPTCHA on export {current_user.username} data as CSV request.')
+        else: #captcha correct
+            if not current_user.check_password(form_p.password.data):
+                flash('Password incorrect.')
+                logging.info(f'Bad password on export {current_user.username} data as CSV request.')
+            else: # CAPTCHA and password correct at this point, continue to export
+                # Create an in-memory CSV file using io.StringIO
+                output = io.StringIO()
+                writer = csv.writer(output)
+                # Write the header row and some data rows
+                writer.writerow(['ID', 'Record Name', 'Value'])
+                writer.writerow([1,  'id',            current_user.id])
+                writer.writerow([2,  'username',      current_user.username])
+                writer.writerow([3,  'email',         current_user.email])
+                writer.writerow([4,  'password_hash', 'N/A'])
+                writer.writerow([5,  'full_name',     current_user.full_name])
+                writer.writerow([6,  'phone_number',  current_user.phone_number])
+                writer.writerow([7,  'role',          current_user.role])
+                writer.writerow([8,  'validations',   current_user.validations])
+                writer.writerow([9,  'last_access',   current_user.last_access])
+                writer.writerow([10, 'func_stage',    current_user.func_stage])
+                writer.writerow([11, 'per_page',      current_user.per_page])
+                writer.writerow([12, 'display_order', current_user.display_order])
+                writer.writerow([13, 'ranking_sort',  current_user.ranking_sort])
+                writer.writerow([14, 'ranking_cats',  current_user.ranking_cats])
+                writer.writerow([15, 'ranking_stat',  current_user.ranking_stat])
+                writer.writerow([16, 'viewing_mode',  current_user.viewing_mode])
+                writer.writerow([17, 'to_view',       current_user.to_view])
+                # Move to the beginning of the StringIO buffer
+                output.seek(0)
+                # Create a response with the CSV data
+                response = Response(output, mimetype='text/csv')
+                response.headers.set('Content-Disposition', 'attachment', filename=f'Enshittification_Metrics_{current_user.username}.csv')
+                flash(f'Exported {current_user.username} data as CSV.')
+                logging.info(f'Exported {current_user.username} data as CSV.')
+                return response
+    # form validation, or CAPTCHA, or password, failed
+    new_captcha_dict = SIMPLE_CAPTCHA.create()
+    return render_template('user.html', 
+                            title=f'{current_user.username}',
+                            user=current_user,
+                            form = OtpcodeForm(),
+                            captcha=new_captcha_dict,
+                            form_p = PasswordCheckForm())
+
+
+@app.route('/deleteaccount', methods=['POST'])
+@login_required
+def deleteaccount():
+    form_p = PasswordCheckForm(request.form)
+    if form_p.validate_on_submit():
+        c_hash = request.form.get('captcha-hash')
+        c_text = request.form.get('captcha-text')
+        if not SIMPLE_CAPTCHA.verify(c_text, c_hash):
+            flash('CAPTCHA verification failed.')
+            logging.info(f'Bad CAPTCHA on delete {current_user.username} account request.')
+        else: #captcha correct
+            if not current_user.check_password(form_p.password.data):
+                flash('Password incorrect.')
+                logging.info(f'Bad password on delete {current_user.username} account request.')
+            else: # CAPTCHA and password correct at this point, continue to delete account
+                del_name = current_user.username
+                user_id = current_user.id
+                logout_user() # clears session data
+                user = User.query.get(user_id)
+                if user:
+                    db.session.delete(user) # current_user might still exist after logout due to lazy load, but just in case...
+                    db.session.commit()
+                    flash(f'Deleted {del_name} account.')
+                    logging.info(f'Deleted {del_name} account.')
+                    return redirect(url_for('index'))
+                else:
+                    flash(f'User {del_name} with ID {user_id} not found!?')
+                    logging.error(f'Tried to delete non-existent user {del_name} with ID {user_id}.')
+                    # continues below
+    # form validation, or CAPTCHA, or password, failed
+    new_captcha_dict = SIMPLE_CAPTCHA.create()
+    return render_template('user.html', 
+                            title=f'{current_user.username}',
+                            user=current_user,
+                            form = OtpcodeForm(),
+                            captcha=new_captcha_dict,
+                            form_p = PasswordCheckForm())
 
 
 # telemetry data gathers

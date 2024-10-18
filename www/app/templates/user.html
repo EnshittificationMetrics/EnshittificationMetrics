@@ -2,30 +2,11 @@
 
 {% block content %}
 
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <ul>
-        {% for message in messages %}
-            <div class="flash-mess">
-            <li>{{ message }}</li>
-            </div>
-        {% endfor %}
-        </ul>
-    {% endif %}
-{% endwith %}
-
 <table cellspacing="5" cellpadding="5" border="5">
     <tr valign="top">
+
         <th colspan="2">
             <h1>{{ user.username }}'s profile:</h1>
-            {% if user.role != 'guest' %}
-                {% if user == current_user %}
-                    <p>
-                    <a href="{{ url_for('edit_profile', username=user.username) }}">Edit Profile</a> ~ 
-                    <a href="{{ url_for('change_password', username=user.username) }}">Change Password</a>
-                    </p> 
-                {% endif %}
-            {% endif %}
         </th>
 
         <tr>
@@ -39,29 +20,27 @@
         </tr>
 
         {% if user.role != 'guest' %}
+        <tr>
+            <td>Email:</td>
+            <td><h1>{{ user.email }}</h1>
+            {% if user.validations == 'email' %}
+                email validated
+            {% else %}
+                <a href="/send_otp?next={{ url_for('user', username=user.username) }}">Send validation code</a><br><br>
+                <form action="/verify_otp?next={{ url_for('user', username=user.username) }}" method="post">
+                    {{ form.hidden_tag() }}
+                    {{ form.otp_code.label }}
+                    {{ form.otp_code(size=6) }}
+                    {{ form.submit() }}
+                </form>
+            {% endif %}
+            </td>
+        </tr>
 
-            <tr>
-                <td>Email:</td>
-                <td><h1>{{ user.email }}</h1>
-                {% if user.validations == 'email' %}
-                    email validated
-                {% else %}
-                    <a href="/send_otp?next={{ url_for('user', username=user.username) }}">Send validation code</a><br><br>
-                    <form action="/verify_otp?next={{ url_for('user', username=user.username) }}" method="post">
-                        {{ form.hidden_tag() }}
-                        {{ form.otp_code.label }}
-                        {{ form.otp_code(size=6) }}
-                        {{ form.submit() }}
-                    </form>
-                {% endif %}
-                </td>
-            </tr>
-
-            <tr>
-                <td>Phone Number:</td>
-                <td><h1>{{ user.phone_number }}</h1></td>
-            </tr>
-
+        <tr>
+            <td>Phone Number:</td>
+            <td><h1>{{ user.phone_number }}</h1></td>
+        </tr>
         {% endif %}
 
         {% if user.role %}
@@ -87,7 +66,8 @@
 
         {% if user.last_access %}
         <tr>
-            <td>Last Access:</td>
+            <td>Last Logon:<br>
+            (UCT date/time)</td>
             <td><h1>{{ user.last_access }}</h1></td>
         </tr>
         {% endif %}
@@ -124,6 +104,59 @@
             <td>ID:</td>
             <td><h1>#{{ user.id }}</h1></td>
         </tr>
+
+        {% if user.role != 'guest' %}
+        {% if user == current_user %}
+        <tr>
+            <td colspan="2" style="text-align: center;">
+            <br><strong>
+            <a href="{{ url_for('change_password', username=user.username) }}">Change Password</a><br>
+            </strong><br>
+            </td>
+        </tr>
+
+        <tr>
+            <td colspan="2" style="text-align: center;">
+            <br><strong>
+            <a href="{{ url_for('edit_profile', username=user.username) }}">Edit Profile</a><br>
+            </strong><br>
+            </td>
+        </tr>
+
+        <tr>
+            <td colspan="2" style="text-align: center;">
+            <p><strong>Export Account</strong></p>
+            <form action="/exportaccount?next={{ url_for('user', username=user.username) }}" method="post">
+                {{ form_p.hidden_tag() }}
+                {{ form_p.password.label }}
+                {{ form_p.password(size=32) }}<br>
+                <p>{{ captcha_html(captcha)|safe }}</p>
+                {{ form_p.submit() }}
+                {% for error in form_p.password.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </form>
+            </td>
+        </tr>
+
+        <tr>
+            <td colspan="2" style="text-align: center;">
+            <p><strong>Delete Account</strong></p>
+            <form action="/deleteaccount" method="post">
+                {{ form_p.hidden_tag() }}
+                {{ form_p.password.label }}
+                {{ form_p.password(size=32) }}<br>
+                <p>{{ captcha_html(captcha)|safe }}</p>
+                <p>Caution - delete is permanent and is not reversible.</p>
+                {{ form_p.submit() }}
+                {% for error in form_p.password.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </form>
+            </td>
+        </tr>
+        {% endif %}
+        {% endif %}
 
     </tr>
 </table>

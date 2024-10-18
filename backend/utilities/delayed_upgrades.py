@@ -65,6 +65,12 @@ def upgrade_package(package_name, last_update_date):
 def get_uptime():
     """ Runs the 'uptime' command, captures the output, converts to days, hours, and minutes. """
     output = run_command('uptime')
+    # ex: ' 11:44:27 up 7 days,  8:13,  2 users,  load average: 0.16, 0.20, 0.17'
+    # ex: ' 03:35:22 up 7 days, 4 min,  2 users,  load average: 0.22, 0.31, 0.27' # no hours!
+    # ex: ' 12:34:56 up 5 hours, 42 mins,  3 users,  load average: 0.12, 0.15, 0.09' # no days!
+    days = 0
+    hours = 0
+    minutes = 0
     # extract days, hours, and minutes
     uptime_pattern = re.compile(r"up\s+(\d+)\s+days?,\s+(\d+):(\d+)")
     match = uptime_pattern.search(output)
@@ -72,12 +78,23 @@ def get_uptime():
         days = int(match.group(1))
         hours = int(match.group(2))
         minutes = int(match.group(3))
-        # Calculate uptime in days, hours, and minutes
-        total_uptime = timedelta(days=days, hours=hours, minutes=minutes)
-        return total_uptime
     else:
-        logging.error(f'No match on uptime re; "output" was: {output}') # maybe fails on day zero when there is no day?
-        return None
+        uptime_pattern = re.compile(r"up\s+(\d+)\s+days?,\s+(\d+)\s+min")
+        match = uptime_pattern.search(output)
+        if match:
+            days = int(match.group(1))
+            minutes = int(match.group(2))
+        else:
+            uptime_pattern = re.compile(r"up\s+(\d+)\s+hours?,\s+(\d+)\s+mins")
+            match = uptime_pattern.search(output)
+            if match:
+                hours = int(match.group(1))
+                minutes = int(match.group(2))
+            else:
+                logging.error(f'No match on uptime re; "output" was: {output}')
+    # Calculate uptime in days, hours, and minutes
+    total_uptime = timedelta(days=days, hours=hours, minutes=minutes)
+    return total_uptime
 
 def check_logged_in_users():
     users = run_command("who -m") # with -m should show SSH and not WinSCP users
@@ -88,7 +105,7 @@ def check_logged_in_users():
 
 def check_web_server_activity():
     """ Checks for active web server connections; Apache on port 80 or 443. """
-    connections = run_command("sudo ss -tuln | grep ':80\|:443'")
+    connections = run_command("sudo ss -tuln | grep -E ':80|:443'")
     # if just 'listen' skip/ignore as cause to not reboot
     conn_lines = connections.split('\n')
     for line in conn_lines:

@@ -38,7 +38,7 @@
 		<br>
 		
 		{% if current_user.role == 'administrator' %}
-			<i>Dev stuff:<br>
+			<p><i>Admin only display for dev</i></p>
 			Entities, News, Art, References: 
 			<a href="{{ url_for('report') }}"       >report all</a> ~ 
 			<a href="{{ url_for('manual_add') }}"   >manual add</a> ~ 
@@ -47,6 +47,18 @@
 			<a href="{{ url_for('show_values') }}  ">show current user values</a><br>
 			</i><br>
 		{% endif %}
+		
+		{% with messages = get_flashed_messages() %}
+			{% if messages %}
+				<ul>
+				{% for message in messages %}
+					<div class="flash-mess">
+					<li>{{ message }}</li>
+					</div>
+				{% endfor %}
+				</ul>
+			{% endif %}
+		{% endwith %}
 		
 		{% block content %}{% endblock %}
 		<script src="{{ url_for('static', filename='js/togglemodescript.js') }}"></script>
