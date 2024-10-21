@@ -21,9 +21,16 @@
 			{% for ent in item.ent_names %}
 				{{ ent }}, 
 			{% endfor %}
-		{% else %}
-			None
-		{% endif %}<br>
+			<br>
+		{% endif %}
+
+		{% if item.judgment %}
+			{{ item.judgment }}<br>
+		{% endif %}
+
+		{% if item.stage_int_value %}
+			{{ item.stage_int_value }}<br>
+		{% endif %}
 
 		<br>
 	{% endfor %}

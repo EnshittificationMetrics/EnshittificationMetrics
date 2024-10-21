@@ -5,6 +5,7 @@
 <h1>Enshittification Rankings:</h1>
 
 Filter category type: <!-- ranking_cats -->
+<strong>{{current_user.ranking_cats}}</strong> ~ 
 <button id="catAll">All</button> ~ 
 <button id="catSocial">Social</button> ~ 
 <button id="catCloud">Cloud</button> ~ 
@@ -16,30 +17,28 @@ Filter category type: <!-- ranking_cats -->
 <br> 
 
 Sort type: <!-- ranking_sort -->
+<strong>{{current_user.ranking_sort}}</strong> ~ 
 <button id="sortAlph">Alphabetically</button> ~ 
 <button id="sortStage">by Stage</button> ~ 
 <button id="sortAge">by Age</button>
 <br>
 
 Filter status type: <!-- ranking_stat -->
+<strong>{{current_user.ranking_stat}}</strong> ~ 
 <button id="statusLive">Live</button> ~ 
 <button id="statusPotential">Potential</button> ~ 
-<button id="statusAll">Not Disabled</button>
+<button id="statusAll">All</button>
 <!-- doesn't work... <button id="statusDisabled">Disabled </button> -->
 <br>
 
 <!-- Sort order: --> <!-- display_order --> 
+<!-- <strong>{{current_user.display_order}}</strong> -->
 <!-- doesn't work... <button id="sortAsc">Ascending</button> ~   -->
 <!-- doesn't work... <button id="sortDesc">Descending</button>  -->
 <!-- <br>  -->
 
 {% if current_user.role == 'administrator' %}
-	Admin only view of some current_user values:<br>
-	ranking_cats: <strong>{{current_user.ranking_cats}}</strong><br>
-	ranking_sort: <strong>{{current_user.ranking_sort}}</strong><br>
-	ranking_stat: <strong>{{current_user.ranking_stat}}</strong><br>
-	display_order: <strong>{{current_user.display_order}}</strong><br>
-	<br>
+	<!-- nothing currently here  -->
 {% endif %}
 
 <table border="3">
@@ -51,32 +50,58 @@ Filter status type: <!-- ranking_stat -->
 			<th>Stage 4</th>
 			<th>Dates</th>
 			<th>Corporate family</th>
+			<th>Category</th>
 			<th>Summary</th>
+			<th>Status</th>
 		</tr>
 	</thead>
 	<tbody>
 	{% for item in entities %}
 		<tr>
-			<td>
-				{% if item.stage_current == 1 %}
-					<strong>{{ item.name }}</strong>
-				{% endif %}
-			</td>
-			<td>
-				{% if item.stage_current == 2 %}
-					<strong>{{ item.name }}</strong>
-				{% endif %}
-			</td>
-			<td>
-				{% if item.stage_current == 3 %}
-					<strong>{{ item.name }}</strong>
-				{% endif %}
-			</td>
-			<td>
-				{% if item.stage_current == 4 %}
-					<strong>{{ item.name }}</strong>
-				{% endif %}
-			</td>
+			{% if current_user.func_stage == 4 %}
+				<td>
+					{% if item.stage_EM4view == 1 %}
+						<a href="{{ url_for('entity_detail', entname=item.name) }}"><strong>{{ item.name }}</strong></a>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.stage_EM4view == 2 %}
+						<a href="{{ url_for('entity_detail', entname=item.name) }}"><strong>{{ item.name }}</strong></a>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.stage_EM4view == 3 %}
+						<a href="{{ url_for('entity_detail', entname=item.name) }}"><strong>{{ item.name }}</strong></a>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.stage_EM4view == 4 %}
+						<a href="{{ url_for('entity_detail', entname=item.name) }}"><strong>{{ item.name }}</strong></a>
+					{% endif %}
+				</td>
+			{% else %}
+				<td>
+					{% if item.stage_current == 1 %}
+						<~-- <a href="/entity_detail?{{ item.name }}"><strong>{{ item.name }}</strong></a> -->
+						<a href="{{ url_for('entity_detail', entname=item.name) }}"><strong>{{ item.name }}</strong></a>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.stage_current == 2 %}
+						<a href="{{ url_for('entity_detail', entname=item.name) }}"><strong>{{ item.name }}</strong></a>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.stage_current == 3 %}
+						<a href="{{ url_for('entity_detail', entname=item.name) }}"><strong>{{ item.name }}</strong></a>
+					{% endif %}
+				</td>
+				<td>
+					{% if item.stage_current == 4 %}
+						<a href="{{ url_for('entity_detail', entname=item.name) }}"><strong>{{ item.name }}</strong></a>
+					{% endif %}
+				</td>
+			{% endif %}
 			<td>
 				{% if item.date_started and (item.date_started != 'UNK') %}
 					{{ item.date_started }}
@@ -91,8 +116,18 @@ Filter status type: <!-- ranking_stat -->
 				{% endif %}
 			</td>
 			<td>
+				{% if item.category %}
+					{{ item.category }}
+				{% endif %}
+			</td>
+			<td>
 				{% if item.summary %}
 					{{ item.summary }}
+				{% endif %}
+			</td>
+			<td>
+				{% if item.status %}
+					{{ item.status }}
 				{% endif %}
 			</td>
 		</tr>

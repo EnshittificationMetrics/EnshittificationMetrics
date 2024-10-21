@@ -68,6 +68,7 @@ def get_uptime():
     # ex: ' 11:44:27 up 7 days,  8:13,  2 users,  load average: 0.16, 0.20, 0.17'
     # ex: ' 03:35:22 up 7 days, 4 min,  2 users,  load average: 0.22, 0.31, 0.27' # no hours!
     # ex: ' 12:34:56 up 5 hours, 42 mins,  3 users,  load average: 0.12, 0.15, 0.09' # no days!
+    # ex: ' 03:30:02 up 23:59,  1 user,  load average: 0.18, 0.15, 0.10'
     days = 0
     hours = 0
     minutes = 0
@@ -85,13 +86,20 @@ def get_uptime():
             days = int(match.group(1))
             minutes = int(match.group(2))
         else:
-            uptime_pattern = re.compile(r"up\s+(\d+)\s+hours?,\s+(\d+)\s+mins")
+            uptime_pattern = re.compile(r"up\s+(\d+)\s+hours?,\s+(\d+)\s+mins?")
             match = uptime_pattern.search(output)
             if match:
                 hours = int(match.group(1))
                 minutes = int(match.group(2))
             else:
-                logging.error(f'No match on uptime re; "output" was: {output}')
+                uptime_pattern = re.compile(r"up\s+(\d+):(\d+),\s+")
+                match = uptime_pattern.search(output)
+                if match:
+                    hours = int(match.group(1))
+                    minutes = int(match.group(2))
+                else
+                    logging.error(f'No match on uptime re; "output" was: {output[:-1]}') # slice off CR
+                    ### maybe redo if-else with a capture btwn "up" and "users?", then check for "days?", "hours?", "mins?", or ":", then parse approp
     # Calculate uptime in days, hours, and minutes
     total_uptime = timedelta(days=days, hours=hours, minutes=minutes)
     return total_uptime
@@ -99,7 +107,7 @@ def get_uptime():
 def check_logged_in_users():
     users = run_command("who -m") # with -m should show SSH and not WinSCP users
     if len(users) > 0:
-        logging.info(f'who -m returned: {users}')
+        logging.info(f'who -m returned: {users[:-1]}') # slice off CR
         return True
     return False
 

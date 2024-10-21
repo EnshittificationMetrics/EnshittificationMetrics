@@ -112,11 +112,15 @@ def rankings():
     else: # == recent first (default)
         sorting_order = asc 
 
-    # current_user.ranking_sort - sort by Name ~ by Stage ~ by Age
+    # current_user.ranking_sort - sort by Name ~ by Stage* ~ by Age
     if current_user.ranking_sort.lower() == "name":
         query = query.order_by(sorting_order(Entity.name))
     elif current_user.ranking_sort.lower() == "stage":
-        query = query.order_by(sorting_order(Entity.stage_current))
+        if current_user.func_stage == 4: 
+            query = query.order_by(sorting_order(Entity.stage_EM4view))
+        else:
+            query = query.order_by(sorting_order(Entity.stage_current))
+
     elif current_user.ranking_sort.lower() == "age":
         query = query.order_by(sorting_order(Entity.date_started))
 
@@ -124,6 +128,21 @@ def rankings():
     entities = query.all()
     return render_template('rankings.html', 
                            entities = entities)
+
+
+@app.route('/entity_detail/<entname>')
+@login_required
+def entity_detail(entname):
+    entity = db.session.scalar(sa.select(Entity).where(Entity.name == entname))
+    news_ids = []
+    if entity.stage_history:
+        for news_item in entity.stage_history:
+            if len(news_item) > 2 :
+                news_ids.append(news_item[2])
+    news = News.query.filter(News.id.in_(news_ids)).all()
+    return render_template('entity_detail.html', 
+                           item = entity,
+                           news = news)
 
 
 @app.route('/update-filtersort', methods=['POST'])
@@ -145,6 +164,17 @@ def update_filtersort():
         return jsonify({'status': 'success'})
     if 'display_order' in data:
         current_user.display_order = data['display_order']
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    return jsonify({'status': 'error'}), 400
+
+
+@app.route('/update-funcstage', methods=['POST'])
+@login_required
+def update_funcstage():
+    data = request.get_json()
+    if 'func_stage' in data:
+        current_user.func_stage = data['func_stage']
         db.session.commit()
         return jsonify({'status': 'success'})
     return jsonify({'status': 'error'}), 400

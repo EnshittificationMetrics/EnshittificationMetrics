@@ -13,7 +13,7 @@ class Entity(UserMixin, db.Model):
     status:        so.Mapped[str] = so.mapped_column(sa.String(10), default='potential') # live, potential, disabled
     name:          so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
     stage_current: so.Mapped[int] = so.mapped_column(default='1')
-    stage_history: so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[]) # each list item should be date and stage value pair
+    stage_history: so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[]) # each list item should be date and stage value, with hopefully a third, news item id
     stage_EM4view: so.Mapped[int] = so.mapped_column(default='2')
     date_started:  so.Mapped[str] = so.mapped_column(sa.String(10), default='')
     date_ended:    so.Mapped[str] = so.mapped_column(sa.String(10), default='current')
@@ -32,6 +32,8 @@ class News(UserMixin, db.Model):
     text:          so.Mapped[str] = so.mapped_column(sa.String(128), nullable=True)
     summary:       so.Mapped[str] = so.mapped_column(sa.String(1024), nullable=True)
     ent_names:     so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
+    judgment:      so.Mapped[str] = so.mapped_column(sa.String(1024), nullable=True)
+    stage_int_value: so.Mapped[int] = so.mapped_column(nullable=True)
 
     def __repr__(self):
         return '<News {}>'.format(self.text)

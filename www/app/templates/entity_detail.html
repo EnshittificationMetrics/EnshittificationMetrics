@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>EnshittificationMetrics Entity {{ item.name }} Detail:</h1>
+
+<table border="3">
+	<tr>
+		<td>
+			<strong>{{ item.name }}</strong>
+		</td>
+	</tr>
+
+	<tr>
+		<td>
+			{% if current_user.func_stage == 4 %}
+				Stage {{ item.stage_EM4view }}
+			{% else %}
+				Stage {{ item.stage_current }}
+			{% endif %}
+		</td>
+	</tr>
+
+	<tr>
+		<td>
+			{% if item.date_started and (item.date_started != 'UNK') %}
+				Started: {{ item.date_started }}
+			{% endif %}
+			{% if item.date_ended and (item.date_ended != 'None') %}
+				<strong>to {{ item.date_ended }}</strong>
+			{% endif %}
+		</td>
+	</tr>
+
+	<tr>
+		<td>
+			{% if item.corp_fam and (item.corp_fam != 'None') %}
+				Corporate Family: {{ item.corp_fam }}<br>
+			{% endif %}
+		</td>
+	</tr>
+
+	<tr>
+		<td>
+			{% if item.summary %}
+				Summary: {{ item.summary }}
+			{% endif %}
+		</td>
+	</tr>
+
+	<tr>
+		<td>
+			{% if item.category %}
+				Category: {{ item.category }}
+			{% endif %}
+		</td>
+	</tr>
+
+	<tr>
+		<td>
+			{% if item.status %}
+				Status: {{ item.status }}
+			{% endif %}
+		</td>
+	</tr>
+
+	<tr>
+		<td>
+			{% if news %}
+				<br>
+				News items for {{ item.name }} stage history:
+			{% endif %}
+		</td>
+	</tr>
+
+	{% for news_item in news %}
+	<tr>
+		<td>
+		#{{ news_item.id }}<br>
+		<strong>{{ news_item.text }}</strong><br>
+		{% if news_item.url %}
+			<a href="{{ news_item.url }}" target="_blank">{{ news_item.url }}</a><br>
+		{% endif %}
+		{{ news_item.date_pub }}<br>
+		{{ news_item.summary }}<br>
+		Entities:
+		{% if news_item.ent_names %}
+			{% for ent in news_item.ent_names %}
+				{{ ent }}, 
+			{% endfor %}
+			<br>
+		{% endif %}
+		{% if news_item.judgment %}
+			{{ news_item.judgment }}<br>
+		{% endif %}
+		{% if news_item.stage_int_value %}
+			Stage {{ news_item.stage_int_value }}<br>
+		{% endif %}
+		<br>
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+
+<script src="{{ url_for('static', filename='js/filtersortscript.js') }}" defer></script>
+
+{% endblock %}

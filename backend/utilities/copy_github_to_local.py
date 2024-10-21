@@ -58,6 +58,7 @@ def check_for_restart_needed(filename):
     touches middleapp.wsgi for changes to Flask .py or Python packages.
     (May do one or both multiple times per script run.)
     """
+    import fnmatch
     match filename:
         case 'middleapp.wsgi':
             try:
@@ -71,6 +72,16 @@ def check_for_restart_needed(filename):
                 logging.info(f'==> Touched middleapp.wsgi.')
             except subprocess.CalledProcessError as e:
                 logging.error(f'==> Unable to touch middleapp.wsgi; got error: {e}')
+        case path if fnmatch.fnmatch(path, '*/migrations/versions/*'): # was # case 'models.py':
+            try:
+                time.sleep(.25 * 60) # 15 second pause for file copy to settle
+                subprocess.run(['cd /var/www/em'], check=True)
+                subprocess.run(['pipenv shell'], check=True)
+                result = subprocess.run(['flask db upgrade'], check=True)
+                logging.info(f'==> Performed flask db upgrade (migrate new schema); output: {result}')
+                time.sleep(.25 * 60) # 15 second pause for migration to settle
+            except subprocess.CalledProcessError as e:
+                logging.error(f'==> Unable to migrate new schema; got error: {e}') # trying to leg {result} here might cause another error...
 
 def place_files(src, dest_www, dest_back):
     files_copied = 0

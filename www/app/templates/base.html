@@ -10,7 +10,7 @@
 	</head>
 	<body>
 		<h1>Enshittification Metrics:</h1>
-		Menu:<br>
+		Menu: 
 		<a href="{{ url_for('rankings') }}"     >rankings</a> ~ 
 		<a href="{{ url_for('news') }}"         >news</a> ~ 
 		<a href="{{ url_for('art') }}"          >art</a> ~ 
@@ -29,16 +29,19 @@
 		<button id="modeToggle">dark/light</button><br>
 		<br>
 		
-		Selector for functional stage:<br>
-		<a href=""><strong>Stage 1</strong></a> ~ 
-		<a href="">Stage 2</a> ~ 
-		<a href="">Stage 3</a> ~ 
-		<a href="">Stage 4</a> ~ 
-		(not yet implemented)<br>
+		Selector for functional stage: 
+		{% if current_user.func_stage %}
+			<strong>Stage {{current_user.func_stage}}</strong> ~ 
+		{% endif %}
+		<button id="stageOne">Stage 1</button> ~ 
+		<button id="stageTwo">Stage 2</button> ~ 
+		<button id="stageThree">Stage 3</button> ~ 
+		<button id="stageFour">Stage 4</button>
+		<br>
 		<br>
 		
 		{% if current_user.role == 'administrator' %}
-			<p><i>Admin only display for dev</i></p>
+			<i>DEV:</i><br>
 			Entities, News, Art, References: 
 			<a href="{{ url_for('report') }}"       >report all</a> ~ 
 			<a href="{{ url_for('manual_add') }}"   >manual add</a> ~ 
@@ -61,6 +64,8 @@
 		{% endwith %}
 		
 		{% block content %}{% endblock %}
+
 		<script src="{{ url_for('static', filename='js/togglemodescript.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/funcstagescript.js') }}" defer></script>
 	</body>
 </html>

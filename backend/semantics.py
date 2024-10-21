@@ -35,7 +35,7 @@ hostn = socket.gethostname()
 
 # posts on judgments made
 ntfypost = True
-alert_title = f'EM on {hostn} judgement'
+alert_title = f'EM on {hostn} judgment'
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
 llm_temp = 0.25
@@ -52,8 +52,8 @@ Judge the enshittification stage of the entity/entities: {entities}.
 "Nothing" is a common word, so will need to reference content to see if this is the smartphone hardware vendor or not, 
 "EA" is a common letter combination, so need to reference content to see if this is the video game company or not, 
 "Ring" is a common word, so reference content to see if this is the smart doorbell company or not.)
-(Note to not to 'blame the messenger', for example a news story might simply be delivered on Slashdot, 
-and so this is just the news aggregator, not the entity to be judged.)
+(Do not 'blame the messenger', a news story might be delivered on X or on Slashdot, 
+as such this is just the news aggregator, not the entity to be judged; be sure to check this.)
 Enshittification stages / life-cycle is defined as follows.
 "None"    - Irrelevant text insofar as enshittification.
 "Stage 1" - Attraction - great UX; innovation and features
@@ -62,6 +62,7 @@ Enshittification stages / life-cycle is defined as follows.
 "Stage 4" - Exodus - dissatisfied users, negative reviews, migration to alternatives, platform doubles down on profit maximization
 Note that true/false flag for the word enshittification, or some variant, in this text is {enshit_hit}.
 Return "None", "Stage 1", "Stage 2", "Stage 3", or, "Stage 4". Please start response with none or stage number, then can follow with optional explanation. 
+Please provide a judgment (and any justification) for all the entities involved at once in a individual numerical stage value.
 Text to judge follows. 
 {text}
 """
@@ -149,24 +150,30 @@ def semantic_processing(title, url, date, content):
     ### want to do something more if enshit_hit is True yet judgment returns None - like create a news item and make an entity set as potential.
     judgment += f'judgment rendered: {stage}. '
     summary = write_summary(text)
+    stage_str_from_llm = matches[0] ### moved here
+    stage_int_value = int(stage_str_from_llm[-1]) # convert from str 'stage 1' to int '1' ### moved here
     with app.app_context():
-        # add_news item to DB
         new_record = News(date_pub = date, 
                           url = url, 
-                          text = title, 
+                          text = title, ### is this including 'post_text' ?
                           summary = summary, 
-                          ent_names = entities)
+                          ent_names = entities, # entities includes count of # of items
+                          judgment = judgment, # added to models.py News
+                          stage_int_value = stage_int_value) # added to models.py News
+                          # add_news item to DB
         db.session.add(new_record)
-        # add data-point to entity in DB
-        stage_str_from_llm = matches[0]
-        stage_int_value = int(stage_str_from_llm[-1]) # convert from str 'stage 1' to int '1'
+        db.session.commit() # created new News object (in DB)
+        news_item_id = new_record.id # news item's id will be added to each_entity.stage_history
+        # add data-point () to entity objects (in DB)
+        ### old location, moved from here # stage_str_from_llm = matches[0]
+        ### old location, moved from here # stage_int_value = int(stage_str_from_llm[-1]) # convert from str 'stage 1' to int '1'
         for entity in entities:
             record = Entity.query.filter_by(name=entity).first()
             if record:
                 # add stage to entity stage history
                 if record.stage_history is None:
                     record.history = []
-                record.stage_history.append([date, stage_int_value])
+                record.stage_history.append([date, stage_int_value, news_item_id]) 
                 # set entity stage
                 record.stage_current = weighted_avg_stage_hist(record.stage_history)
                 # record.stage_current = stage_int_value # older code prior to weighted_avg_stage_hist
@@ -177,7 +184,8 @@ def semantic_processing(title, url, date, content):
                 alert_data = f'Set {entity} to stage {record.stage_current} (weighted avg), due to new news of stage {stage_int_value}! '
                 judgment += alert_data
                 alert_data += f'(Per text from "{title}" referencing "{url}".)'
-                logging.info(f'EM judgement: {alert_data}')
+                logging.info(f'EM judgment: {alert_data}')
+                ### alert_title += f' {stage_int_value}' # doesn't work - UnboundLocalError: cannot access local variable 'alert_title' where it is not associated with a value
                 if ntfypost: requests.post('https://ntfy.sh/000ntfy000EM000', 
                     headers={'Title' : alert_title}, data=(alert_data))
         db.session.commit()
@@ -190,7 +198,8 @@ def weighted_avg_stage_hist(stage_values):
     most_recent_date = max([datetime.strptime(entry[0], '%Y-%b-%d').date() for entry in stage_values])
     total_weighted_value = 0
     total_weight = 0
-    for date, value in stage_values:
+    for date, value, *rest in stage_values:
+        news_item_id = rest
         # Calculate time difference in days
         time_diff = (most_recent_date - datetime.strptime(date, '%Y-%b-%d').date()).days
         # Calculate weight using exponential decay (more recent = higher weight)
