@@ -42,6 +42,7 @@ class EntityEditForm(FlaskForm):
         ('None', 'None'),
         ('social', 'social'),
         ('cloud', 'cloud')])
+    timeline      = StringField('timeline')
     submit        = SubmitField('Submit Entity')
     def validate_required(self, name, stage_current, stage_EM4view):
         if not stage_EM4view:

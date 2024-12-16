@@ -20,6 +20,7 @@ class Entity(UserMixin, db.Model):
     summary:       so.Mapped[str] = so.mapped_column(sa.String(1024), nullable=True)
     corp_fam:      so.Mapped[str] = so.mapped_column(sa.String(64), nullable=True)
     category:      so.Mapped[str] = so.mapped_column(sa.String(64), nullable=True) # Social, Cloud, B2B, B2C, C2C, tech platform, P2P
+    timeline:      so.Mapped[str] = so.mapped_column(sa.String(4096), nullable=True)
 
     def __repr__(self):
         return '<Entity {}>'.format(self.name)

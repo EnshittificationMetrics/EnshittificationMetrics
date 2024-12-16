@@ -3,6 +3,19 @@
 {% block content %}
 
 <h1>Enshittification Art:</h1>
+
+Sort type: <!-- ranking_sort -->
+<strong>{{current_user.ranking_sort}}</strong> ~ 
+<button id="sortAlph">Alphabetically</button> ~ 
+<button id="sortAge">by Age</button>
+<br>
+
+Sort order: <!-- display_order --> 
+<strong>{{current_user.display_order}}</strong>
+<button id="sortAsc">Ascending</button> ~ 
+<button id="sortDesc">Descending</button>
+<br>
+
 <ul>
 	{% for item in art %}
 		<strong>{{ item.text }}</strong><br>
@@ -16,9 +29,12 @@
 			{% endfor %}
 		{% else %}
 			None
-		{% endif %}<br>
+		{% endif %}
 		<br>
+		ID #{{ item.id }}<br>
 	{% endfor %}
 </ul>
+
+<script src="{{ url_for('static', filename='js/filtersortscript.js') }}" defer></script>
 
 {% endblock %}

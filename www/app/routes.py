@@ -25,7 +25,7 @@ from flask_login import login_user, logout_user, current_user, login_required, u
 from flask_simple_captcha import CAPTCHA
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlalchemy as sa
-from sqlalchemy import or_, asc, desc
+from sqlalchemy import or_, asc, desc, func
 import socket
 # pipenv install Flask pyotp Flask-Mail
 import pyotp
@@ -34,6 +34,7 @@ from dotenv import load_dotenv
 from urllib.parse import urlsplit
 import requests
 import datetime
+import random
 
 load_dotenv('../.env')
 hostn = socket.gethostname()
@@ -81,8 +82,14 @@ def index():
         if temp_value:
             if my_name not in temp_value:
                 session['user_referrer'] = temp_value
-    return render_template('index.html')
-
+    random_art = Art.query.order_by(func.random()).limit(2).all()
+    random_ref = References.query.order_by(func.random()).limit(2).all()
+    recent_news = News.query.order_by(News.date_pub.desc()).limit(3).all()
+    return render_template('index.html',
+                            art = random_art, 
+                            references = random_ref, 
+                            news = recent_news, 
+                            )
 
 @app.route('/rankings')
 def rankings():
@@ -182,14 +189,52 @@ def update_funcstage():
 
 @app.route('/news')
 def news():
-    news = News.query.all()
+    # Initialize the query
+    query = News.query
+    
+    ### # current_user.ranking_stat - filter - Live, Potential, Not Disabled, Disabled
+    ### if current_user.ranking_stat.lower() == 'not disabled':
+    ###     query = query.filter(Entity.status != 'disabled')
+    ### else:
+    ###     query = query.filter(Entity.status == current_user.ranking_stat.lower())
+
+    ### # current_user.ranking_cats - filter - All, Social, Cloud, B2B, B2C, C2C, tech platform, P2P
+    ### if current_user.ranking_cats.lower() != 'all':
+    ###     query = query.filter(or_(Entity.category.like(f"%{cat.strip()}%") for cat in current_user.ranking_cats.split(',')))
+
+    # current_user.display_order - sort by recent first, oldest first
+    if current_user.display_order.lower() == "oldest first":
+        sorting_order = desc # no quotes as this is a callable
+    else: # == recent first (default)
+        sorting_order = asc 
+
+    # current_user.ranking_sort - sort by Name ~ by Stage* ~ by Age
+    if current_user.ranking_sort.lower() == "name":
+        query = query.order_by(sorting_order(News.text))
+    elif current_user.ranking_sort.lower() == "stage":
+        query = query.order_by(sorting_order(News.stage_int_value))
+    elif current_user.ranking_sort.lower() == "age":
+        query = query.order_by(sorting_order(News.date_pub))
+
+    # Get the final results
+    news = query.all()
     return render_template('news.html', 
                            news = news)
 
 
 @app.route('/art')
 def art():
-    art = Art.query.all()
+    # art = Art.query.all()
+    query = Art.query
+    if current_user.display_order.lower() == "oldest first":
+        sorting_order = desc # no quotes as this is a callable
+    else: # == recent first (default)
+        sorting_order = asc 
+    if current_user.ranking_sort.lower() == "name":
+        query = query.order_by(sorting_order(Art.text))
+    elif current_user.ranking_sort.lower() == "age":
+        query = query.order_by(sorting_order(Art.date_pub))
+    art = query.all()
     return render_template('art.html', 
                            art = art)
 
@@ -202,6 +247,7 @@ def references():
             if my_name not in temp_value:
                 session['user_referrer'] = temp_value
     references = References.query.all()
+    random.shuffle(references) # shuffle the list in place
     return render_template('references.html', 
                            references = references)
 
@@ -291,7 +337,7 @@ def login():
             logging.info(f'Agent = {get_user_agent()}')
             if 'user_referrer' not in session:
                 session['user_referrer'] = 'None'
-            logging.info(f'Referrer = {session['user_referrer']}')
+            logging.info(f"Referrer = {session['user_referrer']}")
             logging.info(f'Domain = {get_domain_from_ip(ip_addr)}')
             logging.info(f'ISP = {get_isp_from_ip(ip_addr)}')
             if current_user.role == 'disabled':
@@ -345,7 +391,7 @@ def guest_sign_in():
     logging.info(f'Agent = {get_user_agent()}')
     if 'user_referrer' not in session:
         session['user_referrer'] = 'None'
-    logging.info(f'Referrer = {session['user_referrer']}')
+    logging.info(f"Referrer = {session['user_referrer']}")
     logging.info(f'Domain = {get_domain_from_ip(ip_addr)}')
     logging.info(f'ISP = {get_isp_from_ip(ip_addr)}')
     if current_user.role == 'disabled':
@@ -406,8 +452,11 @@ def register():
             logging.info(f'=*=*=*> New user registered! full_name="{form.full_name.data}" \
                 username="{form.username.data}" email="{form.email.data}" phone #="{form.phone_number.data}"')
             if ntfypost:
-                alert_data = f'New user "{form.username.data}" registered; full name "{form.full_name.data}", \
-                    email domain "{form.email.data.split('@')[-1]}", phone area-code "{form.phone_number.data[0:3]}"'
+                alert_data  = f'New user "{form.username.data}" registered; '
+                alert_data += f'full name "{form.full_name.data}", '
+                email_domain = form.email.data.split('@')[-1]
+                alert_data += f'email domain "{email_domain}", '
+                alert_data += f'phone area-code "{form.phone_number.data[0:3]}" '
                 requests.post('https://ntfy.sh/000ntfy000EM000', headers={'Title' : alert_title}, data=(alert_data))
             return redirect(url_for('login'))
     elif request.method == 'GET':
@@ -790,6 +839,19 @@ def survey():
 
 # dev / administrator only routes - locked down
 
+
+@app.route('/force_utilities', methods=['GET', 'POST'])
+@login_required
+def force_utilities():
+    if current_user.role != 'administrator':
+        return render_template('index.html')
+    if call_type == 'POST':
+        pass
+        ### pull button values selected
+        return 
+    return render_template('force_utilities.html',)
+
+
 @app.route('/show_values')
 @login_required
 def show_values():
@@ -838,9 +900,9 @@ def show_values():
                            show_values = show_values)
 
 
-@app.route('/report')
+@app.route('/report_all')
 @login_required
-def report():
+def report_all():
     if current_user.role != 'administrator':
         return render_template('index.html')
     entities = Entity.query.all()
@@ -851,6 +913,58 @@ def report():
                            entities = entities, 
                            news = news, 
                            art = art, 
+                           references = references)
+
+
+@app.route('/report_entities')
+@login_required
+def report_entities():
+    if current_user.role != 'administrator':
+        return render_template('index.html')
+    entities = Entity.query.all()
+    return render_template('report.html', 
+                           entities = entities, 
+                           news = None, 
+                           art = None, 
+                           references = None)
+
+
+@app.route('/report_news')
+@login_required
+def report_news():
+    if current_user.role != 'administrator':
+        return render_template('index.html')
+    news = News.query.all()
+    return render_template('report.html', 
+                           entities = None, 
+                           news = news, 
+                           art = None, 
+                           references = None)
+
+
+@app.route('/report_art')
+@login_required
+def report_art():
+    if current_user.role != 'administrator':
+        return render_template('index.html')
+    art = Art.query.all()
+    return render_template('report.html', 
+                           entities = None, 
+                           news = None, 
+                           art = art, 
+                           references = None)
+
+
+@app.route('/report_references')
+@login_required
+def report_references():
+    if current_user.role != 'administrator':
+        return render_template('index.html')
+    references = References.query.all()
+    return render_template('report.html', 
+                           entities = None, 
+                           news = None, 
+                           art = None, 
                            references = references)
 
 
@@ -971,7 +1085,8 @@ def manual_entity():
                         date_ended    = form.date_ended.data, 
                         summary       = form.summary.data, 
                         corp_fam      = form.corp_fam.data, 
-                        category      = form.category.data)
+                        category      = form.category.data, 
+                        timeline      = form.timeline.data)
         db.session.add(entity)
         db.session.commit()
         flash(f'Added {form.name.data}')
@@ -988,7 +1103,8 @@ def manual_entity():
                        date_ended    = 'empty',
                        summary       = 'empty',
                        corp_fam      = 'empty',
-                       category      = 'empty')
+                       category      = 'empty',
+                       timeline      = 'empty')
         return render_template('manual_entity.html', 
                                form = form,
                                entity = blank)

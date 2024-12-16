@@ -2,10 +2,90 @@
 
 {% block content %}
 
-<h1>Welcome...</h1>
+<table border="3">
+	<tr>
+		<td>
+			<h1>Welcome...<br>
+			To the Enshitiffication Metrics portal; 
+			get and stay up to speed on this trend-ist term.<br>
+			Check out the <a href="{{ url_for('rankings') }}">rankings</a> page. 
+			Here for <a href="{{ url_for('references') }}">references</a> or <a href="{{ url_for('about') }}">about</a>.</h1>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<h1>Interesting <a href="{{ url_for('art') }}">Art</a>:</h1>
+		</td>
+	</tr>
+	{% for item in art %}
+	<tr>
+		<td>
+			<strong>{{ item.text }}</strong><br>
+			<a href="{{ item.url }}" target="_blank">{{ item.url }}</a><br>
+			{{ item.date_pub }}<br>
+			{{ item.summary }}<br>
+			Entities:
+			{% if item.ent_names %}
+				{% for ent in item.ent_names %}
+					{{ ent }}, 
+				{% endfor %}
+			{% else %}
+				None
+			{% endif %}<br>
+			<br>
+		</td>
+	</tr>
+	{% endfor %}
 
-Latest updates:<br>
+	<tr>
+		<td>
+			<h1>Interesting <a href="{{ url_for('references') }}">References</a>:</h1>
+		</td>
+	</tr>
+	{% for item in references %}
+		<tr>
+			<td>
+			<strong>{{ item.text }}</strong><br>
+			<a href="{{ item.url }}" target="_blank">{{ item.url }}</a><br>
+			{{ item.date_pub }}<br>
+			{{ item.summary }}<br>
+			<br>
+			</td>
+		</tr>
+	{% endfor %}
 
-(not yet implemented)<br>
+	<tr>
+		<td>
+			<h1>Latest <a href="{{ url_for('news') }}">News</a> Updates:</h1>
+		</td>
+	</tr>
+	{% for news_item in news %}
+	<tr>
+		<td>
+		News ID#{{ news_item.id }}<br>
+		<strong>{{ news_item.text }}</strong><br>
+		{% if news_item.url %}
+			<a href="{{ news_item.url }}" target="_blank">{{ news_item.url }}</a><br>
+		{% endif %}
+		{{ news_item.date_pub }}<br>
+		{{ news_item.summary }}<br>
+		Entities:
+		{% if news_item.ent_names %}
+			{% for ent in news_item.ent_names %}
+				{{ ent }}, 
+			{% endfor %}
+			<br>
+		{% endif %}
+		{% if news_item.judgment %}
+			{{ news_item.judgment }}<br>
+		{% endif %}
+		{% if news_item.stage_int_value %}
+			Stage {{ news_item.stage_int_value }}<br>
+		{% endif %}
+		<br>
+		</td>
+	</tr>
+	{% endfor %}
+</table>
 
 {% endblock %}

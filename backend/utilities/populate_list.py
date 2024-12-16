@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+""" list entities to add, one per line, as string item_list_string; except as duplicate, should add blank entity to DB """
 
 print(f'Starting script')
 

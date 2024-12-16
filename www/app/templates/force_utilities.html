@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Utilities:</h1>
+
+change stage_current from str to int
+
+set entity status to potential if stage history is blank, to live if stage history is populated
+
+from "Entity.stage_history" pop oldest mundane stuff off list when gets too big
+
+fix stage value from str to int if needed
+
+if has date and stage value, and, news item id and quality are empty
+
+{% endblock %}

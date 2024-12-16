@@ -30,6 +30,7 @@ import requests
 import socket
 import math
 from datetime import datetime
+from populate_blanks import create_timeline_content
 
 hostn = socket.gethostname()
 
@@ -177,7 +178,13 @@ def semantic_processing(title, url, date, content):
                 # set entity stage
                 record.stage_current = weighted_avg_stage_hist(record.stage_history)
                 # record.stage_current = stage_int_value # older code prior to weighted_avg_stage_hist
-                ### from "Entity.stage_history" pop oldest stuff off list when gets too big
+                
+                ### add code to from "Entity.stage_history" pop oldest stuff off list when gets too big (but don't pop foundationals)
+                
+                """update timeline to reflect new stage_current and new linked news item"""
+                timeline = create_timeline_content(record)
+                if timeline:
+                    record.timeline = timeline
                 # if needed, transition entity from potential to live with stage population
                 if record.status == 'potential':
                     record.status = 'live'

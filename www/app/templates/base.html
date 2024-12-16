@@ -43,11 +43,16 @@
 		{% if current_user.role == 'administrator' %}
 			<i>DEV:</i><br>
 			Entities, News, Art, References: 
-			<a href="{{ url_for('report') }}"       >report all</a> ~ 
-			<a href="{{ url_for('manual_add') }}"   >manual add</a> ~ 
-			<a href="{{ url_for('manual_edit') }}"  >manual edit</a> ~ 
-			<a href="{{ url_for('manual_delete') }}">manual delete</a> <br>
-			<a href="{{ url_for('show_values') }}  ">show current user values</a><br>
+			<a href="{{ url_for('report_all') }}"        >report all</a> ~ 
+			<a href="{{ url_for('report_entities') }}"   >report entities</a> ~ 
+			<a href="{{ url_for('report_news') }}"       >report news</a> ~ 
+			<a href="{{ url_for('report_art') }}"        >report art</a> ~ 
+			<a href="{{ url_for('report_references') }}" >report references</a> ~ 
+			<a href="{{ url_for('manual_add') }}"        >manual add</a> ~ 
+			<a href="{{ url_for('manual_edit') }}"       >manual edit</a> ~ 
+			<a href="{{ url_for('manual_delete') }}"     >manual delete</a> <br>
+			<a href="{{ url_for('show_values') }}"       >show current user values</a><br>
+			<a href="{{ url_for('force_utilities') }}"   >DB force changes utilities</a><br>
 			</i><br>
 		{% endif %}
 		

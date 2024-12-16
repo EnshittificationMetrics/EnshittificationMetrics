@@ -2,9 +2,10 @@
 
 {% block content %}
 
-<h1>EnshittificationMetrics Entity {{ item.name }} Detail:</h1>
+<h1>EnshittificationMetrics Entity "{{ item.name }}" Detail:</h1>
 
 <table border="3">
+<!-- entity details -->
 	<tr>
 		<td>
 			<strong>{{ item.name }}</strong>
@@ -64,6 +65,28 @@
 		</td>
 	</tr>
 
+<!-- entity-stage_history -->
+	{% if item.stage_history %}
+		<tr>
+			<td>
+				Current 
+				{% if current_user.func_stage == 4 %}
+					Stage {{ item.stage_EM4view }} 
+				{% else %}
+					Stage {{ item.stage_current }} 
+				{% endif %}
+				via {{ item.name }} stage history:
+				{% for entry in item.stage_history %}
+					{{ entry[1] }} <!-- stage value -->
+					( {{ entry[0] }} ) <!-- date -->
+					id #{{ entry[2] }} <!-- news item id -->
+					, 
+				{% endfor %}
+			</td>
+		</tr>
+	{% endif %}
+
+<!-- News -->
 	<tr>
 		<td>
 			{% if news %}
@@ -76,7 +99,7 @@
 	{% for news_item in news %}
 	<tr>
 		<td>
-		#{{ news_item.id }}<br>
+		News ID#{{ news_item.id }}<br>
 		<strong>{{ news_item.text }}</strong><br>
 		{% if news_item.url %}
 			<a href="{{ news_item.url }}" target="_blank">{{ news_item.url }}</a><br>

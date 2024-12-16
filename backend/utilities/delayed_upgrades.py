@@ -97,9 +97,10 @@ def get_uptime():
                 if match:
                     hours = int(match.group(1))
                     minutes = int(match.group(2))
-                else
-                    logging.error(f'No match on uptime re; "output" was: {output[:-1]}') # slice off CR
-                    ### maybe redo if-else with a capture btwn "up" and "users?", then check for "days?", "hours?", "mins?", or ":", then parse approp
+                    ### seems to work in test but not prod
+                else:
+                    logging.warning(f'No match on uptime re; "output" was: {output[:-1]}') # slice off CR
+                    ### maybe redo if-else with a capture btwn "up" and "users?", then check for "days?", "hours?", "mins?", or ":", then parse appropriately
     # Calculate uptime in days, hours, and minutes
     total_uptime = timedelta(days=days, hours=hours, minutes=minutes)
     return total_uptime
@@ -153,12 +154,16 @@ def main():
     runningas = run_command("whoami")
     logging.info(f'Running {__file__} as: {runningas[0:-1]}')
     
-    # restart section
+    # reload apache2 section
     flag_path = os.path.dirname(log_path) + '/apache_reload_needed'
+    # 'apache_reload_needed' created by 'copy_github_to_local.py'
     if os.path.exists(flag_path):
-        run_command("sudo systemctl reload apache2")
-        run_command(f"sudo rm {flag_path}")
-    # Note: 'apache_reload_needed' will (when needed) be created by 'copy_github_to_local.py'
+        try:
+            run_command("sudo systemctl reload apache2")
+            run_command(f"sudo rm {flag_path}")
+            logging.info(f'Performed systemctl reload apache2 due to {flag_path}')
+        except Exception as e:
+            logging.error(f'Failed systemctl reload apache2 and rm due to {flag_path}, error: {e}')
     
     # update section
     upgradable_packages = get_upgradable_packages()
@@ -179,6 +184,7 @@ def main():
                 logging.error(f'Need to figure out what was listed and tune "date_pattern" to deal with it.')
         if skipped_list:
             logging.info(f'Note: Skipped: \n{skipped_list}')
+        print(f'sleeping 5 min')
         time.sleep(5 * 60) # 5 min pause for updates to settle...
     
     # reboot section
@@ -196,7 +202,7 @@ def main():
             else:
                 logging.info(f'Not rebooting as not required and uptime ({uptime}) less than {days_force_reboot} days.')
         else:
-            logging.error(f'Unable to get uptime. (Not rebooting.)')
+            logging.warning(f'Unable to get uptime. (Not rebooting.)')
     logging.info(f'Done run of {os.path.abspath(__file__)}\n')
 
 if __name__ == "__main__":

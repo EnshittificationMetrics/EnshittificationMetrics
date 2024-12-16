@@ -54,7 +54,11 @@ if dom == '01':
     else:
         del_year = curr_year
     for i in range(2, 32):
-        file_path = Path(workingpath + del_year + '-' + del_month + '-' + str(i) + '_em.db')
+        if i > 9:
+            double_digit_day_str = str(i)
+        else:
+            double_digit_day_str = '0' + str(i)
+        file_path = Path(workingpath + del_year + '-' + del_month + '-' + double_digit_day_str + '_em.db')
         if file_path.exists():
             try:
                 file_path.unlink()

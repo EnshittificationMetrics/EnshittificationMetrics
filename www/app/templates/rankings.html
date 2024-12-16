@@ -82,7 +82,7 @@ Filter status type: <!-- ranking_stat -->
 			{% else %}
 				<td>
 					{% if item.stage_current == 1 %}
-						<~-- <a href="/entity_detail?{{ item.name }}"><strong>{{ item.name }}</strong></a> -->
+						<!-- <a href="/entity_detail?{{ item.name }}"><strong>{{ item.name }}</strong></a> -->
 						<a href="{{ url_for('entity_detail', entname=item.name) }}"><strong>{{ item.name }}</strong></a>
 					{% endif %}
 				</td>

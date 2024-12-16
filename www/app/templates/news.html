@@ -3,12 +3,54 @@
 {% block content %}
 
 <h1>Enshittification News:</h1>
+
+<!-- Filter category type: <!-- ranking_cats -->
+<!-- <strong>{{current_user.ranking_cats}}</strong> ~  -->
+<!-- <button id="catAll">All</button> ~  -->
+<!-- <button id="catSocial">Social</button> ~  -->
+<!-- <button id="catCloud">Cloud</button> ~  -->
+<!-- <button id="catB2B">B2B</button> ~  -->
+<!-- <button id="catB2C">B2C</button> ~  -->
+<!-- <button id="catC2C">C2C</button> ~  -->
+<!-- <button id="catPlatform">tech platform</button> ~  -->
+<!-- <button id="catP2P">P2P</button> -->
+<!-- <br>  -->
+
+Sort type: <!-- ranking_sort -->
+<strong>{{current_user.ranking_sort}}</strong> ~ 
+<button id="sortAlph">Alphabetically</button> ~ 
+<button id="sortStage">by Stage</button> ~ 
+<button id="sortAge">by Age</button>
+<br>
+
+<!-- Filter status type: <!-- ranking_stat -->
+<!-- <strong>{{current_user.ranking_stat}}</strong> ~  -->
+<!-- <button id="statusLive">Live</button> ~  -->
+<!-- <button id="statusPotential">Potential</button> ~  -->
+<!-- <button id="statusAll">All</button> -->
+<!-- <!-- doesn't work... <button id="statusDisabled">Disabled </button> -->
+<!-- <br> -->
+
+Sort order: <!-- display_order --> 
+<strong>{{current_user.display_order}}</strong>
+<button id="sortAsc">Ascending</button> ~ 
+<button id="sortDesc">Descending</button>
+<br>
+
+Per Page: <!-- per_page -->
+<strong>{{current_user.per_page}}</strong> ~ 
+<i>(previous)</i> ~ 
+<i>next</i> ~ 
+<i>longer per page</i> ~ 
+<i>last</i>
+<br>
+
 <ul>
 	{% for item in news %}
 
 		<strong>{{ item.text }}</strong><br>
 
-		{% if item.url %}
+		{% if item.url %} 
 			<a href="{{ item.url }}" target="_blank">{{ item.url }}</a><br>
 		{% endif %}
 
@@ -25,15 +67,20 @@
 		{% endif %}
 
 		{% if item.judgment %}
-			{{ item.judgment }}<br>
+			Judgment: {{ item.judgment }}<br>
 		{% endif %}
 
 		{% if item.stage_int_value %}
-			{{ item.stage_int_value }}<br>
+			<i>Stage {{ item.stage_int_value }}</i><br>
 		{% endif %}
 
+		ID #{{ item.id }}<br>
+
+		<br>
 		<br>
 	{% endfor %}
 </ul>
+
+<script src="{{ url_for('static', filename='js/filtersortscript.js') }}" defer></script>
 
 {% endblock %}
