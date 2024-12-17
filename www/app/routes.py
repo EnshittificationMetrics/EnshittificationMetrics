@@ -98,9 +98,12 @@ def rankings():
         if temp_value:
             if my_name not in temp_value:
                 session['user_referrer'] = temp_value
+    if current_user.is_anonymous:
+        flash('Must be logged in to access page...')
+        return render_template('anonymous.html',
+                                then_next = 'rankings')
     # entities = Entity.query.all() # initial old "query"
     # SQLAlchemy queries are chained, each filter() adds to the query without overwriting it.
-
     # Initialize the query
     query = Entity.query
     # current_user.ranking_stat - filter - Live, Potential, Not Disabled, Disabled
@@ -189,6 +192,10 @@ def update_funcstage():
 
 @app.route('/news')
 def news():
+    if current_user.is_anonymous:
+        flash('Must be logged in to access page...')
+        return render_template('anonymous.html',
+                                then_next = 'news')
     # Initialize the query
     query = News.query
     
@@ -224,6 +231,10 @@ def news():
 
 @app.route('/art')
 def art():
+    if current_user.is_anonymous:
+        flash('Must be logged in to access page...')
+        return render_template('anonymous.html',
+                                then_next = 'art')
     # art = Art.query.all()
     query = Art.query
     if current_user.display_order.lower() == "oldest first":

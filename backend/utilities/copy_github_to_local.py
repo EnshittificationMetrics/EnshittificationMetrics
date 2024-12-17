@@ -58,7 +58,7 @@ def check_for_restart_needed(filename):
     touches middleapp.wsgi for changes to Flask .py or Python packages.
     (May do one or both multiple times per script run.)
     """
-    import fnmatch
+    ### import fnmatch
     match filename:
         case 'middleapp.wsgi':
             try:
@@ -72,7 +72,8 @@ def check_for_restart_needed(filename):
                 logging.info(f'==> Touched middleapp.wsgi.')
             except subprocess.CalledProcessError as e:
                 logging.error(f'==> Unable to touch middleapp.wsgi; got error: {e}')
-        case path if fnmatch.fnmatch(path, '*/migrations/versions/*'): # was # case 'models.py':
+        ### case path if fnmatch.fnmatch(path, '*/migrations/versions/*'): # was # case 'models.py':
+        case 'migrations/versions':
             try:
                 time.sleep(.25 * 60) # 15 second pause for file copy to settle
                 subprocess.run(['cd /var/www/em'], check=True)
@@ -117,6 +118,7 @@ def place_files(src, dest_www, dest_back):
                     files_copied += 1
                 except Exception as e:
                     logging.error(f'==> In attempting to copy new file {dst_file}, got error: {e}')
+                    continue
                     # print(f'In attempting to copy new file {dst_file}, got error: {e}') # for testing
             else:
                 src_mtime = os.path.getmtime(src_file) # Source file modification time
@@ -129,10 +131,17 @@ def place_files(src, dest_www, dest_back):
                         # shutil.copy2(src_file, dst_file) # copy2 preserves metadata (e.g., timestamps)
                         logging.info(f'Copied updated file {dst_file}')
                         files_copied += 1
-                        check_for_restart_needed(filename)
                     except subprocess.CalledProcessError as e:
                         logging.error(f'==> In attempting to copy updated file {dst_file}, got error: {e}')
+                        continue
                         # print(f'In attempting to copy updated file {dst_file}, got error: {e}') # for testing
+                else:
+                    logging.warning(f'No copy performed - {dst_file} file exists and is same (or older) timestamp.')
+                    continue
+            if dirpath == '*/migrations/versions/*':
+                check_for_restart_needed('migrations/versions')
+            else:
+                check_for_restart_needed(filename)
     logging.info(f'Copied {files_copied} files.')
 
 def main():

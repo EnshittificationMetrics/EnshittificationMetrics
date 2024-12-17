@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+# newer
 """
 Finds all entities with blank summaries and tries to create_content for them.
 Queries Wikipedia and DDG.
@@ -257,6 +257,7 @@ def create_timeline_content(entity):
                                 "stage_current": entity.stage_current, })
         logging.info(f'==> Raw content return (which should be json) for "{name}":\n{content}')
     except HTTPStatusError as e:
+        content = """No GenAI content available. {"timeline": None}"""
         if e.response.status_code == 401:
             logging.error(f'==> Error: Unauthorized. Please check your API key.')
         else:

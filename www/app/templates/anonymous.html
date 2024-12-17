@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Must be logged in to access page...</h1>
+
+	<h2><p>
+	<a href="{{ url_for('login', next=then_next) }}">Login</a>, or, 
+	<a href="{{ url_for('register', next=then_next) }}">register</a> and then login, or, 
+	<a href="{{ url_for('guest_sign_in', next=then_next) }}">login as guest</a>.
+	</p></h2>
+
+{% endblock %}
