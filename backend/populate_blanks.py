@@ -120,7 +120,7 @@ Only responses formatted in json will be used; like:
   "timeline": "It was like this; a timeline going from ...", 
 }}
 
-"{entity}" started "{date_started}", ended "{date_ended}"; is in corporate family {"corp_fam}", and category "{category}".
+"{entity}" started "{date_started}", ended "{date_ended}"; is in corporate family "{corp_fam}", and category "{category}".
 "{entity}" currently judged to be at: stage {stage_current} 
 "{entity}" summary: {summary} 
 
@@ -147,6 +147,8 @@ def create_summary_content(name):
     date_ended = None
     corp_fam = None
     category = None
+
+    wikipedia_page_results = ''
     wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
     wikipedia_page_results = wikipedia.run(f'about {name} corp')
     logging.info(f'==> wikipedia_page_results results for {name}: {wikipedia_page_results}.')
@@ -172,19 +174,21 @@ def create_summary_content(name):
                                 "ddg_results": ddg_results})
         logging.info(f'==> Raw content return (which should be json) for {name}:\n{content}')
     except HTTPStatusError as e:
+        content = ''
         if e.response.status_code == 401:
             logging.error(f'==> Error: Unauthorized. Please check your API key.')
             # httpx.HTTPStatusError: Error response 401 while fetching https://api.mistral.ai/v1/chat/completions: {"message":"Unauthorized"}
         else:
-            logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+            logging.error(f'==> chain.invoke Mistral LLM (HTTPStatusError) failed: {e}')
     except Exception as e:
+        content = ''
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
     # extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation
     start = content.find('{')
     end = content.rfind('}')
     if start != -1 and end != -1 and start < end:
         content = content[start:end + 1]
-        logging.info(f'==> Content btwn first open and last close curly bracket (which should be only json) for {name}:\n{content}')
+        logging.info(f'==> Cropped, leaving content btwn first open and last close curly bracket (which should be only json) for {name}:\n{content}')
     try:
         data = json.loads(content)
         summary = data.get('summary')
@@ -261,8 +265,9 @@ def create_timeline_content(entity):
         if e.response.status_code == 401:
             logging.error(f'==> Error: Unauthorized. Please check your API key.')
         else:
-            logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+            logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
     except Exception as e:
+        content = """No GenAI content available. {"timeline": None}"""
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
 
     pattern = r'^\{\s*\"timeline\":\s*\".*?\"\s*,?\s*\}$'
