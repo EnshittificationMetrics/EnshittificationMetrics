@@ -210,6 +210,7 @@ def create_timeline_content(entity):
     Extract the content between first '{' and last '}'...
     If good json then copy out results, otherwise return timeline None.
     """
+    logging.info(f'==> +++++++++ create_timeline_content +++++++++++')
     timeline = None
     name = entity.name
 
@@ -306,6 +307,7 @@ def parse_for_blank_summary():
     Pulls all entities from DB; skips disabled; if summary None (blank) then call create_content.
     If create_content returns summary None then logs and continues, otherwise sets values for summary etc and commits.
     """
+    logging.info(f'==> +++++++++ parse_for_blank_summary +++++++++++')
     with app.app_context():
         entities = Entity.query.all()
         for entity in entities:
@@ -335,6 +337,7 @@ def parse_for_blank_timeline():
     Pulls all entities from DB; skips disabled; if timeline None (blank) then call create_content.
     If create_content returns timeline None then logs and continues, otherwise sets value for timeline and commits.
     """
+    logging.info(f'==> ++++++++++ parse_for_blank_timeline +++++++++++\n')
     with app.app_context():
         entities = Entity.query.all()
         for entity in entities:
@@ -355,6 +358,7 @@ def parse_for_blank_timeline():
     return None
 
 
+# this func might not be used / called at all from anywhere
 def create_timeline_for_entity(entity_name_str):
     """
     Click in GUI utility submits name of entity selected to run a timeline creation on.
@@ -391,10 +395,9 @@ def create_timeline_for_entity(entity_name_str):
 
 
 def main():
-    logging.info(f'==> +++++++++ starting populate_blanks.py +++++++++++')
     parse_for_blank_summary()
     # parse_for_blank_timeline() ### not ready to go live, test with one at a time
-    logging.info(f'==> ++++++++++ ending populate_blanks.py +++++++++++\n')
+    logging.info(f'==> ++++++++++ filling blanks done +++++++++++\n')
 
 if __name__ == "__main__":
     main()

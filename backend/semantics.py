@@ -79,6 +79,7 @@ Text to summarize follows.
 
 
 def semantic_judgment(enshit_hit, text, entities):
+    logging.info(f'==> +++++++++ semantic_judgment +++++++++++')
     prompt_judgment = ChatPromptTemplate.from_template(JUDGMENT_TEMPLATE)
     chain = ( prompt_judgment
             | large_lang_model 
@@ -90,6 +91,7 @@ def semantic_judgment(enshit_hit, text, entities):
 
 
 def write_summary(text):
+    logging.info(f'==> +++++++++ write_summary +++++++++++')
     prompt_summary = ChatPromptTemplate.from_template(SUMMARY_TEMPLATE)
     chain = ( prompt_summary 
             | large_lang_model 
@@ -111,8 +113,9 @@ def large_lang_model(query):
 
 
 def semantic_processing(title, url, date, content):
+    logging.info(f'==> +++++++++ semantic_processing +++++++++++')
     judgment = ''
-    # look for enshit* in text
+    """ look for enshit* in text """
     enshit_hit = False
     text = title + '\n' + content
     pattern = r'enshit'
@@ -120,7 +123,7 @@ def semantic_processing(title, url, date, content):
     if matches:
         enshit_hit = True
         judgment += f'Got hit for enshit* term! '
-    # pull entity names from DB, look for them in text
+    """ pull entity names from DB, look for them in text """
     with app.app_context():
         entities = Entity.query.all()
         items = []
@@ -130,16 +133,15 @@ def semantic_processing(title, url, date, content):
         # items = [result.name for result in entities] # orig line before weeding out disableds
     escaped_items = [re.escape(item) for item in items]
     pattern = '|'.join(escaped_items)
-    ### May remove this logging if all works and it clutters up scrape.log too much
-    logging.info(f'==> Entities searching for in post text: {pattern}')
+    logging.info(f'==> Entities searching for in post text: {pattern}') # Comment this logging if all works and it clutters up scrape.log too much
     matches = re.findall(pattern, text, re.IGNORECASE)
     if not matches:
-        # if no relevant entity listed, do nothing
+        """ if no relevant entity listed, do nothing """
         judgment += f'No relevant entity listed. '
         return judgment
     entities = remove_duplicates(input_list = matches)
     judgment += f'Got hit(s) for {str(entities)}. '
-    # send text to LLM for semantic judgment
+    """ send text to LLM for semantic judgment """
     stage = semantic_judgment(enshit_hit = enshit_hit,
                               text = text, 
                               entities = entities)
@@ -150,9 +152,11 @@ def semantic_processing(title, url, date, content):
         return judgment
     ### want to do something more if enshit_hit is True yet judgment returns None - like create a news item and make an entity set as potential.
     judgment += f'judgment rendered: {stage}. '
+    """ write up a summary """
     summary = write_summary(text)
     stage_str_from_llm = matches[0] ### moved here
     stage_int_value = int(stage_str_from_llm[-1]) # convert from str 'stage 1' to int '1' ### moved here
+    """ add news item to DB """
     with app.app_context():
         new_record = News(date_pub = date, 
                           url = url, 
@@ -161,11 +165,10 @@ def semantic_processing(title, url, date, content):
                           ent_names = entities, # entities includes count of # of items
                           judgment = judgment, # added to models.py News
                           stage_int_value = stage_int_value) # added to models.py News
-                          # add_news item to DB
         db.session.add(new_record)
         db.session.commit() # created new News object (in DB)
-        news_item_id = new_record.id # news item's id will be added to each_entity.stage_history
-        # add data-point () to entity objects (in DB)
+        """ Add news item's id to each entity's stage_history """
+        news_item_id = new_record.id
         ### old location, moved from here # stage_str_from_llm = matches[0]
         ### old location, moved from here # stage_int_value = int(stage_str_from_llm[-1]) # convert from str 'stage 1' to int '1'
         for entity in entities:
@@ -181,7 +184,7 @@ def semantic_processing(title, url, date, content):
                 
                 ### add code to from "Entity.stage_history" pop oldest stuff off list when gets too big (but don't pop foundationals)
                 
-                """update timeline to reflect new stage_current and new linked news item"""
+                """update (or make for first time) entity timeline to reflect new stage_current and new linked news item"""
                 timeline = create_timeline_content(record)
                 if timeline:
                     record.timeline = timeline
@@ -219,10 +222,10 @@ def weighted_avg_stage_hist(stage_values):
     weighted_average = total_weighted_value / total_weight if total_weight != 0 else 0
     # round float and keep btwn 1 and 4 (integer 1, 2, 3, or, 4)
     stage_value = max(1, min(round(weighted_average), 4))
-    logging.info(f'Will remove these four logging lines once monitored and tuned; decay_factor: {decay_factor}')
-    logging.info(f'stage_values: {stage_values}')
-    logging.info(f'weighted_average: {weighted_average}')
-    logging.info(f'stage_value: {stage_value}')
+    logging.info(f'1. Will remove these four logging lines once monitored and tuned; decay_factor: {decay_factor}')
+    logging.info(f'2. stage_values: {stage_values}')
+    logging.info(f'3. weighted_average: {weighted_average}')
+    logging.info(f'4. stage_value: {stage_value}')
     return stage_value
 
 

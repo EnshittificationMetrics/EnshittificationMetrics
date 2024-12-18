@@ -28,6 +28,7 @@ max_size = 60 # each "page" is 15 items
 
 
 def parse_slashdot_posts():
+    logging.info(f'==> +++++++++ parse_slashdot_posts +++++++++++')
     note = ''
     req = requests.get(site_url)
     if req.status_code != 200:
@@ -127,7 +128,8 @@ def yyyy_mmm_dd_format(sd_fhtime_text):
 
 
 def process_slashdot_site():
-    note = '\n'
+    logging.info(f'==> +++++++++ process_slashdot_site +++++++++++')
+    note = ''
     req = requests.get(site_url)
     if req.status_code != 200:
         note += f'Unable to access {site_url}.\n'
@@ -195,12 +197,11 @@ def beautiful_soup_methods():
 
 
 def main():
-    logging.info(f'==> +++++++++ starting slashdot_scrape.py +++++++++++')
     note = process_slashdot_site()
     logging.info(f'{note}')
     note = parse_slashdot_posts()
     logging.info(f'{note}')
-    logging.info(f'==> ++++++++++ ending slashdot_scrape.py +++++++++++')
+    logging.info(f'==> ++++++++++ scrape done +++++++++++')
 
 
 if __name__ == "__main__":
