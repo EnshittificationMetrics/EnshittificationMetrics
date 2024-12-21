@@ -178,7 +178,7 @@ def semantic_processing(title, url, date, content):
                 if record.stage_history is None:
                     record.history = []
                 record.stage_history.append([date, stage_int_value, news_item_id]) 
-                # set entity stage
+                """ set entity stage """
                 record.stage_current = weighted_avg_stage_hist(record.stage_history)
                 # record.stage_current = stage_int_value # older code prior to weighted_avg_stage_hist
                 
@@ -188,9 +188,11 @@ def semantic_processing(title, url, date, content):
                 timeline = create_timeline_content(record)
                 if timeline:
                     record.timeline = timeline
-                # if needed, transition entity from potential to live with stage population
+                    logging.info(f'set timeline to: {timeline}') ### comment out if log is too busy - keep "Raw LLM content return (which should be json)" log in populate_blanks.py
+                """ if needed, transition entity from potential to live with stage population """
                 if record.status == 'potential':
                     record.status = 'live'
+                    logging.info(f'set status from potential to live')
                 alert_data = f'Set {entity} to stage {record.stage_current} (weighted avg), due to new news of stage {stage_int_value}! '
                 judgment += alert_data
                 alert_data += f'(Per text from "{title}" referencing "{url}".)'

@@ -69,8 +69,11 @@
 
 	<tr>
 		<td>
+			Timeline: 
 			{% if item.timeline %}
-				Timeline: {{ item.timeline }}
+				{{ item.timeline }}
+			{% else %}
+				None
 			{% endif %}
 		</td>
 	</tr>

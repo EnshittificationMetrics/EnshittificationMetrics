@@ -228,7 +228,7 @@ def create_timeline_content(entity):
             news_items += f"text: {target.text}; "
             news_items += f"summary: {target.summary}; "
         ### news_items += "\n" # removed this line as LLM spit these back out and unescaped newline characters break json parsing in json.loads later
-    logging.info(f'==> news_items for {name}: {news_items}')
+    logging.info(f'==> news_items for {name}: {news_items}') ### this might be too long for LLM, 18000 characters for Meta 2024-12-21 01:20:21,879
 
     wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
     wikipedia_page_results = wikipedia.run(f'timeline about {name} corp')
@@ -260,7 +260,7 @@ def create_timeline_content(entity):
                                 "wikipedia_page_results": wikipedia_page_results, 
                                 "ddg_results": ddg_results, 
                                 "stage_current": entity.stage_current, })
-        logging.info(f'==> Raw content return (which should be json) for "{name}":\n{content}')
+        logging.info(f'==> Raw LLM content return (which should be json): {content}') # keep this logging and comment one in semantics.py
     except HTTPStatusError as e:
         content = """No GenAI content available. {"timeline": None}"""
         if e.response.status_code == 401:
@@ -270,27 +270,28 @@ def create_timeline_content(entity):
     except Exception as e:
         content = """No GenAI content available. {"timeline": None}"""
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
-
-    pattern = r'^\{\s*\"timeline\":\s*\".*?\"\s*,?\s*\}$'
-    if re.search(pattern, content):
-        """looks like json"""
-        pass
-    else:
+    """ sanitize, replace literal newline characters """
+    content = content.replace("\n", "\\n")
+    pattern = r'^\{\s*\"timeline\":\s*\".*?\"\s*,?\s*\}$' # looks like json
+    if not re.search(pattern, content):
         start = None
-        end = None
+        # end = None
         start = content.find('{')
         end = content.rfind('}')
         if start != -1 and end != -1 and start < end:
             """extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation"""
             content = content[start:end + 1]
-    content = content.replace("\n", "\\n") # sanitize, replace literal newline characters
+            logging.warning(f'==> string manipulation cropped out non-json')
+    if not re.search(pattern, content):
+        """ manually wrap as json "timeline" """
+        content = '{"timeline": "' + content + '"}'
+        logging.warning(f'==> wraped as json "timeline"')
     try:
-        logging.info(f'==> Trying json loads for "{name}" with: \n{content}')
         data = json.loads(content)
         timeline = data.get('timeline')
     except Exception as e:
         timeline = None
-        logging.info(f'==> For {name}, unable to process return from LLM into needed variables; got error: {e} ')
+        logging.warning(f'==> Unable to json load LLM return: {e}')
     return timeline
 
 
