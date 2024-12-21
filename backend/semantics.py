@@ -195,7 +195,8 @@ def semantic_processing(title, url, date, content):
                     logging.info(f'set status from potential to live')
                 alert_data = f'Set {entity} to stage {record.stage_current} (weighted avg), due to new news of stage {stage_int_value}! '
                 judgment += alert_data
-                alert_data += f'(Per text from "{title}" referencing "{url}".)'
+                alert_data += f'(Per text from "{title}" referencing "{url}".) '
+                alert_data += f'New "{entity}" timeline: {timeline}'
                 logging.info(f'EM judgment: {alert_data}')
                 ### alert_title += f' {stage_int_value}' # doesn't work - UnboundLocalError: cannot access local variable 'alert_title' where it is not associated with a value
                 if ntfypost: requests.post('https://ntfy.sh/000ntfy000EM000', 
