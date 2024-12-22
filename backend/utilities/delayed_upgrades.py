@@ -12,8 +12,8 @@ if __file__.startswith('/home/bsea/em/'):
     days_force_reboot = 36
 else:
     log_path = '/home/leet/EnshittificationMetrics/backend/utilities/delayed_upgrades.log' # EM dev or CLI (testing)
-    days_delay = 21
-    days_force_reboot = 5
+    days_delay = 8
+    days_force_reboot = 28
 
 import logging
 logging.basicConfig(level = logging.INFO,
@@ -140,6 +140,7 @@ def can_reboot():
     if check_open_files():
         logging.warning(f'There are open files in the web server directory. Reboot is not safe.')
         return False
+    logging.info(f'No logged in users, no web server activity, no open files; reboot should be safe.')
     return True
 
 def force_reboot():
@@ -178,12 +179,12 @@ def main():
                     upgrade_package(package, last_update_date)
                 else:
                     # print(f"{package} last updated on {last_update_date}, skipping as less than {days_delay} days old.")
-                    skipped_list += f'{package} updated {last_update_date}, \n'
+                    skipped_list += f'{package} updated {last_update_date}, '
             else:
                 logging.error(f'Could not retrieve changelog date for package "{package}".')
                 logging.error(f'Need to figure out what was listed and tune "date_pattern" to deal with it.')
         if skipped_list:
-            logging.info(f'Note: Skipped: \n{skipped_list}')
+            logging.info(f'Note: Skipped: {skipped_list[:-2]}')
         print(f'sleeping 5 min')
         time.sleep(5 * 60) # 5 min pause for updates to settle...
     

@@ -48,7 +48,6 @@ import html5lib
 import json
 import requests
 from httpx import HTTPStatusError
-import re
 
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
@@ -249,6 +248,7 @@ def create_timeline_content(entity):
             | large_lang_model 
             | StrOutputParser() 
             )
+    """ Dump all this stuff into LLM, get back timeline content """
     try:
         content = chain.invoke({"entity": name, 
                                 "news_items": news_items, 
@@ -270,28 +270,46 @@ def create_timeline_content(entity):
     except Exception as e:
         content = """No GenAI content available. {"timeline": None}"""
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
-    """ sanitize, replace literal newline characters """
-    content = content.replace("\n", "\\n")
-    pattern = r'^\{\s*\"timeline\":\s*\".*?\"\s*,?\s*\}$' # looks like json
-    if not re.search(pattern, content):
+    """ Pull timeline content string out of supposed json formatted return from LLM """
+    try:
+        data = json.loads(content) # 1st try
+        timeline = data.get('timeline')
+        logging.info(f'==> json.loads!')
+        return timeline
+    except JSONDecodeError as e:
         start = None
         # end = None
         start = content.find('{')
         end = content.rfind('}')
         if start != -1 and end != -1 and start < end:
-            """extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation"""
+            """ extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation """
             content = content[start:end + 1]
             logging.warning(f'==> string manipulation cropped out non-json')
-    if not re.search(pattern, content):
-        """ manually wrap as json "timeline" """
-        content = '{"timeline": "' + content + '"}'
-        logging.warning(f'==> wraped as json "timeline"')
+    """ sanitize, replace literal newline characters """
+    content = content.replace("\n", "\\n")
     try:
-        data = json.loads(content)
+        data = json.loads(content) # 2nd try
         timeline = data.get('timeline')
-    except Exception as e:
-        timeline = None
-        logging.warning(f'==> Unable to json load LLM return: {e}')
+        logging.info(f'==> json.loads!')
+        return timeline
+    except JSONDecodeError as e:
+        """ manually add json close chars """
+        content += '"}'
+        logging.warning(f'==> added json close chars"')
+    try:
+        data = json.loads(content) # 3rd try
+        timeline = data.get('timeline')
+        logging.info(f'==> json.loads!')
+    except JSONDecodeError as e:
+        """ manually add json open chars """
+        content = '{"timeline": "' + content
+        logging.warning(f'==> added json open chars"')
+    try:
+        data = json.loads(content) # 4th try
+        timeline = data.get('timeline')
+        logging.info(f'==> json.loads!')
+    except JSONDecodeError as e:
+        logging.warning(f'==> Json loading LLM return results in: {e}')
     return timeline
 
 
