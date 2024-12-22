@@ -132,9 +132,9 @@ def process_slashdot_site():
     note = ''
     req = requests.get(site_url)
     if req.status_code != 200:
-        note += f'Unable to access {site_url}.\n'
+        note += f'Unable to access {site_url}. '
         return note
-    note += f'Processed {site_url}.\n'
+    note += f'Processed {site_url}. '
     content = req.text
     soup = BeautifulSoup(content, 'html5lib')
     # get story IDs
@@ -148,20 +148,20 @@ def process_slashdot_site():
                 title_id, status = line.strip().split(maxsplit=1)
                 data_list.append((title_id, status))
     else:
-        note += f'{data_file} did not exist.\n'
+        note += f'{data_file} did not exist. '
     title_ids = {title_id for title_id, status in data_list}
     count = 0
     for id in ids:
         if id not in title_ids:
             data_list.append((id, 'new'))
             count += 1
-    note += f'Added {count} story-title IDs.\n'
+    note += f'Added {count} story-title IDs. '
     # trim list down to keep at reasonable history size
     count = 0
     while len(data_list) > max_size:
         data_list.pop(0)
         count += 1
-    note += f'Removed {count} old story-title IDs.\n'
+    note += f'Removed {count} old story-title IDs. '
     # save ID / status file to disk
     with open(data_file, 'w') as file: ### add utf8 switch?
         for title_id, status in data_list:

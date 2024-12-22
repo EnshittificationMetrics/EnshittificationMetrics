@@ -2,40 +2,46 @@
 
 {% block content %}
 
-<h1>EnshittificationMetrics Entity "{{ item.name }}" Detail:</h1>
+<h1>Enshittification Metrics Entity "{{ item.name }}" Detail:</h1>
 
 <table border="3">
 <!-- entity details -->
 	<tr>
-		<td>
-			<strong>{{ item.name }}</strong>
+		<td colspan="2">
+			<h1><strong>{{ item.name }}</strong></h1>
 		</td>
 	</tr>
 
 	<tr>
 		<td>
-			<strong>
+			<h2><strong>
 			{% if current_user.func_stage == 4 %}
 				Stage {{ item.stage_EM4view }}
 			{% else %}
 				Stage {{ item.stage_current }}
 			{% endif %}
-			</strong>
+			</strong></h2>
+		</td>
+		<td>
+			{% if item.category %}
+				Category: <strong>{{ item.category }}</strong>
+			{% endif %}
+			<br>
+			{% if item.status %}
+				Status: {{ item.status }}<br>
+			{% endif %}
 		</td>
 	</tr>
 
 	<tr>
 		<td>
 			{% if item.date_started and (item.date_started != 'UNK') %}
-				Started: {{ item.date_started }}
+				Started: <strong>{{ item.date_started }}</strong>
 			{% endif %}
 			{% if item.date_ended and (item.date_ended != 'None') %}
-				<strong>to {{ item.date_ended }}</strong>
+				 ~ Ended: <strong>{{ item.date_ended }}</strong>
 			{% endif %}
 		</td>
-	</tr>
-
-	<tr>
 		<td>
 			{% if item.corp_fam and (item.corp_fam != 'None') %}
 				Corporate Family: {{ item.corp_fam }}<br>
@@ -44,34 +50,18 @@
 	</tr>
 
 	<tr>
-		<td>
+		<td colspan="2">
 			{% if item.summary %}
-				Summary: {{ item.summary }}
+				Summary: <h2><strong>{{ item.summary }}</strong></h2>
 			{% endif %}
 		</td>
 	</tr>
 
 	<tr>
-		<td>
-			{% if item.category %}
-				Category: {{ item.category }}
-			{% endif %}
-		</td>
-	</tr>
-
-	<tr>
-		<td>
-			{% if item.status %}
-				Status: {{ item.status }}
-			{% endif %}
-		</td>
-	</tr>
-
-	<tr>
-		<td>
+		<td colspan="2">
 			Timeline: 
 			{% if item.timeline %}
-				{{ item.timeline }}
+				<h3>{{ item.timeline }}</h3>
 			{% else %}
 				None
 			{% endif %}
@@ -81,9 +71,9 @@
 <!-- entity-stage_history -->
 	{% if item.stage_history %}
 		<tr>
-			<td>
+			<td colspan="2">
 				{% if item.stage_history %}
-					Some history: <br>
+					News items: <br>
 					{% for entry in item.stage_history %}
 						Stage <strong>{{ entry[1] }}</strong> ~ <!-- stage -->
 						{{ entry[0] }} <!-- date -->
@@ -103,45 +93,42 @@
 			</td>
 		</tr>
 	{% endif %}
+</table>
 
 <!-- News -->
-	<tr>
-		<td>
-			{% if news %}
-				<br>
-				News items for {{ item.name }} stage history:
-			{% endif %}
-		</td>
-	</tr>
-
+{% if news %}
+	<br>
+	<h1>Enshittification Metrics News Items From "{{ item.name }}"'s Stage History:</h1>
 	{% for news_item in news %}
-	<tr>
-		<td>
-		News ID#{{ news_item.id }}<br>
-		<strong>{{ news_item.text }}</strong><br>
-		{% if news_item.url %}
-			<a href="{{ news_item.url }}" target="_blank">{{ news_item.url }}</a><br>
-		{% endif %}
-		{{ news_item.date_pub }}<br>
-		{{ news_item.summary }}<br>
-		Entities:
-		{% if news_item.ent_names %}
-			{% for ent in news_item.ent_names %}
-				{{ ent }}, 
-			{% endfor %}
-			<br>
-		{% endif %}
-		{% if news_item.judgment %}
-			{{ news_item.judgment }}<br>
-		{% endif %}
-		{% if news_item.stage_int_value %}
-			Stage {{ news_item.stage_int_value }}<br>
-		{% endif %}
+		<table border="3">
+			<tr>
+				<td>
+					News ID #{{ news_item.id }} ~ 
+					{% if news_item.stage_int_value %}
+						rated <strong>Stage {{ news_item.stage_int_value }}</strong><br>
+					{% endif %}
+					<strong>{{ news_item.text }}</strong><br>
+					{% if news_item.url %}
+						<a href="{{ news_item.url }}" target="_blank">{{ news_item.url }}</a><br>
+					{% endif %}
+					{{ news_item.date_pub }}<br>
+					{{ news_item.summary }}<br>
+					Entities:
+					{% if news_item.ent_names %}
+						{% for ent in news_item.ent_names %}
+							{{ ent }}, 
+						{% endfor %}
+						<br>
+					{% endif %}
+					{% if news_item.judgment %}
+						{{ news_item.judgment }}<br>
+					{% endif %}
+				</td>
+			</tr>
+		</table>
 		<br>
-		</td>
-	</tr>
 	{% endfor %}
-</table>
+{% endif %}
 
 <script src="{{ url_for('static', filename='js/filtersortscript.js') }}" defer></script>
 

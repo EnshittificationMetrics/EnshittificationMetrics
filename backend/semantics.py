@@ -160,7 +160,7 @@ def semantic_processing(title, url, date, content):
     with app.app_context():
         new_record = News(date_pub = date, 
                           url = url, 
-                          text = title, ### is this including 'post_text' ?
+                          text = title, ### is this including 'post_text' ? ### where is the title combine w/ URL in parens? (need to add a space)
                           summary = summary, 
                           ent_names = entities, # entities includes count of # of items
                           judgment = judgment, # added to models.py News
