@@ -46,6 +46,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_mistralai.chat_models import ChatMistralAI
 import html5lib
 import json
+from json import JSONDecodeError
 import requests
 from httpx import HTTPStatusError
 
