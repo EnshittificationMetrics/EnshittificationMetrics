@@ -198,7 +198,7 @@ def create_summary_content(name):
         category = data.get('category')
     except Exception as e:
         summary = None
-        logging.info(f'==> For {name}, unable to process return from LLM into needed variables; got error: {e} ')
+        logging.error(f'==> For {name}, unable to process return from LLM into needed variables; got error: {e} ~ Value of content: {content}')
     return summary, date_started, date_ended, corp_fam, category
 
 
@@ -274,43 +274,35 @@ def create_timeline_content(entity):
     """ Pull timeline content string out of supposed json formatted return from LLM """
     try:
         data = json.loads(content) # 1st try
+        # json.decoder.JSONDecodeError: Extra data: line 5 column 1 (char 730)
+        # json.decoder.JSONDecodeError: Unterminated string starting at: line 2 column 13 (char 14)
         timeline = data.get('timeline')
         logging.info(f'==> json.loads!')
         return timeline
     except JSONDecodeError as e:
-        start = None
-        # end = None
-        start = content.find('{')
-        end = content.rfind('}')
-        if start != -1 and end != -1 and start < end:
-            """ extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation """
-            content = content[start:end + 1]
-            logging.warning(f'==> string manipulation cropped out non-json')
-    """ sanitize, replace literal newline characters """
-    content = content.replace("\n", "\\n")
+        error_message = str(e)
+        if "Unterminated string" in error_message:
+            """ manually add json open chars """
+            content = '{"timeline": "' + content
+            logging.warning(f'==> added json open chars; Error: {e}')
+        if "Extra data" in error_message:
+            start = None
+            # end = None
+            start = content.find('{')
+            end = content.rfind('}')
+            if start != -1 and end != -1 and start < end:
+                """ extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation """
+                content = content[start:end + 1]
+                logging.warning(f'==> string manipulation cropped out non-json; Error: {e}')
+        """ sanitize, replace literal newline characters """
+        content = content.replace("\n", "\\n")
     try:
         data = json.loads(content) # 2nd try
         timeline = data.get('timeline')
-        logging.info(f'==> json.loads!')
+        logging.info(f'==> json.loads on 2nd try!')
         return timeline
-    except JSONDecodeError as e:
-        """ manually add json close chars """
-        content += '"}'
-        logging.warning(f'==> added json close chars"')
-    try:
-        data = json.loads(content) # 3rd try
-        timeline = data.get('timeline')
-        logging.info(f'==> json.loads!')
-    except JSONDecodeError as e:
-        """ manually add json open chars """
-        content = '{"timeline": "' + content
-        logging.warning(f'==> added json open chars"')
-    try:
-        data = json.loads(content) # 4th try
-        timeline = data.get('timeline')
-        logging.info(f'==> json.loads!')
-    except JSONDecodeError as e:
-        logging.warning(f'==> Json loading LLM return results in: {e}')
+    except Exception as e:
+        logging.error(f'==> json loading LLM return results in: {e}')
     return timeline
 
 

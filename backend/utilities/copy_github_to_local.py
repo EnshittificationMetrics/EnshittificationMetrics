@@ -136,7 +136,7 @@ def place_files(src, dest_www, dest_back):
                         continue
                         # print(f'In attempting to copy updated file {dst_file}, got error: {e}') # for testing
                 else:
-                    logging.warning(f'No copy performed - {dst_file} file exists and is same (or older) timestamp.')
+                    # logging.warning(f'No copy performed - {dst_file} file exists and is same (or older) timestamp.') # not really a warning  - expected / desired behavior
                     continue
             if dirpath == '*/migrations/versions/*':
                 check_for_restart_needed('migrations/versions')

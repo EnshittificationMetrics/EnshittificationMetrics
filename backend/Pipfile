@@ -23,6 +23,7 @@ email-validator = "*"
 flask = "*"
 pyotp = "*"
 flask-mail = "*"
+psutil = "*"
 
 [dev-packages]
 
