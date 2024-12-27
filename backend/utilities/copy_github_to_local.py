@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+# updated
 """
 Does git status check against GitHub repo for changes / updates.
 Does git pull of repo to clone_dir.

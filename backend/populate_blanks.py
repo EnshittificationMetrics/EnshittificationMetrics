@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# newer
+
 """
 Finds all entities with blank summaries and tries to create_content for them.
 Queries Wikipedia and DDG.
@@ -115,11 +115,6 @@ Noteworthy news events along the way (dates should be in YYYY-MMM-DD format) can
 Timeline ur writing is basically a chronology of actions over words resulting in the entities' current brand sentiment. 
 Ideally the timeline also gives the gist of what the entity is about, why it exists. 
 
-Only responses formatted in json will be used; like: 
-{{
-  "timeline": "It was like this; a timeline going from ...", 
-}}
-
 "{entity}" started "{date_started}", ended "{date_ended}"; is in corporate family "{corp_fam}", and category "{category}".
 "{entity}" currently judged to be at: stage {stage_current} 
 "{entity}" summary: {summary} 
@@ -131,7 +126,99 @@ Wikipedia results (content pulled from Wikipedia may be incorrect or partially i
 
 Duck Duck Go search results (content from search may be incorrect or partially incorrect due to multiple different hits for a single entity name): {ddg_results} 
 
-Please return timeline in json for entity "{entity}".
+Please return timeline for entity "{entity}".
+"""
+
+
+SHRINK_NEWS_TEMPLATE = """
+Need to shrink down / summarize / condense this news item list. Task is to take in news_list and output a much smaller news_list.
+
+News items with no information may be dropped or grouped and condensed.
+Recurring formatting can be removed; words can be abbreviated.
+If a news item has a huge story, vastly summarize or condense it.
+
+Entity is "{entity}"
+started: "{date_started}"
+ended: "{date_ended}"
+corporate family: "{corp_fam}"
+category: "{category}"
+{entity} currently judged to be at: stage {stage_current}
+{entity} summary: {summary}
+
+News items list to return shortened form of: 
+{news_items}
+
+Please return shortened form of news items list for "{entity}".
+"""
+
+
+SHRINK_WIKIP_TEMPLATE = """
+Need to shrink down / summarize / condense these Wikipedia returns. Task is to take in wikipedia_page_results and output a much smaller wikipedia_page_results.
+
+Wikipedia results may be incorrect or partially incorrect as containing undisambiguationed hits of the entity name. 
+Sometimes one or more of the return blocks, "page:" section, can simply be dropped as irrelevant.
+If the entity name is weird or a noun or sounds like something else, then the (source) returns are more likely to be managed.
+
+Entity is "{entity}"
+started: "{date_started}"
+ended: "{date_ended}"
+corporate family: "{corp_fam}"
+category: "{category}"
+{entity} currently judged to be at: stage {stage_current}
+{entity} summary: {summary}
+
+Wikipedia results to return shortened form of: 
+{wikipedia_page_results} 
+
+Please return shortened form of wikipedia results for "{entity}".
+"""
+
+
+SHRINK_DDG_TEMPLATE = """
+Need to shrink down / summarize / condense these DDG web search engine results. Task is to take in ddg_results and output a much smaller ddg_results.
+
+Duck Duck Go search results may be incorrect or partially incorrect due to multiple different hits for a single entity name. 
+Sometimes one or more of the return blocks can simply be dropped as irrelevant.
+If the entity name is weird or a noun or sounds like something else, then the (source) returns are more likely to be managed.
+
+Entity is "{entity}"
+started: "{date_started}"
+ended: "{date_ended}"
+corporate family: "{corp_fam}"
+category: "{category}"
+{entity} currently judged to be at: stage {stage_current}
+{entity} summary: {summary}
+
+Search results to return shortened form of: 
+{ddg_results} 
+
+Please return shortened form of search results for "{entity}".
+"""
+
+
+TIMELINE_MERGE_TEMPLATE = """
+Task is to merge existing old timeline text together with newly created timeline text, 
+to form final new current timeline for "{entity}".
+
+A timeline is a short story, up to 4096 characters.  
+A history of "{entity}" from it's start to current, or start to finish, (or pre-start to prediction for the future). 
+A story arching from stage 1 to 4 of the enshittification spiral. 
+Or not, maybe stays stage 1 its whole existence. 
+Or maybe stage 1 to swaying / oscillating / bouncing (/ flapping) btwn stages 2 and 3. 
+(Actually a weighted avgerages of news judgments, a sequence of stage_current-s captured in stage_history.)
+Noteworthy news events along the way (dates should be in YYYY-MMM-DD format) can be critical pieces of the timeline - but not just listing news items verbatim. 
+Timeline ur writing is basically a chronology of actions over words resulting in the entities' current brand sentiment. 
+Ideally the timeline also gives the gist of what the entity is about, why it exists. 
+
+"{entity}" started "{date_started}", ended "{date_ended}"; is in corporate family "{corp_fam}", and category "{category}".
+"{entity}" currently judged to be at: stage {stage_current} 
+"{entity}" summary: {summary} 
+
+Existing old timeline text: {existing_old_timeline}
+
+Newly created timeline text: (newly_generated_timeline)
+
+Please return timeline for entity "{entity}"!
 """
 
 
@@ -202,16 +289,89 @@ def create_summary_content(name):
     return summary, date_started, date_ended, corp_fam, category
 
 
-def create_timeline_content(entity):
-    """
-    Grab all news items linked to entity, for each getting text, summary, date, and stage value.
-    Query Wikipedia and DDG on entity timeline.
-    Query LLM w/ wikipedia and DDG results, existing summary etc, and ask for json of "timeline".
-    Extract the content between first '{' and last '}'...
-    If good json then copy out results, otherwise return timeline None.
-    """
+def shrink_news_items(news_items):
+    shrink_news_prompt = ChatPromptTemplate.from_template(SHRINK_NEWS_TEMPLATE)
+    chain = ( shrink_news_prompt
+            | large_lang_model 
+            | StrOutputParser() 
+            )
+    try:
+        news_items = chain.invoke({"entity": name, 
+            "news_items": news_items, 
+            "summary": entity.summary, 
+            "date_started": entity.date_started, 
+            "date_ended": entity.date_ended, 
+            "corp_fam": entity.corp_fam, 
+            "category": entity.category, 
+            "stage_current": entity.stage_current, })
+    except HTTPStatusError as e:
+        news_items = "No news items"
+        if e.response.status_code == 401:
+            logging.error(f'==> Error: Unauthorized. Please check your API key.')
+        else:
+            logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
+    except Exception as e:
+        news_items = "No news items"
+        logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+    return news_items
+
+
+def shrink_wikip_results(wikipedia_page_results):
+    shrink_wikip_prompt = ChatPromptTemplate.from_template(SHRINK_WIKIP_TEMPLATE)
+    chain = ( shrink_wikip_prompt
+            | large_lang_model 
+            | StrOutputParser() 
+            )
+    try:
+        wikipedia_page_results = chain.invoke({"entity": name, 
+            "summary": entity.summary, 
+            "date_started": entity.date_started, 
+            "date_ended": entity.date_ended, 
+            "corp_fam": entity.corp_fam, 
+            "category": entity.category, 
+            "wikipedia_page_results": wikipedia_page_results, 
+            "stage_current": entity.stage_current, })
+    except HTTPStatusError as e:
+        wikipedia_page_results = "No wikipedia results"
+        if e.response.status_code == 401:
+            logging.error(f'==> Error: Unauthorized. Please check your API key.')
+        else:
+            logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
+    except Exception as e:
+        wikipedia_page_results = "No wikipedia results"
+        logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+    return wikipedia_page_results
+
+
+def shrink_ddg_results(ddg_results):
+    shrink_ddg_prompt = ChatPromptTemplate.from_template(SHRINK_DDG_TEMPLATE)
+    chain = ( shrink_ddg_prompt
+            | large_lang_model 
+            | StrOutputParser() 
+            )
+    try:
+        ddg_results = chain.invoke({"entity": name, 
+            "summary": entity.summary, 
+            "date_started": entity.date_started, 
+            "date_ended": entity.date_ended, 
+            "corp_fam": entity.corp_fam, 
+            "category": entity.category, 
+            "ddg_results": ddg_results, 
+            "stage_current": entity.stage_current, })
+    except HTTPStatusError as e:
+        ddg_results = "No DDG results"
+        if e.response.status_code == 401:
+            logging.error(f'==> Error: Unauthorized. Please check your API key.')
+        else:
+            logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
+    except Exception as e:
+        ddg_results = "No DDG results"
+        logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+    return ddg_results
+
+
+def make_new_timeline(entity):
     logging.info(f'==> +++++++++ create_timeline_content +++++++++++')
-    timeline = None
     name = entity.name
 
     news_items = ""
@@ -224,15 +384,21 @@ def create_timeline_content(entity):
         if num_fields == 3:
             target_item_id = item[2]
             news_items += f"news id #{target_item_id}; "
-            target = News.query.get(target_item_id) ### Does this need it's own "with app.app_context():" ?
+            target = db.session.get(News, target_item_id)
+            # was: target = News.query.get(target_item_id) # 2025DEC26 which throws this line:
+            # LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. 
+            # The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
             news_items += f"text: {target.text}; "
             news_items += f"summary: {target.summary}; "
         ### news_items += "\n" # removed this line as LLM spit these back out and unescaped newline characters break json parsing in json.loads later
-    logging.info(f'==> news_items for {name}: {news_items}') ### this might be too long for LLM, 18000 characters for Meta 2024-12-21 01:20:21,879
+    ### this might be too long for LLM, 18000 characters for Meta 2024-12-21 01:20:21,879
+    news_tokens = int( len(news_items) / 4 ) # A rough estimate for English text: 1 token ≈ 4 characters
+    logging.info(f'==> {news_tokens} token count news_items for {name}: {news_items}')
 
     wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
     wikipedia_page_results = wikipedia.run(f'timeline about {name} corp')
-    logging.info(f'==> wikipedia_page_results results for {name}: {wikipedia_page_results}.')
+    wikip_tokens = int( len(wikipedia_page_results) / 4 )
+    logging.info(f'==> {wikip_tokens} token count for wikipedia_page_results results for {name}: {wikipedia_page_results}.')
 
     ddg_results = ""
     try:
@@ -243,6 +409,22 @@ def create_timeline_content(entity):
         logging.error(f'==> ddg search returned {e}.')
         # raise RatelimitException(f"{resp.url} {resp.status_code} Ratelimit")
         # duckduckgo_search.exceptions.RatelimitException: https://duckduckgo.com/ 202 Ratelimit
+    ddg_tokens = int( len(ddg_results) / 4 )
+    logging.info(f'==> {ddg_tokens} token count for DDG results for {name}.')
+
+    token_thresh = 2500 # set token thresh-hold over which to shrink content (1 token ≈ 4 characters)
+
+    if news_tokens > token_thresh:
+        news_items = shrink_news_items(news_items)
+        logging.info(f'==> Shrunk! news_items: {news_items}')
+
+    if wikip_tokens > token_thresh:
+        wikipedia_page_results = shrink_wikip_results(wikipedia_page_results)
+        logging.info(f'==> Shrunk! wikipedia_page_results: {wikipedia_page_results}.')
+
+    if ddg_tokens > token_thresh:
+        ddg_results = shrink_ddg_results(ddg_results)
+        logging.info(f'==> Shrunk! ddg_results: {ddg_results}.')
 
     content_prompt = ChatPromptTemplate.from_template(CREATE_TIMELINE_CONTENT_TEMPLATE)
     chain = ( content_prompt
@@ -261,48 +443,150 @@ def create_timeline_content(entity):
                                 "wikipedia_page_results": wikipedia_page_results, 
                                 "ddg_results": ddg_results, 
                                 "stage_current": entity.stage_current, })
-        logging.info(f'==> Raw LLM content return (which should be json): {content}') # keep this logging and comment one in semantics.py
+        logging.info(f'==> Raw LLM content return: {content}') # keep this logging and comment one in semantics.py
     except HTTPStatusError as e:
-        content = """No GenAI content available. {"timeline": None}"""
+        content = "No timeline"
         if e.response.status_code == 401:
             logging.error(f'==> Error: Unauthorized. Please check your API key.')
         else:
             logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
     except Exception as e:
-        content = """No GenAI content available. {"timeline": None}"""
+        content = "No timeline"
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
-    """ Pull timeline content string out of supposed json formatted return from LLM """
+
+    ### """ Pull timeline content string out of supposed json formatted return from LLM """
+    ### try:
+    ###     data = json.loads(content) # 1st try
+    ###     # json.decoder.JSONDecodeError: Extra data: line 5 column 1 (char 730)
+    ###     # json.decoder.JSONDecodeError: Unterminated string starting at: line 2 column 13 (char 14)
+    ###     timeline = data.get('timeline')
+    ###     logging.info(f'==> json.loads!')
+    ###     return timeline
+    ### except JSONDecodeError as e:
+    ###     error_message = str(e)
+    ###     if "Unterminated string" in error_message:
+    ###         """ manually add json open chars """
+    ###         content = '{"timeline": "' + content
+    ###         logging.warning(f'==> added json open chars; Error: {e}')
+    ###     if "Extra data" in error_message:
+    ###         start = None
+    ###         # end = None
+    ###         start = content.find('{')
+    ###         end = content.rfind('}')
+    ###         if start != -1 and end != -1 and start < end:
+    ###             """ extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation """
+    ###             content = content[start:end + 1]
+    ###             logging.warning(f'==> string manipulation cropped out non-json; Error: {e}')
+    ###     """ sanitize, replace literal newline characters """
+    ###     content = content.replace("\n", "\\n")
+    ### try:
+    ###     data = json.loads(content) # 2nd try
+    ###     timeline = data.get('timeline')
+    ###     logging.info(f'==> json.loads on 2nd try!')
+    ###     return timeline
+    ### except Exception as e:
+    ###     logging.error(f'==> json loading LLM return results in: {e}')
+    ### return timeline
+    return content
+
+
+def merge_timelines(entity, new_timeline):
+    logging.info(f'==> +++++++++ merge_timeline_contents +++++++++++')
+    content_prompt = ChatPromptTemplate.from_template(TIMELINE_MERGE_TEMPLATE)
+    chain = ( content_prompt
+            | large_lang_model 
+            | StrOutputParser() ### is there a json output parser?
+            )
     try:
-        data = json.loads(content) # 1st try
-        # json.decoder.JSONDecodeError: Extra data: line 5 column 1 (char 730)
-        # json.decoder.JSONDecodeError: Unterminated string starting at: line 2 column 13 (char 14)
-        timeline = data.get('timeline')
-        logging.info(f'==> json.loads!')
-        return timeline
-    except JSONDecodeError as e:
-        error_message = str(e)
-        if "Unterminated string" in error_message:
-            """ manually add json open chars """
-            content = '{"timeline": "' + content
-            logging.warning(f'==> added json open chars; Error: {e}')
-        if "Extra data" in error_message:
-            start = None
-            # end = None
-            start = content.find('{')
-            end = content.rfind('}')
-            if start != -1 and end != -1 and start < end:
-                """ extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation """
-                content = content[start:end + 1]
-                logging.warning(f'==> string manipulation cropped out non-json; Error: {e}')
-        """ sanitize, replace literal newline characters """
-        content = content.replace("\n", "\\n")
-    try:
-        data = json.loads(content) # 2nd try
-        timeline = data.get('timeline')
-        logging.info(f'==> json.loads on 2nd try!')
-        return timeline
+        merged_timeline = chain.invoke({"entity": entity.name, 
+                                "summary": entity.summary, 
+                                "date_started": entity.date_started, 
+                                "date_ended": entity.date_ended, 
+                                "corp_fam": entity.corp_fam, 
+                                "category": entity.category, 
+                                "stage_current": entity.stage_current, 
+                                "existing_old_timeline": entity.timeline, 
+                                "newly_generated_timeline": new_timeline, })
+        logging.info(f'==> Raw LLM merged_timeline return: {merged_timeline}') # keep this logging and comment one in semantics.py
+    except HTTPStatusError as e:
+        merged_timeline = "No timeline"
+        if e.response.status_code == 401:
+            logging.error(f'==> Error: Unauthorized. Please check your API key.')
+        else:
+            logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
     except Exception as e:
-        logging.error(f'==> json loading LLM return results in: {e}')
+        merged_timeline = "No timeline"
+        logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+    """ Decide which of the three timelines to use! """
+    if entity.timeline:
+        len_old = len(entity.timeline) # existing/old timeline
+    else:
+        len_old = 0
+    len_new = len(new_timeline) # just generated moments ago (w/ new news item)
+    len_mer = len(merged_timeline) # LLM attempt to merge old and new timelines
+    if len_mer >= ( ( (len_old + len_new) / 2 ) * .65 ):
+        # merged is not truncated relative to avg of old and new
+        content = merged_timeline
+        logging.info(f'==> content = (1) merged_timeline - {len_mer} >= 65% avg of other two')
+    elif len_new >= len_old:
+        # new at least bigger/better than old
+        content = new_timeline
+        logging.info(f'==> content = (2) new_timeline - new {len_new} > old {len_old}')
+    elif len_old >= ( ( (len_mer + len_new) / 2 ) * .25 ):
+        # old has some content, new and/or merge are truncated or none
+        content = entity.timeline
+        logging.info(f'==> content = (3) entity.timeline - {len_old} > 25% avg of other two')
+    else:
+        # hope it worked
+        content = merged_timeline
+        logging.info(f'==> content = (4) merged_timeline - hope all the LLM calls worked...')
+    ### """ Pull timeline content string out of supposed json formatted return from LLM """
+    ### try:
+    ###     data = json.loads(content) # 1st try
+    ###     # json.decoder.JSONDecodeError: Extra data: line 5 column 1 (char 730)
+    ###     # json.decoder.JSONDecodeError: Unterminated string starting at: line 2 column 13 (char 14)
+    ###     timeline = data.get('timeline')
+    ###     logging.info(f'==> json.loads!')
+    ###     return timeline
+    ### except JSONDecodeError as e:
+    ###     error_message = str(e)
+    ###     if "Unterminated string" in error_message:
+    ###         """ manually add json open chars """
+    ###         content = '{"timeline": "' + content
+    ###         logging.warning(f'==> added json open chars; Error: {e}')
+    ###     if "Extra data" in error_message:
+    ###         start = None
+    ###         # end = None
+    ###         start = content.find('{')
+    ###         end = content.rfind('}')
+    ###         if start != -1 and end != -1 and start < end:
+    ###             """ extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation """
+    ###             content = content[start:end + 1]
+    ###             logging.warning(f'==> string manipulation cropped out non-json; Error: {e}')
+    ###     """ sanitize, replace literal newline characters """
+    ###     content = content.replace("\n", "\\n")
+    ### try:
+    ###     data = json.loads(content) # 2nd try
+    ###     timeline = data.get('timeline')
+    ###     logging.info(f'==> json.loads on 2nd try!')
+    ###     return timeline
+    ### except Exception as e:
+    ###     logging.error(f'==> json loading LLM return results in: {e}')
+    ### return timeline
+    return content
+
+
+def create_timeline_content(entity):
+    """
+    Grab all news items linked to entity, for each getting text, summary, date, and stage value.
+    Query Wikipedia and DDG on entity timeline.
+    Query LLM w/ wikipedia and DDG results, existing summary etc, and ask for json of "timeline".
+    Extract the content between first '{' and last '}'...
+    If good json then copy out results, otherwise return timeline None.
+    Compare existing "entity.timeline" and newly created "timeline" and merge them into one final new timeline 
+    """
+    new_timeline = make_new_timeline(entity)
+    timeline = merge_timelines(entity = entity, new_timeline = new_timeline)
     return timeline
 
 
@@ -314,15 +598,21 @@ def large_lang_model(query):
     return large_lang_model
 
 
-def parse_for_blank_summary():
+def parse_for_blank_summary(count_max_sm):
     """
     Pulls all entities from DB; skips disabled; if summary None (blank) then call create_content.
     If create_content returns summary None then logs and continues, otherwise sets values for summary etc and commits.
     """
+    # count_max_sm = 5
+    count_summeried = 0
+    count_skipped = 0
     logging.info(f'==> +++++++++ parse_for_blank_summary +++++++++++')
     with app.app_context():
         entities = Entity.query.all()
         for entity in entities:
+            if count_summeried >= count_max_sm:
+                count_skipped += 1
+                continue
             if entity.status != 'disabled':
                 if entity.summary:
                     continue
@@ -341,18 +631,26 @@ def parse_for_blank_summary():
                     entity.category = category
                 db.session.commit()
                 logging.info(f'==> Populated blanks for {entity.name}:\n summary = {summary}\n date_started = {date_started}\n date_ended = {date_ended}\n corp_fam = {corp_fam}\n category = {category}')
+                count_summeried += 1
+    logging.info(f'==> Summary populated a total of {count_summeried} entities; skipped {count_skipped}')
     return None
 
 
-def parse_for_blank_timeline():
+def parse_for_blank_timeline(count_max_tl):
     """
     Pulls all entities from DB; skips disabled; if timeline None (blank) then call create_content.
     If create_content returns timeline None then logs and continues, otherwise sets value for timeline and commits.
     """
-    logging.info(f'==> ++++++++++ parse_for_blank_timeline +++++++++++\n')
+    # count_max_tl = 5
+    count_timelined = 0
+    count_skipped = 0
+    logging.info(f'==> ++++++++++ parse_for_blank_timeline +++++++++++')
     with app.app_context():
         entities = Entity.query.all()
         for entity in entities:
+            if count_timelined >= count_max_tl:
+                count_skipped += 1
+                continue
             if entity.status != 'disabled':
                 if entity.timeline:
                     continue
@@ -367,6 +665,8 @@ def parse_for_blank_timeline():
                 entity.timeline = timeline
                 db.session.commit()
                 logging.info(f'==> Populated timeline for {entity.name}:\n timeline = {timeline}')
+                count_timelined += 1
+    logging.info(f'==> Timeline populated a total of {count_timelined} entities; skipped {count_skipped}')
     return None
 
 
@@ -405,10 +705,9 @@ def create_timeline_for_entity(entity_name_str):
     return None
 
 
-
 def main():
-    parse_for_blank_summary()
-    # parse_for_blank_timeline() ### not ready to go live, test with one at a time
+    parse_for_blank_summary(count_max_sm = 5)
+    parse_for_blank_timeline(count_max_tl = 1) ### keeping low for testing
     logging.info(f'==> ++++++++++ filling blanks done +++++++++++\n')
 
 if __name__ == "__main__":
