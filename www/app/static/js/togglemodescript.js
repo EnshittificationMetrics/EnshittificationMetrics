@@ -34,6 +34,7 @@
           .then(data => {
               if (data.status === 'success') {
                   console.log('Viewing mode updated successfully on the server.');
+                  window.location.reload();  // Reload page on success
               } else {
                   console.error('Error updating viewing mode on the server.');
               }

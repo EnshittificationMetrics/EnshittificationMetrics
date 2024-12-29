@@ -8,7 +8,16 @@
 		<link rel="icon" type="image/x-icon" sizes="32x32"   href="{{ url_for('static', filename='enshitfavicon-32x32.png') }}">
 		<link rel="icon" type="image/x-icon" sizes="512x512" href="{{ url_for('static', filename='enshitfavicon-512x512.png') }}">
 	</head>
-	<body>
+	
+	{% if current_user.func_stage %}
+		{% if current_user.viewing_mode == "dark" %}
+			<body class="stage-{{ current_user.func_stage }}-dark">
+		{% else %}
+			<body class="stage-{{ current_user.func_stage }}">
+		{% endif %}
+	{% else %}
+		<body>
+	{% endif %}
 		<h1>Enshittification Metrics:</h1>
 		Menu: 
 		<a href="{{ url_for('rankings') }}"     >rankings</a> ~ 

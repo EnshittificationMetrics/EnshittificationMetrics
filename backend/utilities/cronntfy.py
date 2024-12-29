@@ -2,7 +2,7 @@
 
 """
 # Script to test end to end: cron --> python script (grabs MOTD stuff) --> console and logging and ntfy
-v1.21
+v1.25
 """
 
 import datetime
@@ -55,7 +55,11 @@ def MOTD_content():
         for addr in iface_addrs
         if addr.family == socket.AF_INET
     }
-    motd += (f"IPv4 address: {ipv4_addresses['wlan0']}" + '\n')
+    # em02 ipv4_addresses returns {'lo': '127.0.0.1', 'eth0': '10.48.X.Y', 'eth1': '10.124.X.Y'}
+    # leet ipv4_addresses returns {'lo': '127.0.0.1', 'wlo1': '192.168.X.Y'}
+    if 'lo' in ipv4_addresses:
+        del ipv4_addresses['lo']
+    motd += (f"IPv4 address: {ipv4_addresses}" + '\n')
 
     motd += (get_updates_from_cache() + ' ~ ')
 
@@ -85,12 +89,18 @@ def is_restart_required():
 
 
 def main():
+    hostn = GetMachineID()
+    if hostn == 'em02':
+        logpath = '/home/bsea/em/utilities/cronz.log', # prod
+    elif hostn == 'leet':
+        logpath = '/home/leet/EnshittificationMetrics/backend/utilities/cronz.log', # dev
+    else:
+        logpath = './cronz.log'
     logging.basicConfig(level=logging.INFO, 
-                        filename='/home/bsea/em/utilities/cronz.log', 
+                        filename = logpath, 
                         filemode='a', 
                         format='%(asctime)s -%(levelname)s - %(message)s'
     )
-    hostn = GetMachineID()
     alertmsgt = f'{hostn} {titletest}'
     alertmsgb = str( datetime.datetime.now() )
     lenminusfour = len(alertmsgb) - 4

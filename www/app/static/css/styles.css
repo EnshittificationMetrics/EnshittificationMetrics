@@ -35,15 +35,64 @@
     border: 5px solid black;
 }
 
-/* Default light mode */
+/* default light mode */
 body {
     background-color: white;
     color: black;
     transition: background-color 0.25s, color 0.25s;
 }
 
-/* dark mode style */
+/* default dark mode */
 body.dark-mode {
     background-color: #121212;
     color: white;
 }
+
+/* Stage 1 body */
+body.stage-1 {
+    background-color: #fff7e6;
+    color: black;
+    transition: background-color 0.25s, color 0.25s;
+}
+body.stage-1-dark {
+    background-color: #121212;
+    color: #fff7e6;
+    transition: background-color 0.25s, color 0.25s;
+}
+
+/* Stage 2 body */
+body.stage-2 {
+    background-color: SeaShell;
+    color: black;
+    transition: background-color 0.20s, color 0.20s;
+}
+body.stage-2-dark {
+    background-color: #121212;
+    color: SeaShell;
+    transition: background-color 0.20s, color 0.20s;
+}
+
+/* Stage 3 body */
+body.stage-3 {
+    background-color: WhiteSmoke;
+    color: black;
+    transition: background-color 0.30s, color 0.30s;
+}
+body.stage-3-dark {
+    background-color: #121212;
+    color: WhiteSmoke;
+    transition: background-color 0.30s, color 0.30s;
+}
+
+/* Stage 4 body */
+body.stage-4 {
+    background-color: #f1e6da;
+    color: black;
+    transition: background-color 0.25s, color 0.25s;
+}
+body.stage-4-dark {
+    background-color: #121212;
+    color: #f1e6da;
+    transition: background-color 0.25s, color 0.25s;
+}
+
