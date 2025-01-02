@@ -35,7 +35,10 @@ from app import app, db
 from app.models import Entity, News
 from dotenv import load_dotenv
 # pipenv install duckduckgo-search langchain-community
+    
 from langchain_community.tools import DuckDuckGoSearchRun
+# langchain_community/utilities/duckduckgo_search.py:64: UserWarning: 'api' backend is deprecated, using backend='auto'
+
 # from langchain_community.tools import DuckDuckGoSearchResults
 # from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 # pipenv install wikipedia

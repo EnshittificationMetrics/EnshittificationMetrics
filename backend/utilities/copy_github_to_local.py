@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# updated
+
 """
 Does git status check against GitHub repo for changes / updates.
 Does git pull of repo to clone_dir.
@@ -22,6 +22,7 @@ import subprocess
 import os
 import shutil
 
+
 def check_for_updates(repo_dir):
     try:
         subprocess.run(["git", "fetch"], check=True, cwd=repo_dir)
@@ -36,6 +37,7 @@ def check_for_updates(repo_dir):
         logging.info(f'In {repo_dir} git fetch / status indicates up to date.')
         return False
 
+
 def fetch_and_pull(repo_dir):
     try:
         subprocess.run(["git", "fetch"], check=True, cwd=repo_dir) # don't really need this as just done in check_for_updates, but don't want to rename function and doesn't really hurt
@@ -43,6 +45,7 @@ def fetch_and_pull(repo_dir):
         logging.info(f'Git fetched and pulled updates in {repo_dir}.')
     except subprocess.CalledProcessError as e:
         logging.error(f'==> Error during fetch or pull: {e}')
+
 
 # What requires a restart:
 # -- Enabling/Disabling Apache Modules, SSL Certificate Changes       --> sudo systemctl restart apache2      (out of scope of this program)
@@ -83,6 +86,7 @@ def check_for_restart_needed(filename):
                 time.sleep(.25 * 60) # 15 second pause for migration to settle
             except subprocess.CalledProcessError as e:
                 logging.error(f'==> Unable to migrate new schema; got error: {e}') # trying to leg {result} here might cause another error...
+
 
 def place_files(src, dest_www, dest_back):
     files_copied = 0
@@ -138,11 +142,18 @@ def place_files(src, dest_www, dest_back):
                 else:
                     # logging.warning(f'No copy performed - {dst_file} file exists and is same (or older) timestamp.') # not really a warning  - expected / desired behavior
                     continue
+            """ if just copied a Pipfile, then run "pipenv install" where the Pipfile is """
+            if filename == 'Pipfile':
+                try:
+                    subprocess.run(['pipenv', 'install'], cwd=dst_dirpath, check=True)
+                except Exception as e:
+                    logging.error(f'On running pipenv install at location {dst_dirpath} get error: {e}')
             if dirpath == '*/migrations/versions/*':
                 check_for_restart_needed('migrations/versions')
             else:
                 check_for_restart_needed(filename)
     logging.info(f'Copied {files_copied} files.')
+
 
 def main():
     logging.info(f'Starting GitHub {clone_dir} sync and file copy to {dest_dir_www} and {dest_dir_back}.')
@@ -150,6 +161,7 @@ def main():
         fetch_and_pull(clone_dir)
         place_files(clone_dir, dest_dir_www, dest_dir_back)
     logging.info(f'Completed.\n')
+
 
 if __name__ == '__main__':
     main()

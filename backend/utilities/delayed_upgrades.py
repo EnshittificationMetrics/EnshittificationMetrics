@@ -6,14 +6,20 @@ Upgrade only the packages whose updates are more than "days_delay" days old.
 Reboots (safely) if required, or if no reboot in last "days_force_reboot" days.
 """
 
+crontab = """30 3 * * * /usr/bin/python3 /home/leet/EnshittificationMetrics/backend/utilities/delayed_upgrades.py""" # dev as root
+
+crontab = """30 10 * * *     /usr/bin/python3 /home/bsea/em/utilities/delayed_upgrades.py     >> /home/bsea/em/utilities/cron_issues.log 2>&1""" # prod as bsea; PT = UTC - 7.5 so 10 UTC = 03:00 or 04:00 PT
+
 if __file__.startswith('/home/bsea/em/'):
     log_path = '/home/bsea/em/utilities/delayed_upgrades.log' # EM prod
     days_delay = 9
     days_force_reboot = 36
+    pipfile_locs = ["/home/bsea/em", "/var/www/em"]
 else:
     log_path = '/home/leet/EnshittificationMetrics/backend/utilities/delayed_upgrades.log' # EM dev or CLI (testing)
     days_delay = 8
     days_force_reboot = 28
+    pipfile_locs = ["/home/leet/EnshittificationMetrics/backend", "/home/leet/EnshittificationMetrics/www"]
 
 import logging
 logging.basicConfig(level = logging.INFO,
@@ -27,9 +33,11 @@ import re
 import os
 from datetime import timedelta
 import time
+import requests
 
 today = datetime.date.today()
 some_days_ago = today - datetime.timedelta(days=days_delay)
+
 
 def run_command(command):
     try:
@@ -39,6 +47,7 @@ def run_command(command):
         return "" # works on all cases in this program while returning None fails
     return result.stdout
 
+
 def get_upgradable_packages():
     output = run_command('apt list --upgradable')
     packages = []
@@ -47,6 +56,7 @@ def get_upgradable_packages():
             package_name = line.split('/')[0]
             packages.append(package_name)
     return packages
+
 
 def get_last_update_date(package_name):
     """ Reads package changelog and matches ".com>  Day, DD Mmm YYYY HH:MM:SS ±HHMM" and captures "DD Mmm YYYY" """
@@ -58,9 +68,11 @@ def get_last_update_date(package_name):
         return datetime.datetime.strptime(dates[0], '%d %b %Y').date()
     return None
 
+
 def upgrade_package(package_name, last_update_date):
     run_command(f'sudo apt install -y {package_name}')
     logging.info(f'Upgrading {package_name}... Updated {last_update_date}.')
+
 
 def get_uptime():
     """ Runs the 'uptime' command, captures the output, converts to days, hours, and minutes. """
@@ -105,12 +117,14 @@ def get_uptime():
     total_uptime = timedelta(days=days, hours=hours, minutes=minutes)
     return total_uptime
 
+
 def check_logged_in_users():
     users = run_command("who -m") # with -m should show SSH and not WinSCP users
     if len(users) > 0:
         logging.info(f'who -m returned: {users[:-1]}') # slice off CR
         return True
     return False
+
 
 def check_web_server_activity():
     """ Checks for active web server connections; Apache on port 80 or 443. """
@@ -123,12 +137,14 @@ def check_web_server_activity():
             return True
     return False
 
+
 def check_open_files():
     open_files = run_command("lsof /var/www/")
     if len(open_files) > 0:
         logging.info(f"lsof /var/www/ returned: {open_files}")
         return True
     return False
+
 
 def can_reboot():
     if check_logged_in_users():
@@ -143,6 +159,7 @@ def can_reboot():
     logging.info(f'No logged in users, no web server activity, no open files; reboot should be safe.')
     return True
 
+
 def force_reboot():
     """ Run the 'reboot' command """
     if can_reboot():
@@ -151,11 +168,35 @@ def force_reboot():
     else:
         logging.warning("Reboot canceled due to active users or processes; should try again next crontab run.")
 
+
+def get_library_last_update_date(package_name):
+    url = f"https://pypi.org/pypi/{package_name}/json"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        releases = data.get("releases", {})
+        # Sort releases by version in reverse order
+        for version, release_info in sorted(releases.items(), key=lambda x: x[0], reverse=True):
+            if release_info:  # Ensure release_info is not empty
+                release_date = release_info[0]["upload_time"]
+                # returns str like '2010-07-31T06:23:55' but need in datetime.date type format of "DD-MM-YYYY"
+                release_date = datetime.datetime.strptime(release_date, '%Y-%m-%dT%H:%M:%S').date()
+            return release_date
+    else:
+        logging.error(f'Failed to fetch data from pypi.org for {package_name}')
+        return None
+
+
+def upgrade_library_package(pipfile_loc, package_name, last_update_date):
+    run_command(f'cd {pipfile_loc} && pipenv upgrade {package_name}')
+    logging.info(f'Upgraded {pipfile_loc}/Pipfile {package_name}... Updated {last_update_date}.')
+
+
 def main():
     runningas = run_command("whoami")
     logging.info(f'Running {__file__} as: {runningas[0:-1]}')
     
-    # reload apache2 section
+    """ if needed, reload apache2 """
     flag_path = os.path.dirname(log_path) + '/apache_reload_needed'
     # 'apache_reload_needed' created by 'copy_github_to_local.py'
     if os.path.exists(flag_path):
@@ -166,7 +207,7 @@ def main():
         except Exception as e:
             logging.error(f'Failed systemctl reload apache2 and rm due to {flag_path}, error: {e}')
     
-    # update section
+    """ if needed and old enough, apt install package_name """
     upgradable_packages = get_upgradable_packages()
     if not upgradable_packages:
         logging.info(f'No upgradable package right now.')
@@ -179,16 +220,43 @@ def main():
                     upgrade_package(package, last_update_date)
                 else:
                     # print(f"{package} last updated on {last_update_date}, skipping as less than {days_delay} days old.")
-                    skipped_list += f'{package} updated {last_update_date}, '
+                    skipped_list += f'{package} (updated {last_update_date}), '
             else:
                 logging.error(f'Could not retrieve changelog date for package "{package}".')
                 logging.error(f'Need to figure out what was listed and tune "date_pattern" to deal with it.')
         if skipped_list:
             logging.info(f'Note: Skipped: {skipped_list[:-2]}')
-        print(f'sleeping 5 min')
-        time.sleep(5 * 60) # 5 min pause for updates to settle...
+        print(f'sleeping 3 min')
+        time.sleep(3 * 60) # 3 min pause for updates to settle...
     
-    # reboot section
+    """ if needed and old enough, pipenv upgrade package_name """
+    for pipfile_loc in pipfile_locs:
+        logging.info(f'Checking {pipfile_loc}/Pipfile')
+        """ run pipenv update --outdated where the Pipfile is """
+        outdated_packs = run_command(f"cd {pipfile_loc} && pipenv update --outdated")
+        """ parse out the package name(s) from the results, like "Package 'orjson' out-of-date: {'ver..." """
+        pattern = r"Package '(.*?)' out-of-date"
+        packages = re.findall(pattern, outdated_packs)
+        if not packages:
+            logging.info(f'No upgradable packages right now.')
+        else:
+            skipped_list = ''
+            for package in packages:
+                last_update_date = get_library_last_update_date(package)
+                if last_update_date:
+                    if last_update_date < some_days_ago:
+                        upgrade_library_package(pipfile_loc, package, last_update_date)
+                    else:
+                        skipped_list += f'{package} (updated {last_update_date}), '
+                else:
+                    logging.error(f'Could not retrieve changelog date for package "{package}".')
+                    logging.error(f'Need to figure out what was listed and tune to deal with it.')
+            if skipped_list:
+                logging.info(f'Note: Skipped: {skipped_list[:-2]}')
+            print(f'sleeping 2 min')
+            time.sleep(2 * 60) # 2 min pause for updates to settle...
+
+    """ if needed, reboot """
     reboot_file = "/var/run/reboot-required" # on Ubuntu
     if os.path.isfile(reboot_file):
         logging.info(f'Reboot needed per "{reboot_file}".')
@@ -205,6 +273,7 @@ def main():
         else:
             logging.warning(f'Unable to get uptime. (Not rebooting.)')
     logging.info(f'Done run of {os.path.abspath(__file__)}\n')
+
 
 if __name__ == "__main__":
     main()

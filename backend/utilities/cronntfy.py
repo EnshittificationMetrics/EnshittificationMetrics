@@ -2,8 +2,11 @@
 
 """
 # Script to test end to end: cron --> python script (grabs MOTD stuff) --> console and logging and ntfy
-v1.25
+v1.32
 """
+
+code_for_crontab = """cd /home/bsea/em/ && pipenv run python3 utilities/cronntfy.py >> /home/bsea/em/utilities/cron_issues.log 2>&1""" # prod
+code_for_crontab = """/usr/bin/python3 /home/leet/cronz/crontest.py""" # dev
 
 import datetime
 import requests
@@ -12,7 +15,7 @@ import socket
 
 
 ntfypost = True
-titletest = "cronz notify; Enshittification Metrics droplet live!"
+titletest = "cronz notify; Enshittification Metrics live!"
 
 
 def GetMachineID():
@@ -32,7 +35,7 @@ def MOTD_content():
     motd = ''
     
     load1, load5, load15 = os.getloadavg()
-    motd += (f"Load Avg over last 1 5 and 15 mins: {load1:.2f}, {load5:.2f}, {load15:.2f}" + '\n')
+    motd += (f"Load Avg over last 1, 5, and 15 mins: {load1:.2f}, {load5:.2f}, {load15:.2f}" + '\n')
     
     memory = psutil.virtual_memory()
     swap = psutil.swap_memory()
@@ -88,6 +91,13 @@ def is_restart_required():
         return "No system restart required."
 
 
+def mess_time():
+    alertmsgb = str( datetime.datetime.now() )
+    lenminusfour = len(alertmsgb) - 4
+    alertmsgb = alertmsgb[0:lenminusfour] # truncate off 100s of seconds and beyond
+    return alertmsgb
+
+
 def main():
     hostn = GetMachineID()
     if hostn == 'em02':
@@ -102,14 +112,15 @@ def main():
                         format='%(asctime)s -%(levelname)s - %(message)s'
     )
     alertmsgt = f'{hostn} {titletest}'
-    alertmsgb = str( datetime.datetime.now() )
-    lenminusfour = len(alertmsgb) - 4
-    alertmsgb = alertmsgb[0:lenminusfour] # truncate off 100s of seconds and beyond
-    alertmsgb = MOTD_content() + alertmsgb
-    print(f'{alertmsgt}; print to console. {alertmsgb}')
+    alertmsgb = MOTD_content()
+    curr_time = mess_time()
+    alertmsgb += curr_time
+    print(f'crontest.py print at {curr_time} on {hostn}')
+                                                        
     logging.info(f'{alertmsgt}; {alertmsgb}')
     if ntfypost: requests.post('https://ntfy.sh/000ntfy000topic000backup000', 
         headers={'Title' : alertmsgt}, data=(alertmsgb))
+
 
 if __name__ == '__main__':
     main()

@@ -24,6 +24,8 @@ flask = "*"
 pyotp = "*"
 flask-mail = "*"
 psutil = "*"
+pillow = "*"
+orjson = "*"
 
 [dev-packages]
 
