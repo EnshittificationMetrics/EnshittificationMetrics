@@ -19,6 +19,7 @@ from app import app, db
 from app.forms import EntityAddForm, EntityEditForm, NewsForm, ArtForm, ReferencesForm, SelectForm, SelectAddForm
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm, SurveyNewUserForm, PasswordCheckForm
 from app.models import Entity, News, Art, References, User, SurveyNewUser
+from app.banners import banner_ads
 from flask import render_template, redirect, url_for, flash, request, session, send_from_directory, jsonify
 from flask_login import login_user, logout_user, current_user, login_required, user_loaded_from_cookie
 # https://flask-login.readthedocs.io/en/latest/#
@@ -85,10 +86,12 @@ def index():
     random_art = Art.query.order_by(func.random()).limit(2).all()
     random_ref = References.query.order_by(func.random()).limit(2).all()
     recent_news = News.query.order_by(News.date_pub.desc()).limit(3).all()
+    selected_ad = random.choice(banner_ads)
     return render_template('index.html',
                             art = random_art, 
                             references = random_ref, 
                             news = recent_news, 
+                            banner = selected_ad, 
                             )
 
 @app.route('/rankings')
@@ -136,8 +139,10 @@ def rankings():
 
     # Get the final results
     entities = query.all()
+    selected_ad = random.choice(banner_ads)
     return render_template('rankings.html', 
-                           entities = entities)
+                           entities = entities, 
+                           banner = selected_ad)
 
 
 @app.route('/entity_detail/<entname>')
@@ -150,9 +155,11 @@ def entity_detail(entname):
             if len(news_item) > 2 :
                 news_ids.append(news_item[2])
     news = News.query.filter(News.id.in_(news_ids)).all()
+    selected_ad = random.choice(banner_ads)
     return render_template('entity_detail.html', 
                            item = entity,
-                           news = news)
+                           news = news, 
+                           banner = selected_ad)
 
 
 @app.route('/update-filtersort', methods=['POST'])
@@ -225,8 +232,10 @@ def news():
 
     # Get the final results
     news = query.all()
+    selected_ad = random.choice(banner_ads)
     return render_template('news.html', 
-                           news = news)
+                           news = news, 
+                           banner = selected_ad)
 
 
 @app.route('/art')
@@ -246,8 +255,10 @@ def art():
     elif current_user.ranking_sort.lower() == "age":
         query = query.order_by(sorting_order(Art.date_pub))
     art = query.all()
+    selected_ad = random.choice(banner_ads)
     return render_template('art.html', 
-                           art = art)
+                           art = art, 
+                           banner = selected_ad)
 
 
 @app.route('/references')
@@ -259,8 +270,10 @@ def references():
                 session['user_referrer'] = temp_value
     references = References.query.all()
     random.shuffle(references) # shuffle the list in place
+    selected_ad = random.choice(banner_ads)
     return render_template('references.html', 
-                           references = references)
+                           references = references, 
+                           banner = selected_ad)
 
 
 @app.route('/about')

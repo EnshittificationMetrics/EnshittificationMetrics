@@ -137,8 +137,8 @@ def place_files(src, dest_www, dest_back):
                         files_copied += 1
                     except subprocess.CalledProcessError as e:
                         logging.error(f'==> In attempting to copy updated file {dst_file}, got error: {e}')
-                        continue
                         # print(f'In attempting to copy updated file {dst_file}, got error: {e}') # for testing
+                        continue
                 else:
                     # logging.warning(f'No copy performed - {dst_file} file exists and is same (or older) timestamp.') # not really a warning  - expected / desired behavior
                     continue
@@ -146,8 +146,9 @@ def place_files(src, dest_www, dest_back):
             if filename == 'Pipfile':
                 try:
                     subprocess.run(['pipenv', 'install'], cwd=dst_dirpath, check=True)
+                    logging.info(f'==> pipenv install run - at location {dst_dirpath}')
                 except Exception as e:
-                    logging.error(f'On running pipenv install at location {dst_dirpath} get error: {e}')
+                    logging.error(f'==> On running pipenv install at location {dst_dirpath} get error: {e}')
             if dirpath == '*/migrations/versions/*':
                 check_for_restart_needed('migrations/versions')
             else:

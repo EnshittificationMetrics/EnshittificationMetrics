@@ -96,3 +96,13 @@ body.stage-4-dark {
     transition: background-color 0.25s, color 0.25s;
 }
 
+/* Banner Ads */
+.banner-ad {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.banner-ad img {
+    max-width: 100%;
+    height: auto;
+}

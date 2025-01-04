@@ -49,6 +49,16 @@
 		<br>
 		<br>
 		
+		{% if banner %}
+			{% if current_user.func_stage >= 2 %}
+				<div class="banner-ad">
+					<a href="{{ banner.url }}" target="_blank">
+						<img src="{{ url_for('static', filename=banner.image) }}" alt="{{ banner.alt }}">
+					</a>
+				</div>
+			{% endif %}
+		{% endif %}
+		
 		{% if current_user.role == 'administrator' %}
 			<i>DEV:</i><br>
 			Entities, News, Art, References: 
@@ -78,7 +88,17 @@
 		{% endwith %}
 		
 		{% block content %}{% endblock %}
-
+		
+		{% if banner %}
+			{% if current_user.func_stage == 3 %}
+				<div class="banner-ad">
+					<a href="{{ banner.url }}" target="_blank">
+						<img src="{{ url_for('static', filename=banner.image) }}" alt="{{ banner.alt }}">
+					</a>
+				</div>
+			{% endif %}
+		{% endif %}
+		
 		<script src="{{ url_for('static', filename='js/togglemodescript.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/funcstagescript.js') }}" defer></script>
 	</body>

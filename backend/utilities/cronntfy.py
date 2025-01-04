@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
 """
-# Script to test end to end: cron --> python script (grabs MOTD stuff) --> console and logging and ntfy
-v1.32
+Script to test end to end: cron --> python script (grabs MOTD stuff) --> console and logging and ntfy
+v1.4
 """
 
 code_for_crontab = """cd /home/bsea/em/ && pipenv run python3 utilities/cronntfy.py >> /home/bsea/em/utilities/cron_issues.log 2>&1""" # prod
 code_for_crontab = """/usr/bin/python3 /home/leet/cronz/crontest.py""" # dev
+code_for_crontab = """cd /home/Pi3berry/cronz/ && /usr/bin/pipenv run python3 crontest.py >> /home/Pi3berry/cronz/cronz_issues.log 2>&1""" # prod
 
 import datetime
+import psutil
 import requests
 import logging
 import socket
@@ -26,10 +28,28 @@ def GetMachineID():
     return hostn
 
 
+def get_human_readable_uptime():
+    boot_time = psutil.boot_time() # timestamp
+    boot_time_datetime = datetime.datetime.fromtimestamp(boot_time) # datetime object
+    uptime_duration = datetime.datetime.now() - boot_time_datetime
+    days = uptime_duration.days
+    hours, remainder = divmod(uptime_duration.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    parts = []
+    if days > 0:
+        parts.append(f"{days} day{'s' if days != 1 else ''}")
+    if hours > 0:
+        parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
+    if minutes > 0:
+        parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
+#   if seconds > 0 or not parts:
+#       parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
+    return ", ".join(parts)
+
+
 def MOTD_content():
     import os
     import shutil
-    import psutil
     import socket
     import subprocess
     motd = ''
@@ -38,10 +58,13 @@ def MOTD_content():
     motd += (f"Load Avg over last 1, 5, and 15 mins: {load1:.2f}, {load5:.2f}, {load15:.2f}" + '\n')
     
     memory = psutil.virtual_memory()
-    swap = psutil.swap_memory()
     motd += (f"Memory usage: {memory.percent}%" + ' ~ ')
-    motd += (f"Swap usage: {swap.percent}%" + '\n')
-
+    
+    swap = psutil.swap_memory()
+    motd += (f"Swap usage: {swap.percent}%" + ' ~ ')
+    
+    motd += (f"Uptime: {get_human_readable_uptime()}" + '\n')
+    
     total, used, free = shutil.disk_usage("/")
     motd += (f"Drive usage of /: {used / total * 100:.2f}% of {total / (1024**3):.2f}GB" + '\n')
 
@@ -101,22 +124,23 @@ def mess_time():
 def main():
     hostn = GetMachineID()
     if hostn == 'em02':
-        logpath = '/home/bsea/em/utilities/cronz.log', # prod
+        logpath = '/home/bsea/em/utilities/cronz.log' # prod
     elif hostn == 'leet':
-        logpath = '/home/leet/EnshittificationMetrics/backend/utilities/cronz.log', # dev
+        logpath = '/home/leet/EnshittificationMetrics/backend/utilities/cronz.log' # dev
+    elif hostn == 'Pi3berry':
+        logpath = '/home/Pi3berry/cronz/cronz.log' # prod
     else:
         logpath = './cronz.log'
     logging.basicConfig(level=logging.INFO, 
                         filename = logpath, 
-                        filemode='a', 
-                        format='%(asctime)s -%(levelname)s - %(message)s'
+                        filemode = 'a', 
+                        format = '%(asctime)s -%(levelname)s - %(message)s'
     )
     alertmsgt = f'{hostn} {titletest}'
     alertmsgb = MOTD_content()
     curr_time = mess_time()
     alertmsgb += curr_time
     print(f'crontest.py print at {curr_time} on {hostn}')
-                                                        
     logging.info(f'{alertmsgt}; {alertmsgb}')
     if ntfypost: requests.post('https://ntfy.sh/000ntfy000topic000backup000', 
         headers={'Title' : alertmsgt}, data=(alertmsgb))

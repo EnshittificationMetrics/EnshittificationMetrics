@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
 """
-Finds all entities with blank summaries and tries to create_content for them.
+Finds all entities with blank summaries and tries to create content for them.
 Queries Wikipedia and DDG.
 Queries LLM for "summary", "date_started", "date_ended", "corp_fam", "category".
+Limited to a max number of summaries, count_max_sm.
 
+Finds all entities with blank timeline and tries to create content for them.
+Limited to a max number of timelines, count_max_tl.
+Code also run against entities with new news items linked to them.
 Create / update timeline(s) for entities.
 Reads (existing) "summary", "date_started", "date_ended", "corp_fam", "category"
 If timeline reads new news items (for entity) since last timeline write.
@@ -13,6 +17,7 @@ generate new / updated timeline
 fresh Queries to Wikipedia and DDG...
 update if needed "summary", "date_started", "date_ended", "corp_fam", "category".
 update if needed stage_current and stage_history.
+Merges old and new timelines together.
 """
 
 import os
@@ -35,9 +40,9 @@ from app import app, db
 from app.models import Entity, News
 from dotenv import load_dotenv
 # pipenv install duckduckgo-search langchain-community
-    
+   
 from langchain_community.tools import DuckDuckGoSearchRun
-# langchain_community/utilities/duckduckgo_search.py:64: UserWarning: 'api' backend is deprecated, using backend='auto'
+### langchain_community/utilities/duckduckgo_search.py:64: UserWarning: 'api' backend is deprecated, using backend='auto'
 
 # from langchain_community.tools import DuckDuckGoSearchResults
 # from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
@@ -55,7 +60,12 @@ from httpx import HTTPStatusError
 
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
+
 llm_temp = 0.25
+
+count_max_sm = 7 # max how many summaries to do (should be run daily)
+
+count_max_tl = 2 # max how many timelines to do - keep low as many tokens used
 
 
 CREATE_SUMMARY_CONTENT_TEMPLATE = """
@@ -606,7 +616,6 @@ def parse_for_blank_summary(count_max_sm):
     Pulls all entities from DB; skips disabled; if summary None (blank) then call create_content.
     If create_content returns summary None then logs and continues, otherwise sets values for summary etc and commits.
     """
-    # count_max_sm = 5
     count_summeried = 0
     count_skipped = 0
     logging.info(f'==> +++++++++ parse_for_blank_summary +++++++++++')
@@ -644,7 +653,6 @@ def parse_for_blank_timeline(count_max_tl):
     Pulls all entities from DB; skips disabled; if timeline None (blank) then call create_content.
     If create_content returns timeline None then logs and continues, otherwise sets value for timeline and commits.
     """
-    # count_max_tl = 5
     count_timelined = 0
     count_skipped = 0
     logging.info(f'==> ++++++++++ parse_for_blank_timeline +++++++++++')
@@ -709,8 +717,8 @@ def create_timeline_for_entity(entity_name_str):
 
 
 def main():
-    parse_for_blank_summary(count_max_sm = 5)
-    parse_for_blank_timeline(count_max_tl = 1) ### keeping low for testing
+    parse_for_blank_summary(count_max_sm)
+    parse_for_blank_timeline(count_max_tl) ### keeping low as many tokens used
     logging.info(f'==> ++++++++++ filling blanks done +++++++++++\n')
 
 if __name__ == "__main__":
