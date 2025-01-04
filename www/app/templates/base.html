@@ -49,13 +49,21 @@
 		<br>
 		<br>
 		
-		{% if banner %}
-			{% if current_user.func_stage >= 2 %}
-				<div class="banner-ad">
-					<a href="{{ banner.url }}" target="_blank">
-						<img src="{{ url_for('static', filename=banner.image) }}" alt="{{ banner.alt }}">
-					</a>
-				</div>
+		{% if banner %} <!-- top banner -->
+			{% if not current_user.is_anonymous %}
+				{% if current_user.func_stage >= 2 %} <!-- display to all but func_stage == 1 -->
+					<div class="banner-ad">
+						<a href="{{ banner.url }}" target="_blank">
+							<img src="{{ url_for('static', filename=banner.image) }}" alt="{{ banner.alt }}">
+						</a>
+					</div>
+				{% endif %}
+			{% else %} <!-- display to not logged on users! -->
+					<div class="banner-ad">
+						<a href="{{ banner.url }}" target="_blank">
+							<img src="{{ url_for('static', filename=banner.image) }}" alt="{{ banner.alt }}">
+						</a>
+					</div>
 			{% endif %}
 		{% endif %}
 		
@@ -89,13 +97,15 @@
 		
 		{% block content %}{% endblock %}
 		
-		{% if banner %}
-			{% if current_user.func_stage == 3 %}
-				<div class="banner-ad">
-					<a href="{{ banner.url }}" target="_blank">
-						<img src="{{ url_for('static', filename=banner.image) }}" alt="{{ banner.alt }}">
-					</a>
-				</div>
+		{% if banner %} <!-- bottom banner -->
+			{% if not current_user.is_anonymous %}
+				{% if current_user.func_stage == 3 %}
+					<div class="banner-ad">
+						<a href="{{ banner.url }}" target="_blank">
+							<img src="{{ url_for('static', filename=banner.image) }}" alt="{{ banner.alt }}">
+						</a>
+					</div>
+				{% endif %}
 			{% endif %}
 		{% endif %}
 		
