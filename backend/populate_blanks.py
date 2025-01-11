@@ -20,6 +20,9 @@ update if needed stage_current and stage_history.
 Merges old and new timelines together.
 """
 
+crontab = """00 10 * * *     cd /home/bsea/em/ && pipenv run python3 populate_blanks.py       >> /home/bsea/em/utilities/cron_issues.log 2>&1""" # prod
+crontab = """#0 3 * * * cd /home/leet/EnshittificationMetrics/backend/ && pipenv run python3 populate_blanks.py >> /home/leet/EnshittificationMetrics/backend/scrape.log 2>&1""" # dev
+
 import os
 import sys
 import logging
@@ -57,7 +60,7 @@ import json
 from json import JSONDecodeError
 import requests
 from httpx import HTTPStatusError
-
+# import graphviz # sudo apt install graphviz (for local display!?) # pipenv install graphviz (this is in Pipfile)
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
 
@@ -66,6 +69,8 @@ llm_temp = 0.25
 count_max_sm = 7 # max how many summaries to do (should be run daily)
 
 count_max_tl = 2 # max how many timelines to do - keep low as many tokens used
+
+count_max_dm = 0 # max how many data maps to do ### dev
 
 
 CREATE_SUMMARY_CONTENT_TEMPLATE = """
@@ -603,6 +608,73 @@ def create_timeline_content(entity):
     return timeline
 
 
+def create_data_map_content(entity):
+    """ place name in center, and make line out for each of stage, started, end, category, status, summary, timeline, news items, (wikipedia), (URLs) """
+    dot_string = f''
+    dot_string += f'//{entity.name} Data Map\n'
+    dot_string += f'digraph {{\n'
+    dot_string += f'0 [label="{entity.name}"]\n'
+    dot_string += f'1 [label="Stage {entity.stage_current}"]\n'
+    dot_string += f'0 -> 1\n'
+    ### Ideally add a few more here like: word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
+    dot_string += f'2 [label="started: {entity.date_started}"]\n'
+    dot_string += f'0 -> 2\n'
+    if entity.date_ended:
+        dot_string += f'3 [label="started: {entity.date_started}"]\n'
+        dot_string += f'0 -> 3\n'
+    if entity.category:
+        dot_string += f'4 [label="categories: {entity.category}"]\n' # could make each a link
+        dot_string += f'0 -> 4\n'
+    if entity.corp_fam:
+        dot_string += f'5 [label="corp fam: {entity.corp_fam}"]\n' # could make each a sub-link
+        dot_string += f'0 -> 5\n'
+    dot_string += f'6 [label="status: {entity.status}"]\n'
+    dot_string += f'0 -> 6\n'
+    if entity.summary:
+        dot_string += f'7 [label="summary: {entity.summary}"]\n'
+        dot_string += f'0 -> 7\n'
+    if entity.stage_history:
+        dot_string += f'8 [label="{len(entity.stage_history)} linked news items"]\n' # could make each a sub-link
+        dot_string += f'0 -> 8\n'
+    if entity.timeline:
+        dot_string += f'9 [label="timeline"]\n' # reference only, not content
+        dot_string += f'0 -> 9\n'
+    dot_string += f'}}\n'
+    dot_string += f'\n'
+    return dot_string
+
+
+# def create_data_map_content_old(entity):
+#     dot = graphviz.Digraph(comment=f'{entity.name} Data Map')
+#     dot.node('0', entity.name)
+#     dot.node('1', f'Stage {entity.stage_current}') # essentially sentiment
+#     dot.edge('0', '1')
+#     ### Ideally add a few more here like: word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
+#     dot.node('2', f'started: {entity.date_started}')
+#     dot.edge('0', '2')
+#     if entity.date_ended:
+#         dot.node('3', f'ended: {entity.date_ended}')
+#         dot.edge('0', '3')
+#     if entity.category:
+#         dot.node('4', f'categories: {entity.category}') # could make each a link
+#         dot.edge('0', '4')
+#     if entity.corp_fam:
+#         dot.node('5', f'corp fam: {entity.corp_fam}') # could make each a sub-link
+#         dot.edge('0', '5')
+#     dot.node('6', f'status: {entity.status}')
+#     dot.edge('0', '6')
+#     if entity.summary:
+#         dot.node('7', f'summary: {entity.summary}')
+#         dot.edge('0', '7')
+#     if entity.stage_history:
+#         dot.node('8', f'{len(entity.stage_history)} linked news items') # could make each a sub-link
+#         dot.edge('0', '8')
+#     if entity.timeline:
+#         dot.node('9', f'timeline') # reference only, not content
+#         dot.edge('0', '9')
+#     return dot # this is a Digraph object, not a dot formatted string
+
+
 def large_lang_model(query):
     large_lang_model = ChatMistralAI(model_name = 'open-mixtral-8x7b', 
                                      mistral_api_key = llm_api_key, 
@@ -681,6 +753,49 @@ def parse_for_blank_timeline(count_max_tl):
     return None
 
 
+def parse_for_blank_data_map(count_max_dm):
+    """
+    Pulls all entities from DB; skips disabled; if data_map None (blank) then call create_content.
+    If create_content returns None then logs and continues, otherwise sets value for timeline and commits.
+    """
+    count_mapped = 0
+    count_skipped = 0
+    logging.info(f'==> ++++++++++ parse_for_blank_data_map +++++++++++')
+    with app.app_context():
+        entities = Entity.query.all()
+        for entity in entities:
+            if count_mapped >= count_max_dm:
+                count_skipped += 1
+                continue
+            if entity.status != 'disabled':
+                if entity.data_map:
+                    continue
+                # if entity is not disabled, and has a blank data_map, then try to fill in the data_map
+                data_map = create_data_map_content(entity)
+                if not data_map:
+                    # if data_map comes back None, then go to next entity
+                    logging.info(f'==> Tried, but unable to get data_map for {entity.name}. ')
+                    continue
+                entity.data_map = data_map
+                db.session.commit()
+                logging.info(f'==> Populated data map for {entity.name}:\n data_map = {data_map}')
+                count_mapped += 1
+    logging.info(f'==> Data map populated a total of {count_mapped} entities; skipped {count_skipped}')
+    return None
+
+
+def create_data_map_for_entity(entity_name_str):
+    logging.info(f'==> ++++++++++ create_data_map_for_entity +++++++++++')
+    with app.app_context():
+        entity = Entity.query.filter_by(name=entity_name_str).first()
+        data_map = create_data_map_content(entity)
+        if not data_map:
+            logging.info(f'==> Tried, but unable to get data_map for {entity.name}. ')
+        entity.data_map = data_map
+        db.session.commit()
+        logging.info(f'==> Populated data map for {entity.name}:\n data_map = {data_map}')
+
+
 # this func might not be used / called at all from anywhere
 def create_timeline_for_entity(entity_name_str):
     """
@@ -718,7 +833,8 @@ def create_timeline_for_entity(entity_name_str):
 
 def main():
     parse_for_blank_summary(count_max_sm)
-    parse_for_blank_timeline(count_max_tl) ### keeping low as many tokens used
+    parse_for_blank_timeline(count_max_tl)
+    parse_for_blank_data_map(count_max_dm)
     logging.info(f'==> ++++++++++ filling blanks done +++++++++++\n')
 
 if __name__ == "__main__":

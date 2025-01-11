@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+### Banner ads show in flask run testing, from prod show in iphone safari, but not in windows firefox. Do show in windows firefox private mode - ad block at work!?
+
 # Banner ad metadata
 banner_ads = [
     {

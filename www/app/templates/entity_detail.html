@@ -5,13 +5,14 @@
 <h1>Enshittification Metrics Entity "{{ item.name }}" Detail:</h1>
 
 <table border="3">
-<!-- entity details -->
+<!-- name -->
 	<tr>
 		<td colspan="2">
 			<h1><strong>{{ item.name }}</strong></h1>
 		</td>
 	</tr>
 
+<!-- stage -->
 	<tr>
 		<td>
 			<h2><strong>
@@ -33,6 +34,7 @@
 		</td>
 	</tr>
 
+<!-- start, end, fam -->
 	<tr>
 		<td>
 			{% if item.date_started and (item.date_started != 'UNK') %}
@@ -49,14 +51,19 @@
 		</td>
 	</tr>
 
+<!-- summary -->
 	<tr>
 		<td colspan="2">
 			{% if item.summary %}
-				Summary: <h2><strong>{{ item.summary }}</strong></h2>
+				Summary:
+				<h2><strong>{{ item.summary }}</strong></h2>
 			{% endif %}
 		</td>
 	</tr>
 
+<!-- mind map will go here -->
+
+<!-- timeline -->
 	<tr>
 		<td colspan="2">
 			Timeline: 
@@ -129,6 +136,18 @@
 		<br>
 	{% endfor %}
 {% endif %}
+
+<!-- data map -->
+	{% if item.data_map %}
+		<table border="3">
+			<tr>
+				<td colspan="2">
+					Data Map:
+					<h3>{{ item.data_map }}</h3>
+				</td>
+			</tr>
+		</table>
+	{% endif %}
 
 <script src="{{ url_for('static', filename='js/filtersortscript.js') }}" defer></script>
 

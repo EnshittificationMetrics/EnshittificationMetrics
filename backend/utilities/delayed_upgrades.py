@@ -188,8 +188,10 @@ def get_library_last_update_date(package_name):
 
 
 def upgrade_library_package(pipfile_loc, package_name, last_update_date):
-    run_command(f'cd {pipfile_loc} && pipenv upgrade {package_name}')
-    logging.info(f'Upgraded {pipfile_loc}/Pipfile {package_name}... Updated {last_update_date}.')
+    pipenv_return = run_command(f'cd {pipfile_loc} && pipenv upgrade {package_name}')
+    ### some logic here to catch failures?
+    logging.info(f'Upgraded {pipfile_loc}/Pipfile {package_name} (updated {last_update_date}): {pipenv_return}')
+### logging.info(f'Upgraded {pipfile_loc}/Pipfile {package_name} (updated {last_update_date}).')
 
 
 def main():
@@ -241,16 +243,23 @@ def main():
             logging.info(f'No upgradable packages right now.')
         else:
             skipped_list = ''
+            need_pipenv_lock = False
             for package in packages:
                 last_update_date = get_library_last_update_date(package)
                 if last_update_date:
                     if last_update_date < some_days_ago:
                         upgrade_library_package(pipfile_loc, package, last_update_date)
+                        need_pipenv_lock = True
                     else:
                         skipped_list += f'{package} (updated {last_update_date}), '
                 else:
                     logging.error(f'Could not retrieve changelog date for package "{package}".')
                     logging.error(f'Need to figure out what was listed and tune to deal with it.')
+            if need_pipenv_lock:
+                pipenv_return = run_command(f'cd {pipfile_loc} && pipenv lock')
+                ### some logic here to catch failures?
+                logging.info(f'Ran pipenv lock: {pipenv_return}')
+            ### logging.info(f'Ran pipenv lock.')
             if skipped_list:
                 logging.info(f'Note: Skipped: {skipped_list[:-2]}')
             print(f'sleeping 2 min')
