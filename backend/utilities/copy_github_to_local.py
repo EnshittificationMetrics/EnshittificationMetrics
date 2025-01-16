@@ -21,6 +21,7 @@ logging.basicConfig(level = logging.INFO,
 import subprocess
 import os
 import shutil
+import re
 
 
 def check_for_updates(repo_dir):
@@ -47,21 +48,23 @@ def fetch_and_pull(repo_dir):
         logging.error(f'==> Error during fetch or pull: {e}')
 
 
-# What requires a restart:
-# -- Enabling/Disabling Apache Modules, SSL Certificate Changes       --> sudo systemctl restart apache2      (out of scope of this program)
-# -- Changes to /etc/apache2/sites-available/                         --> sudo systemctl reload apache2       (out of scope of this program)
-# -- Changes to mod-wsgi configuration                                --> sudo systemctl reload apache2       (in scope)
-# -- Python Code Changes (Flask app, views, models, app.py, views.py  --> touch /var/www/yourapp/yourapp.wsgi (in scope)
-# -- Install/update Python packages in virtual environment            --> touch /var/www/yourapp/yourapp.wsgi (in scope)
-# -- Changes to HTML, CSS, JavaScript, Jinja2 templates, static files --> none                                (in scope)
+requires_a_restart = """
+    * Enabling/Disabling Apache Modules, SSL Certificate Changes       --> sudo systemctl restart apache2      (out of scope of this program)
+    * Changes to /etc/apache2/sites-available/                         --> sudo systemctl reload apache2       (out of scope of this program)
+    * Changes to mod-wsgi configuration                                --> sudo systemctl reload apache2       (in scope)
+    * Python Code Changes (Flask app, views, models, app.py, views.py  --> touch /var/www/yourapp/yourapp.wsgi (in scope)
+    * Install/update Python packages in virtual environment            --> touch /var/www/yourapp/yourapp.wsgi (in scope)
+    * Changes to HTML, CSS, JavaScript, Jinja2 templates, static files --> none                                (in scope)
+    * New flask DB schema change file                                  --> flask db upgrade                    (in scope)
+    """
 
 def check_for_restart_needed(filename):
     """
     Sets apache_restart_needed flag for change to middleapp.wsgi, or,
-    touches middleapp.wsgi for changes to Flask .py or Python packages.
-    (May do one or both multiple times per script run.)
+    touches middleapp.wsgi for changes to Flask .py or Python packages, or, 
+    does a flask db upgrade.
+    (May do multiple times per script run.)
     """
-    ### import fnmatch
     match filename:
         case 'middleapp.wsgi':
             try:
@@ -75,7 +78,6 @@ def check_for_restart_needed(filename):
                 logging.info(f'==> Touched middleapp.wsgi.')
             except subprocess.CalledProcessError as e:
                 logging.error(f'==> Unable to touch middleapp.wsgi; got error: {e}')
-        ### case path if fnmatch.fnmatch(path, '*/migrations/versions/*'): # was # case 'models.py':
         case 'migrations/versions':
             try:
                 time.sleep(.25 * 60) # 15 second pause for file copy to settle
@@ -85,7 +87,7 @@ def check_for_restart_needed(filename):
                 logging.info(f'==> Performed flask db upgrade (migrate new schema); output: {result}')
                 time.sleep(.25 * 60) # 15 second pause for migration to settle
             except subprocess.CalledProcessError as e:
-                logging.error(f'==> Unable to migrate new schema; got error: {e}') # trying to leg {result} here might cause another error...
+                logging.error(f'==> Unable to migrate new schema; got error: {e}') # trying to log {result} here might cause another error...
 
 
 def place_files(src, dest_www, dest_back):
@@ -106,15 +108,17 @@ def place_files(src, dest_www, dest_back):
         else:
             relative_path = ''
         dst_dirpath = os.path.join(dst, relative_path)
-        if not os.path.exists(dst_dirpath): # Create directories in the destination if they don't exist
+        """ Create directories in the destination if they don't exist """
+        if not os.path.exists(dst_dirpath):
             # print(f'Made directory {dst_dirpath}') # for testing
             os.makedirs(dst_dirpath)
-            logging.info(f'Made directory {dst_dirpath}') # should rarely be triggered, unless new dir is actually added
-        for filename in filenames: # Copy files, overwriting if they already exist in the destination
+            logging.info(f'Made directory {dst_dirpath}') # triggered only rarly when new dir is actually added
+        """ Copy files, overwriting if they already exist in the destination """
+        for filename in filenames:
             src_file = os.path.join(dirpath, filename)
             dst_file = os.path.join(dst_dirpath, filename)
-            # copy only if doesn't exist or newer
             if not os.path.exists(dst_file):
+                """ copy file if doesn't exist yet """
                 try:
                     shutil.copy2(src_file, dst_file)  # copy2 preserves metadata (e.g., timestamps)
                     # print(f'Copied new file {dst_file}') # for testing
@@ -128,6 +132,7 @@ def place_files(src, dest_www, dest_back):
                 src_mtime = os.path.getmtime(src_file) # Source file modification time
                 dst_mtime = os.path.getmtime(dst_file) # Destination file modification time
                 if src_mtime > dst_mtime:
+                    """ copy file if a newer version """
                     try:
                         subprocess.run(['cp', src_file, dst_file], check=True)
                         # print(f'Copied updated file {dst_file}') # for testing
@@ -140,6 +145,7 @@ def place_files(src, dest_www, dest_back):
                         # print(f'In attempting to copy updated file {dst_file}, got error: {e}') # for testing
                         continue
                 else:
+                    """ skip file, no copy, if file same or older """
                     # logging.warning(f'No copy performed - {dst_file} file exists and is same (or older) timestamp.') # not really a warning  - expected / desired behavior
                     continue
             """ if just copied a Pipfile, then run "pipenv install" where the Pipfile is """
@@ -149,7 +155,9 @@ def place_files(src, dest_www, dest_back):
                     logging.info(f'==> pipenv install run - at location {dst_dirpath}')
                 except Exception as e:
                     logging.error(f'==> On running pipenv install at location {dst_dirpath} get error: {e}')
-            if dirpath == '*/migrations/versions/*':
+            """ check if copying this new file requires some restart; special case for schema change file """
+            pattern = r".*/migrations/versions*"
+            if re.search(pattern, dirpath):
                 check_for_restart_needed('migrations/versions')
             else:
                 check_for_restart_needed(filename)

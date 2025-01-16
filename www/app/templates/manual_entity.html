@@ -8,6 +8,7 @@
 		Status: {{ entity.status }}<br>
 		Name: {{ entity.name }}<br>
 		stage_current: {{ entity.stage_current }}<br>
+		stage_EM4view: {{ entity.stage_EM4view }}<br>
 
 		stage_history: 
 		{% if entity.stage_history %}
@@ -18,28 +19,32 @@
 			None
 		{% endif %}<br>
 
-		stage_EM4view: {{ entity.stage_EM4view }}<br>
 		date_started: {{ entity.date_started }}<br>
 		date_ended: {{ entity.date_ended }}<br>
-		Summary: {{ entity.summary }}<br>
+		summary: {{ entity.summary }}<br>
 		corp_fam: {{ entity.corp_fam }}<br>
-		Category: {{ entity.category }}<br>
-		Timeline: {{ entity.timeline }}<br>
+		category: {{ entity.category }}<br>
+		timeline: {{ entity.timeline }}<br>
+		data_map: {{ entity.data_map }}<br>
 		<br>
 
 <form method="POST">
     {{ form.hidden_tag() }}
     <p>
-        {{ form.status.label }}<br>
+        {{ form.status.label }} (<font color="red">reqd'</font>)<br>
         {{ form.status }}<br>
     </p>
     <p>
-        <strong>{{ form.name.label }}</strong><br>
+        <strong>{{ form.name.label }}</strong> (<font color="red">reqd'</font>)<br>
         {{ form.name(size=64) }}<br>
     </p>
     <p>
-        {{ form.stage_current.label }}<br>
+        {{ form.stage_current.label }} (<font color="red">reqd'</font>)<br>
         {{ form.stage_current }}<br>
+    </p>
+    <p>
+        {{ form.stage_EM4view.label }} (<font color="red">reqd'</font> but will use stage current if blank)<br>
+        {{ form.stage_EM4view }}<br>
     </p>
 	<p>
 	stage_history:<br>
@@ -53,10 +58,6 @@
 	</div>
 	<button type="button" onclick="addField()">add stage history item</button>
 	</p>
-    <p>
-        {{ form.stage_EM4view.label }}<br>
-        {{ form.stage_EM4view }}<br>
-    </p>
     <p>
         {{ form.date_started.label }}<br>
         {{ form.date_started(size=10) }}<br>
@@ -80,6 +81,10 @@
     <p>
         {{ form.timeline.label }}:<br>
         {{ form.timeline }}<br>
+    </p>
+    <p>
+        {{ form.data_map.label }}:<br>
+        {{ form.data_map }}<br>
     </p>
     <p>{{ form.submit() }}</p>
 </form>

@@ -188,17 +188,21 @@ def get_library_last_update_date(package_name):
 
 
 def upgrade_library_package(pipfile_loc, package_name, last_update_date):
+    """ run pipenv upgrade <package> and log result """
     pipenv_return = run_command(f'cd {pipfile_loc} && pipenv upgrade {package_name}')
-    ### some logic here to catch failures?
-    logging.info(f'Upgraded {pipfile_loc}/Pipfile {package_name} (updated {last_update_date}): {pipenv_return}')
-### logging.info(f'Upgraded {pipfile_loc}/Pipfile {package_name} (updated {last_update_date}).')
+    pattern = r"\bSuccess\b"
+    matches = re.findall(pattern, pipenv_return)
+    if matches:
+        logging.info(f'Upgraded {pipfile_loc}/Pipfile {package_name} (updated {last_update_date}).')
+    else:
+        logging.error(f'Tried to upgrade {pipfile_loc}/Pipfile {package_name} (updated {last_update_date}) - but got no success. Detail: {pipenv_return}')
 
 
 def main():
     runningas = run_command("whoami")
     logging.info(f'Running {__file__} as: {runningas[0:-1]}')
     
-    """ if needed, reload apache2 """
+    """ I. if needed, reload apache2 """
     flag_path = os.path.dirname(log_path) + '/apache_reload_needed'
     # 'apache_reload_needed' created by 'copy_github_to_local.py'
     if os.path.exists(flag_path):
@@ -209,7 +213,7 @@ def main():
         except Exception as e:
             logging.error(f'Failed systemctl reload apache2 and rm due to {flag_path}, error: {e}')
     
-    """ if needed and old enough, apt install package_name """
+    """ II. if needed and old enough, apt install package_name """
     upgradable_packages = get_upgradable_packages()
     if not upgradable_packages:
         logging.info(f'No upgradable package right now.')
@@ -231,7 +235,7 @@ def main():
         print(f'sleeping 3 min')
         time.sleep(3 * 60) # 3 min pause for updates to settle...
     
-    """ if needed and old enough, pipenv upgrade package_name """
+    """ III. if needed and old enough, pipenv upgrade package_name """
     for pipfile_loc in pipfile_locs:
         logging.info(f'Checking {pipfile_loc}/Pipfile')
         """ run pipenv update --outdated where the Pipfile is """
@@ -242,12 +246,14 @@ def main():
         if not packages:
             logging.info(f'No upgradable packages right now.')
         else:
+            """ loop thru update-able packages """
             skipped_list = ''
             need_pipenv_lock = False
             for package in packages:
                 last_update_date = get_library_last_update_date(package)
                 if last_update_date:
                     if last_update_date < some_days_ago:
+                        """ update package """
                         upgrade_library_package(pipfile_loc, package, last_update_date)
                         need_pipenv_lock = True
                     else:
@@ -255,17 +261,21 @@ def main():
                 else:
                     logging.error(f'Could not retrieve changelog date for package "{package}".')
                     logging.error(f'Need to figure out what was listed and tune to deal with it.')
+            """ if any upgrades done then run lock """
             if need_pipenv_lock:
                 pipenv_return = run_command(f'cd {pipfile_loc} && pipenv lock')
-                ### some logic here to catch failures?
-                logging.info(f'Ran pipenv lock: {pipenv_return}')
-            ### logging.info(f'Ran pipenv lock.')
+                pattern = r"\bSuccess\b"
+                matches = re.findall(pattern, pipenv_return)
+                if matches:
+                    logging.info(f'Ran pipenv lock.')
+                else:
+                    logging.info(f'Tried pipenv lock - but got no success. Detail: {pipenv_return}')
             if skipped_list:
                 logging.info(f'Note: Skipped: {skipped_list[:-2]}')
             print(f'sleeping 2 min')
             time.sleep(2 * 60) # 2 min pause for updates to settle...
 
-    """ if needed, reboot """
+    """ IV. if needed, reboot """
     reboot_file = "/var/run/reboot-required" # on Ubuntu
     if os.path.isfile(reboot_file):
         logging.info(f'Reboot needed per "{reboot_file}".')

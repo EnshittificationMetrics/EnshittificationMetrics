@@ -162,6 +162,29 @@ def entity_detail(entname):
                            banner = selected_ad)
 
 
+# API endpoint to provide graph data to cytoscape.js browser client
+@app.route('/graph-data-datamap')
+def graph_data():
+    # Example graph data
+    graph_json = {
+        "edges": [
+            {"data": {"id": "AB", "source": "A", "target": "B"}},
+            {"data": {"id": "BC", "source": "B", "target": "C"}},
+            {"data": {"id": "CA", "source": "C", "target": "A"}},
+            {"data": {"id": "CD", "source": "C", "target": "D"}},
+            {"data": {"id": "CE", "source": "C", "target": "E"}},
+        ],
+        "nodes": [
+            {"data": {"id": "A", "label": "Node A"}},
+            {"data": {"id": "B", "label": "Node B"}},
+            {"data": {"id": "C", "label": "Node C"}},
+            {"data": {"id": "D", "label": "Node D"}},
+            {"data": {"id": "E", "label": "Node E"}},
+        ],
+    }
+    return jsonify(graph_json)
+
+
 @app.route('/update-filtersort', methods=['POST'])
 @login_required
 def update_filtersort():
@@ -1110,7 +1133,8 @@ def manual_entity():
                         summary       = form.summary.data, 
                         corp_fam      = form.corp_fam.data, 
                         category      = form.category.data, 
-                        timeline      = form.timeline.data)
+                        timeline      = form.timeline.data, 
+                        data_map      = form.data_map.data)
         db.session.add(entity)
         db.session.commit()
         flash(f'Added {form.name.data}')
@@ -1128,7 +1152,8 @@ def manual_entity():
                        summary       = 'empty',
                        corp_fam      = 'empty',
                        category      = 'empty',
-                       timeline      = 'empty')
+                       timeline      = 'empty',
+                       data_map      = 'empty')
         return render_template('manual_entity.html', 
                                form = form,
                                entity = blank)
@@ -1238,6 +1263,7 @@ def manual_entity_edit(id):
         entity.summary       = form.summary.data
         entity.corp_fam      = form.corp_fam.data
         entity.category      = form.category.data
+        entity.data_map      = form.data_map.data
         db.session.commit()
         flash(f'Edited {form.name.data}')
         return redirect(url_for('rankings'))
@@ -1253,6 +1279,7 @@ def manual_entity_edit(id):
         form.summary.data = entity.summary
         form.corp_fam.data = entity.corp_fam
         form.category.data = entity.category
+        form.data_map.data = entity.data_map
         return render_template('manual_entity.html', 
                                form = form, 
                                entity = entity)

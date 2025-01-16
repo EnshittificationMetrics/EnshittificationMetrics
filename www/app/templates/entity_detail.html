@@ -142,13 +142,25 @@
 		<table border="3">
 			<tr>
 				<td colspan="2">
-					Data Map:
+					Data Map raw:
 					<h3>{{ item.data_map }}</h3>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					cy data map:<br>
+					<div id="cy_datamap"></div>
+					<script>
+						// Pass the graph data from Python to JavaScript via html with Jinja2 
+						const dataMap = {{ item.data_map | tojson }};
+					</script>
 				</td>
 			</tr>
 		</table>
 	{% endif %}
 
 <script src="{{ url_for('static', filename='js/filtersortscript.js') }}" defer></script>
+
+<script src="{{ url_for('static', filename='js/graphdatamap.js') }}" defer></script>
 
 {% endblock %}

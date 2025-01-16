@@ -27,6 +27,11 @@ psutil = "*"
 pillow = "*"
 orjson = "*"
 graphviz = "*"
+primp = "*"
+pydantic = "*"
+marshmallow = "*"
+sqlalchemy = "*"
+huggingface-hub = "*"
 
 [dev-packages]
 

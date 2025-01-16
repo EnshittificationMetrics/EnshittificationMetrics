@@ -27,8 +27,8 @@ class HistItemForm(CSRFExemptForm):
 
 class EntityEditForm(FlaskForm):
     status = SelectField('status', choices=[
-        ('live', 'live'),
         ('potential', 'potential'),
+        ('live', 'live'),
         ('disabled', 'disabled')])
     name          = StringField('name')
     stage_current = IntegerField('stage_current', validators=[NumberRange(min=1, max=4)])
@@ -43,6 +43,7 @@ class EntityEditForm(FlaskForm):
         ('social', 'social'),
         ('cloud', 'cloud')])
     timeline      = StringField('timeline')
+    data_map      = StringField('data_map')
     submit        = SubmitField('Submit Entity')
     def validate_required(self, name, stage_current, stage_EM4view):
         if not stage_EM4view:
