@@ -127,3 +127,10 @@ def add_commit_push(repo_dir):
 
 if __name__ == '__main__':
     main()
+
+# to manually run:
+# cd /home/leet/github
+# gh auth login
+# git add .
+# git commit -m "more updates"
+# git push EnshittificationMetrics

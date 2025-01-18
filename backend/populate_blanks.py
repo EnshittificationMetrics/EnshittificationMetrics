@@ -610,6 +610,97 @@ def create_timeline_content(entity):
 
 def create_data_map_content(entity):
     """ place name in center, and make line out for each of stage, started, end, category, status, summary, timeline, news items, (wikipedia), (URLs) """
+    """ json.dumps to serialize for storage as text in SQLite """
+
+    edge_data = []
+    node_data = []
+    node_data.append( {"data": {"id": "name", "label": f"{entity.name}" }})
+
+    node_data.append( {"data": {"id": "stage", "label": f"Stage {entity.stage_current}" }})
+    edge_data.append( {"data": {"id": "name1", "source": "name", "target": "stage"}})
+
+    ### Ideally add a few more here like: word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
+
+    node_data.append( {"data": {"id": "stage4", "label": f"Stage {entity.stage_EM4view}" }})
+    edge_data.append( {"data": {"id": "stagestage4", "source": "stage", "target": "stage4"}})
+
+    # node_data.append( {"data": {"id": "status", "label": f"status: {entity.status}" }})
+    # edge_data.append( {"data": {"id": "namestatus", "source": "name", "target": "status"}})
+
+    node_data.append( {"data": {"id": "started", "label": f"started: {entity.date_started}"}})
+    edge_data.append( {"data": {"id": "namestarted", "source": "name", "target": "started"}})
+
+    if entity.date_ended != 'current' and entity.date_ended != 'None':
+        node_data.append( {"data": {"id": "ended", "label": f"ended: {entity.date_ended}" }})
+        edge_data.append( {"data": {"id": "nameended", "source": "name", "target": "ended"}})
+
+    if entity.category: ### could make each a link
+        node_data.append( {"data": {"id": "category", "label": f"categories: {entity.category}" }})
+        edge_data.append( {"data": {"id": "namecategory", "source": "name", "target": "category"}})
+
+    if entity.corp_fam: # each a sub-link
+        # fam node
+        node_data.append( {"data": {"id": "fam", "label": f"family"}})
+        edge_data.append( {"data": {"id": "namefam", "source": "name", "target": "fam"}})
+        # Safely handle corp_fam whether it's a single company or multiple comma-separated companies
+        corp_fam_list = entity.corp_fam.split(", ") if ", " in entity.corp_fam else [entity.corp_fam]
+        # node and edge for each item linked to fam
+        for count, item in enumerate(corp_fam_list, start=1):
+            node_data.append({"data": {"id": str(count), "label": item}})
+            edge_data.append({"data": {"id": f"{count}fam", "source": str(count), "target": "fam"}})
+
+    if entity.summary: # reference only, not content
+        node_data.append( {"data": {"id": "summary", "label": f"summary" }})
+        edge_data.append( {"data": {"id": "namesummary", "source": "name", "target": "summary"}})
+
+    if entity.stage_history: ### could make each a sub-link
+        node_data.append( {"data": {"id": "news", "label": f"{len(entity.stage_history)} linked news items!" }})
+        edge_data.append( {"data": {"id": "namenews", "source": "name", "target": "news"}})
+
+    if entity.timeline: # reference only, not content
+        node_data.append( {"data": {"id": "timeline", "label": f"timeline" }})
+        edge_data.append( {"data": {"id": "nametimeline", "source": "name", "target": "timeline"}})
+
+    graph_data = {"edges": edge_data, "nodes": node_data}
+    
+    map = json.dumps(graph_data, indent=4)
+    
+    return map
+
+
+def create_data_map_content_stale(entity):
+    """ place name in center, and make line out for each of stage, started, end, category, status, summary, timeline, news items, (wikipedia), (URLs) """
+    """ json.dumps to serialize for storage as text in SQLite """
+    json_map = json.dumps({
+        "edges": [
+            {"data": {"id": "01", "source": "0", "target": "1"}},
+            {"data": {"id": "02", "source": "0", "target": "2"}},
+            {"data": {"id": "03", "source": "0", "target": "3"}},
+            {"data": {"id": "04", "source": "0", "target": "4"}},
+            {"data": {"id": "05", "source": "0", "target": "5"}},
+            {"data": {"id": "06", "source": "0", "target": "6"}},
+            {"data": {"id": "07", "source": "0", "target": "7"}},
+            {"data": {"id": "08", "source": "0", "target": "8"}},
+            {"data": {"id": "09", "source": "0", "target": "9"}},
+        ],
+        "nodes": [
+            {"data": {"id": "0", "label": f"{entity.name}" }},
+            {"data": {"id": "1", "label": f"Stage {entity.stage_current}" }},
+            {"data": {"id": "2", "label": f"started: {entity.date_started}"}},
+            {"data": {"id": "3", "label": f"ended: {entity.date_ended}" }},
+            {"data": {"id": "4", "label": f"categories: {entity.category}" }},
+            {"data": {"id": "5", "label": f"corp fam: {entity.corp_fam}" }},
+            {"data": {"id": "6", "label": f"status: {entity.status}" }},
+            {"data": {"id": "7", "label": f"summary: {entity.summary}" }},
+            {"data": {"id": "8", "label": f"{len(entity.stage_history)} linked news items" }},
+            {"data": {"id": "9", "label": f"timeline: {entity.timeline}" }},
+        ],
+    })
+    return json_map
+
+
+def create_data_map_content_old(entity):
+    """ place name in center, and make line out for each of stage, started, end, category, status, summary, timeline, news items, (wikipedia), (URLs) """
     dot_string = f''
     dot_string += f'//{entity.name} Data Map\n'
     dot_string += f'digraph {{\n'
@@ -644,35 +735,35 @@ def create_data_map_content(entity):
     return dot_string
 
 
-# def create_data_map_content_old(entity):
-#     dot = graphviz.Digraph(comment=f'{entity.name} Data Map')
-#     dot.node('0', entity.name)
-#     dot.node('1', f'Stage {entity.stage_current}') # essentially sentiment
-#     dot.edge('0', '1')
-#     ### Ideally add a few more here like: word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
-#     dot.node('2', f'started: {entity.date_started}')
-#     dot.edge('0', '2')
-#     if entity.date_ended:
-#         dot.node('3', f'ended: {entity.date_ended}')
-#         dot.edge('0', '3')
-#     if entity.category:
-#         dot.node('4', f'categories: {entity.category}') # could make each a link
-#         dot.edge('0', '4')
-#     if entity.corp_fam:
-#         dot.node('5', f'corp fam: {entity.corp_fam}') # could make each a sub-link
-#         dot.edge('0', '5')
-#     dot.node('6', f'status: {entity.status}')
-#     dot.edge('0', '6')
-#     if entity.summary:
-#         dot.node('7', f'summary: {entity.summary}')
-#         dot.edge('0', '7')
-#     if entity.stage_history:
-#         dot.node('8', f'{len(entity.stage_history)} linked news items') # could make each a sub-link
-#         dot.edge('0', '8')
-#     if entity.timeline:
-#         dot.node('9', f'timeline') # reference only, not content
-#         dot.edge('0', '9')
-#     return dot # this is a Digraph object, not a dot formatted string
+def create_data_map_content_older(entity):
+    dot = graphviz.Digraph(comment=f'{entity.name} Data Map')
+    dot.node('0', entity.name)
+    dot.node('1', f'Stage {entity.stage_current}') # essentially sentiment
+    dot.edge('0', '1')
+    ### Ideally add a few more here like: word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
+    dot.node('2', f'started: {entity.date_started}')
+    dot.edge('0', '2')
+    if entity.date_ended:
+        dot.node('3', f'ended: {entity.date_ended}')
+        dot.edge('0', '3')
+    if entity.category:
+        dot.node('4', f'categories: {entity.category}') # could make each a link
+        dot.edge('0', '4')
+    if entity.corp_fam:
+        dot.node('5', f'corp fam: {entity.corp_fam}') # could make each a sub-link
+        dot.edge('0', '5')
+    dot.node('6', f'status: {entity.status}')
+    dot.edge('0', '6')
+    if entity.summary:
+        dot.node('7', f'summary: {entity.summary}')
+        dot.edge('0', '7')
+    if entity.stage_history:
+        dot.node('8', f'{len(entity.stage_history)} linked news items') # could make each a sub-link
+        dot.edge('0', '8')
+    if entity.timeline:
+        dot.node('9', f'timeline') # reference only, not content
+        dot.edge('0', '9')
+    return dot # this is a Digraph object, not a dot formatted string
 
 
 def large_lang_model(query):
@@ -841,3 +932,10 @@ if __name__ == "__main__":
     main()
 
 
+# manual cli steps:
+# ssh
+# cd ~/EnshittificationMetrics/backend/ OR cd ~/em
+# pipenv shell
+# python3
+# from populate_blanks import create_data_map_for_entity
+# create_data_map_for_entity("entity_name")

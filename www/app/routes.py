@@ -36,6 +36,7 @@ from urllib.parse import urlsplit
 import requests
 import datetime
 import random
+import json
 
 load_dotenv('../.env')
 hostn = socket.gethostname()
@@ -156,10 +157,40 @@ def entity_detail(entname):
                 news_ids.append(news_item[2])
     news = News.query.filter(News.id.in_(news_ids)).all()
     selected_ad = random.choice(banner_ads)
+    ### START SHUNT
+    ### cy_graph_data3 = {
+    ###     "edges": [
+    ###         {"data": {"id": "01", "source": "0", "target": "1"}},
+    ###         {"data": {"id": "02", "source": "0", "target": "2"}},
+    ###         {"data": {"id": "03", "source": "0", "target": "3"}},
+    ###         {"data": {"id": "04", "source": "0", "target": "4"}},
+    ###         {"data": {"id": "05", "source": "0", "target": "5"}},
+    ###         {"data": {"id": "06", "source": "0", "target": "6"}},
+    ###         {"data": {"id": "07", "source": "0", "target": "7"}},
+    ###         {"data": {"id": "08", "source": "0", "target": "8"}},
+    ###         {"data": {"id": "09", "source": "0", "target": "9"}},
+    ###     ],
+    ###     "nodes": [
+    ###         {"data": {"id": "0", "label": "NAME = 3"}},
+    ###         {"data": {"id": "1", "label": "Stage 2"}},
+    ###         {"data": {"id": "2", "label": "started: 2025-01-18"}},
+    ###         {"data": {"id": "3", "label": "ended: 2025-01-20"}},
+    ###         {"data": {"id": "4", "label": "categories: CAT"}},
+    ###         {"data": {"id": "5", "label": "corp fam: FAM"}},
+    ###         {"data": {"id": "6", "label": "status: LIVE"}},
+    ###         {"data": {"id": "7", "label": "summary: SUM_TEXT"}},
+    ###         {"data": {"id": "8", "label": "2 linked news items"}},
+    ###         {"data": {"id": "9", "label": "timeline"}},
+    ###     ],
+    ### }
+    ### cy_graph_data4 = { "edges": [ {"data": {"id": "01", "source": "0", "target": "1"}}, {"data": {"id": "02", "source": "0", "target": "2"}}, {"data": {"id": "03", "source": "0", "target": "3"}}, {"data": {"id": "04", "source": "0", "target": "4"}}, {"data": {"id": "05", "source": "0", "target": "5"}}, {"data": {"id": "06", "source": "0", "target": "6"}}, {"data": {"id": "07", "source": "0", "target": "7"}}, {"data": {"id": "08", "source": "0", "target": "8"}}, {"data": {"id": "09", "source": "0", "target": "9"}}, ], "nodes": [ {"data": {"id": "0", "label": "NAME = 4"}}, {"data": {"id": "1", "label": "Stage 2"}}, {"data": {"id": "2", "label": "started: 2025-01-18"}}, {"data": {"id": "3", "label": "ended: 2025-01-20"}}, {"data": {"id": "4", "label": "categories: CAT"}}, {"data": {"id": "5", "label": "corp fam: FAM"}}, {"data": {"id": "6", "label": "status: LIVE"}}, {"data": {"id": "7", "label": "summary: SUM_TEXT"}}, {"data": {"id": "8", "label": "2 linked news items"}}, {"data": {"id": "9", "label": "timeline"}}, ], }
+    ### entity.data_map = cy_graph_data4
+    ### END SHUNT
     return render_template('entity_detail.html', 
                            item = entity,
                            news = news, 
-                           banner = selected_ad)
+                           banner = selected_ad, 
+                           data_map = json.loads(entity.data_map) ) # json.loads to de-serialize from storage as text in SQLite
 
 
 # API endpoint to provide graph data to cytoscape.js browser client
