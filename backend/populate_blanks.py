@@ -70,7 +70,7 @@ count_max_sm = 7 # max how many summaries to do (should be run daily)
 
 count_max_tl = 2 # max how many timelines to do - keep low as many tokens used
 
-count_max_dm = 0 # max how many data maps to do ### dev
+count_max_dm = 28 # max how many data maps to do - can be big as just DB and text process, no LLM calls
 
 
 CREATE_SUMMARY_CONTENT_TEMPLATE = """
@@ -616,14 +616,17 @@ def create_data_map_content(entity):
     node_data = []
     node_data.append( {"data": {"id": "name", "label": f"{entity.name}" }})
 
-    node_data.append( {"data": {"id": "stage", "label": f"Stage {entity.stage_current}" }})
+    node_data.append( {"data": {"id": "stage", "label": f"Stage {entity.stage_current} ({entity.stage_EM4view})" }})
     edge_data.append( {"data": {"id": "name1", "source": "name", "target": "stage"}})
 
     ### Ideally add a few more here like: word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
 
-    node_data.append( {"data": {"id": "stage4", "label": f"Stage {entity.stage_EM4view}" }})
-    edge_data.append( {"data": {"id": "stagestage4", "source": "stage", "target": "stage4"}})
+    # Haven't figured how to implement this one yet, don't have a current_user.func_stage as this is a backend process
+    # Have it in parenthesis in the stage node - ex: "Stage 2 (2)"
+    # node_data.append( {"data": {"id": "stage4", "label": f"Stage {entity.stage_EM4view}" }})
+    # edge_data.append( {"data": {"id": "stagestage4", "source": "stage", "target": "stage4"}})
 
+    # Status seems irrelevant and confusing here - not displaying, just using for filter search on rankings page
     # node_data.append( {"data": {"id": "status", "label": f"status: {entity.status}" }})
     # edge_data.append( {"data": {"id": "namestatus", "source": "name", "target": "status"}})
 
@@ -869,7 +872,7 @@ def parse_for_blank_data_map(count_max_dm):
                     continue
                 entity.data_map = data_map
                 db.session.commit()
-                logging.info(f'==> Populated data map for {entity.name}:\n data_map = {data_map}')
+                logging.info(f'==> Populated data map for {entity.name}! (len = {len(data_map)})')
                 count_mapped += 1
     logging.info(f'==> Data map populated a total of {count_mapped} entities; skipped {count_skipped}')
     return None
