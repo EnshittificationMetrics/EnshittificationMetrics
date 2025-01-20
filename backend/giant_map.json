@@ -1,0 +1,1102 @@
+{
+    "edges": [
+        {
+            "data": {
+                "id": "ent#1-stage3",
+                "source": "ent#1",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#2-stage2",
+                "source": "ent#2",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#2-cloud",
+                "source": "ent#2",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#4-stage2",
+                "source": "ent#4",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#4-social",
+                "source": "ent#4",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#5-stage2",
+                "source": "ent#5",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#6-stage2",
+                "source": "ent#6",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#7-stage2",
+                "source": "ent#7",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#7-social",
+                "source": "ent#7",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#8-stage2",
+                "source": "ent#8",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#8-social",
+                "source": "ent#8",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#9-stage2",
+                "source": "ent#9",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#9-social",
+                "source": "ent#9",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#10-stage1",
+                "source": "ent#10",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#11-stage3",
+                "source": "ent#11",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#12-stage2",
+                "source": "ent#12",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#12-social",
+                "source": "ent#12",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#13-stage2",
+                "source": "ent#13",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#13-cloud",
+                "source": "ent#13",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#14-stage1",
+                "source": "ent#14",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#17-stage1",
+                "source": "ent#17",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#17-cloud",
+                "source": "ent#17",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#18-stage2",
+                "source": "ent#18",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#18-cloud",
+                "source": "ent#18",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#19-stage2",
+                "source": "ent#19",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#19-cloud",
+                "source": "ent#19",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#20-stage1",
+                "source": "ent#20",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#21-stage3",
+                "source": "ent#21",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#21-cloud",
+                "source": "ent#21",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#22-stage1",
+                "source": "ent#22",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#24-stage3",
+                "source": "ent#24",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#24-cloud",
+                "source": "ent#24",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#25-stage2",
+                "source": "ent#25",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#27-stage2",
+                "source": "ent#27",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#27-cloud",
+                "source": "ent#27",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#32-stage2",
+                "source": "ent#32",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#35-stage3",
+                "source": "ent#35",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#35-cloud",
+                "source": "ent#35",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#38-stage2",
+                "source": "ent#38",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#38-social",
+                "source": "ent#38",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#39-stage2",
+                "source": "ent#39",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#40-stage2",
+                "source": "ent#40",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#40-social",
+                "source": "ent#40",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#41-stage2",
+                "source": "ent#41",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#42-stage2",
+                "source": "ent#42",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#42-cloud",
+                "source": "ent#42",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#43-stage2",
+                "source": "ent#43",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#43-cloud",
+                "source": "ent#43",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#44-stage1",
+                "source": "ent#44",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#44-cloud",
+                "source": "ent#44",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#45-stage2",
+                "source": "ent#45",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#46-stage2",
+                "source": "ent#46",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#46-social",
+                "source": "ent#46",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#47-stage2",
+                "source": "ent#47",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#49-stage3",
+                "source": "ent#49",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#50-stage2",
+                "source": "ent#50",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#50-cloud",
+                "source": "ent#50",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#52-stage2",
+                "source": "ent#52",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#52-cloud",
+                "source": "ent#52",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#55-stage3",
+                "source": "ent#55",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#57-stage2",
+                "source": "ent#57",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#58-stage3",
+                "source": "ent#58",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#58-social",
+                "source": "ent#58",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#59-stage2",
+                "source": "ent#59",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#59-social",
+                "source": "ent#59",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#60-stage2",
+                "source": "ent#60",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#60-social",
+                "source": "ent#60",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#61-stage2",
+                "source": "ent#61",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#61-cloud",
+                "source": "ent#61",
+                "target": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#62-stage1",
+                "source": "ent#62",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#63-stage3",
+                "source": "ent#63",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#63-social",
+                "source": "ent#63",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#64-stage2",
+                "source": "ent#64",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#64-social",
+                "source": "ent#64",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#65-stage2",
+                "source": "ent#65",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#68-stage1",
+                "source": "ent#68",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#69-stage1",
+                "source": "ent#69",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#70-stage3",
+                "source": "ent#70",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#70-social",
+                "source": "ent#70",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#71-stage2",
+                "source": "ent#71",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#72-stage3",
+                "source": "ent#72",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#73-stage2",
+                "source": "ent#73",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#77-stage2",
+                "source": "ent#77",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#78-stage2",
+                "source": "ent#78",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#79-stage1",
+                "source": "ent#79",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#90-stage2",
+                "source": "ent#90",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#93-stage2",
+                "source": "ent#93",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#93-social",
+                "source": "ent#93",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#97-stage1",
+                "source": "ent#97",
+                "target": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#103-stage2",
+                "source": "ent#103",
+                "target": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#104-stage3",
+                "source": "ent#104",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#104-social",
+                "source": "ent#104",
+                "target": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#108-stage3",
+                "source": "ent#108",
+                "target": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#108-social",
+                "source": "ent#108",
+                "target": "social"
+            }
+        }
+    ],
+    "nodes": [
+        {
+            "data": {
+                "id": "stage 1",
+                "label": "stage 1"
+            }
+        },
+        {
+            "data": {
+                "id": "stage 2",
+                "label": "stage 2"
+            }
+        },
+        {
+            "data": {
+                "id": "stage 3",
+                "label": "stage 3"
+            }
+        },
+        {
+            "data": {
+                "id": "stage 4",
+                "label": "stage 4"
+            }
+        },
+        {
+            "data": {
+                "id": "social",
+                "label": "social"
+            }
+        },
+        {
+            "data": {
+                "id": "cloud",
+                "label": "cloud"
+            }
+        },
+        {
+            "data": {
+                "id": "B2B",
+                "label": "B2B"
+            }
+        },
+        {
+            "data": {
+                "id": "B2C",
+                "label": "B2C"
+            }
+        },
+        {
+            "data": {
+                "id": "C2C",
+                "label": "C2C"
+            }
+        },
+        {
+            "data": {
+                "id": "tech platform",
+                "label": "tech platform"
+            }
+        },
+        {
+            "data": {
+                "id": "P2P",
+                "label": "P2P"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#1",
+                "label": "Airbnb"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#2",
+                "label": "Amazon"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#4",
+                "label": "Facebook"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#5",
+                "label": "Google"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#6",
+                "label": "Netflix"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#7",
+                "label": "Quora"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#8",
+                "label": "Reddit"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#9",
+                "label": "X"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#10",
+                "label": "Uber"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#11",
+                "label": "Unity"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#12",
+                "label": "YouTube"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#13",
+                "label": "AWS"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#14",
+                "label": "Enshittification Metrics"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#17",
+                "label": "Adobe"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#18",
+                "label": "Apple"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#19",
+                "label": "Arm"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#20",
+                "label": "Asus"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#21",
+                "label": "Azure"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#22",
+                "label": "Best Buy"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#24",
+                "label": "Boeing "
+            }
+        },
+        {
+            "data": {
+                "id": "ent#25",
+                "label": "Broadcom "
+            }
+        },
+        {
+            "data": {
+                "id": "ent#27",
+                "label": "Cloudflare"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#32",
+                "label": "EA"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#35",
+                "label": "Github"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#38",
+                "label": "Instagram"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#39",
+                "label": "Intel"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#40",
+                "label": "LinkedIn"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#41",
+                "label": "Lyft"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#42",
+                "label": "Meta"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#43",
+                "label": "Microsoft"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#44",
+                "label": "Mistral"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#45",
+                "label": "NPR"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#46",
+                "label": "Napster"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#47",
+                "label": "Nvidia "
+            }
+        },
+        {
+            "data": {
+                "id": "ent#49",
+                "label": "Oculus"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#50",
+                "label": "OpenAI"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#52",
+                "label": "PayPal"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#55",
+                "label": "Ring"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#57",
+                "label": "Samsung"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#58",
+                "label": "Signal"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#59",
+                "label": "Skype"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#60",
+                "label": "Slashdot"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#61",
+                "label": "Snowflake"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#62",
+                "label": "Sonos"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#63",
+                "label": "Telegram"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#64",
+                "label": "TikTok"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#65",
+                "label": "United Airlines"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#68",
+                "label": "Valve"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#69",
+                "label": "Waymo"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#70",
+                "label": "WhatsApp"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#71",
+                "label": "Whole Foods"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#72",
+                "label": "Yahoo"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#73",
+                "label": "eBay"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#77",
+                "label": "Happiest Baby"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#78",
+                "label": "medium.com"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#79",
+                "label": "buymeacoffee.com"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#90",
+                "label": "LG"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#93",
+                "label": "MySpace"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#97",
+                "label": "Procreate"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#103",
+                "label": "uBlock Origin"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#104",
+                "label": "Twitter"
+            }
+        },
+        {
+            "data": {
+                "id": "ent#108",
+                "label": "test"
+            }
+        }
+    ]
+}

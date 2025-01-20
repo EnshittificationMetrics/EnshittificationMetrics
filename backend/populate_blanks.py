@@ -609,66 +609,63 @@ def create_timeline_content(entity):
 
 
 def create_data_map_content(entity):
-    """ place name in center, and make line out for each of stage, started, end, category, status, summary, timeline, news items, (wikipedia), (URLs) """
-    """ json.dumps to serialize for storage as text in SQLite """
-
     edge_data = []
     node_data = []
+    """ main center node """
     node_data.append( {"data": {"id": "name", "label": f"{entity.name}" }})
-
+    """ stage node, and edge """
     node_data.append( {"data": {"id": "stage", "label": f"Stage {entity.stage_current} ({entity.stage_EM4view})" }})
     edge_data.append( {"data": {"id": "name1", "source": "name", "target": "stage"}})
-
-    ### Ideally add a few more here like: word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
-
     # Haven't figured how to implement this one yet, don't have a current_user.func_stage as this is a backend process
     # Have it in parenthesis in the stage node - ex: "Stage 2 (2)"
     # node_data.append( {"data": {"id": "stage4", "label": f"Stage {entity.stage_EM4view}" }})
     # edge_data.append( {"data": {"id": "stagestage4", "source": "stage", "target": "stage4"}})
-
+    ### Ideally add a few more here like: wikipedia, URLs, word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
     # Status seems irrelevant and confusing here - not displaying, just using for filter search on rankings page
     # node_data.append( {"data": {"id": "status", "label": f"status: {entity.status}" }})
     # edge_data.append( {"data": {"id": "namestatus", "source": "name", "target": "status"}})
-
-    node_data.append( {"data": {"id": "started", "label": f"started: {entity.date_started}"}})
-    edge_data.append( {"data": {"id": "namestarted", "source": "name", "target": "started"}})
-
+    """ date started node, and edge """
+    if entity.date_started != 'UNK':
+        node_data.append( {"data": {"id": "started", "label": f"started: {entity.date_started}"}})
+        edge_data.append( {"data": {"id": "namestarted", "source": "name", "target": "started"}})
+    """ date ended node, and edge """
     if entity.date_ended != 'current' and entity.date_ended != 'None':
-        node_data.append( {"data": {"id": "ended", "label": f"ended: {entity.date_ended}" }})
+        node_data.append( {"data": {"id": "ended", "label": f"ended: {entity.date_ended}"}})
         edge_data.append( {"data": {"id": "nameended", "source": "name", "target": "ended"}})
-
-    if entity.category: ### could make each a link
-        node_data.append( {"data": {"id": "category", "label": f"categories: {entity.category}" }})
-        edge_data.append( {"data": {"id": "namecategory", "source": "name", "target": "category"}})
-
-    if entity.corp_fam: # each a sub-link
-        # fam node
-        node_data.append( {"data": {"id": "fam", "label": f"family"}})
-        edge_data.append( {"data": {"id": "namefam", "source": "name", "target": "fam"}})
-        # Safely handle corp_fam whether it's a single company or multiple comma-separated companies
-        corp_fam_list = entity.corp_fam.split(", ") if ", " in entity.corp_fam else [entity.corp_fam]
-        # node and edge for each item linked to fam
-        for count, item in enumerate(corp_fam_list, start=1):
-            node_data.append({"data": {"id": str(count), "label": item}})
-            edge_data.append({"data": {"id": f"{count}fam", "source": str(count), "target": "fam"}})
-
-    if entity.summary: # reference only, not content
+    """ category node and edge; then node and edge for each category member listed """
+    if entity.category:
+        if entity.category != 'None':
+            node_data.append( {"data": {"id": "category", "label": "categories"}})
+            edge_data.append( {"data": {"id": "namecategory", "source": "name", "target": "category"}})
+            cats_list = entity.category.split(", ") if ", " in entity.category else [entity.category]
+            for count, cat in enumerate(cats_list, start=1):
+                node_data.append({"data": {"id": f"cat#{count}", "label": cat}})
+                edge_data.append({"data": {"id": f"cat#{count}cat", "source": f"cat#{count}", "target": "category"}})
+    """ family node and edge; then node and edge for each family member listed """
+    if entity.corp_fam:
+        if entity.corp_fam != 'None':
+            node_data.append( {"data": {"id": "fam", "label": f"family"}})
+            edge_data.append( {"data": {"id": "namefam", "source": "name", "target": "fam"}})
+            corp_fam_list = entity.corp_fam.split(", ") if ", " in entity.corp_fam else [entity.corp_fam]
+            for count, item in enumerate(corp_fam_list, start=1):
+                node_data.append({"data": {"id": f"fam#{str(count)}", "label": item}})
+                edge_data.append({"data": {"id": f"fam#{str(count)}fam", "source": f'fam#{str(count)}', "target": "fam"}})
+    """ summary node, and edge - reference only, not content """
+    if entity.summary:
         node_data.append( {"data": {"id": "summary", "label": f"summary" }})
         edge_data.append( {"data": {"id": "namesummary", "source": "name", "target": "summary"}})
-
+    """ linked news items node, and edge - details numbers in label, not content """
     if entity.stage_history: ### could make each a sub-link
         node_data.append( {"data": {"id": "news", "label": f"{len(entity.stage_history)} linked news items!" }})
         edge_data.append( {"data": {"id": "namenews", "source": "name", "target": "news"}})
-
+    """ timeline node, and edge - reference only, not content """
     if entity.timeline: # reference only, not content
         node_data.append( {"data": {"id": "timeline", "label": f"timeline" }})
         edge_data.append( {"data": {"id": "nametimeline", "source": "name", "target": "timeline"}})
-
     graph_data = {"edges": edge_data, "nodes": node_data}
-    
-    map = json.dumps(graph_data, indent=4)
-    
-    return map
+    """ json.dumps to serialize for storage as text in SQLite """
+    map_data = json.dumps(graph_data, indent=4)
+    return map_data
 
 
 def create_data_map_content_stale(entity):
