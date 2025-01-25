@@ -4,8 +4,8 @@
 Script to run daily to go through each user's alerts and put something together for them as appropriate and send it
 """
 
-crontab = """ 0 7 * * * cd /home/leet/EnshittificationMetrics/backend/ && pipenv run python3 process_notifications.py >> /home/leet/EnshittificationMetrics/backend/notifications.log 2>&1 """
-crontab = """ once this code is on prod, set crontab for daily nightly """
+crontab = """ 0   7 * * * cd /home/leet/EnshittificationMetrics/backend/ && pipenv run python3 process_notifications.py >> /home/leet/EnshittificationMetrics/backend/notifications.log 2>&1 """
+crontab = """ 30 17 * * * cd /home/bsea/em/ && pipenv run python3 process_notifications.py >> /home/bsea/em/utilities/cron_issues.log 2>&1 """
 
 import os
 import sys

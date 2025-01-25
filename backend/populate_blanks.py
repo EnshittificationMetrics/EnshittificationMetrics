@@ -316,41 +316,41 @@ def create_summary_content(name):
     return summary, date_started, date_ended, corp_fam, category
 
 
-def shrink_news_items(news_items):
-    shrink_news_prompt = ChatPromptTemplate.from_template(SHRINK_NEWS_TEMPLATE)
-    chain = ( shrink_news_prompt
-            | large_lang_model 
-            | StrOutputParser() 
-            )
-    try:
-        news_items = chain.invoke({"entity": name, 
-            "news_items": news_items, 
-            "summary": entity.summary, 
-            "date_started": entity.date_started, 
-            "date_ended": entity.date_ended, 
-            "corp_fam": entity.corp_fam, 
-            "category": entity.category, 
-            "stage_current": entity.stage_current, })
-    except HTTPStatusError as e:
-        news_items = "No news items"
-        if e.response.status_code == 401:
-            logging.error(f'==> Error: Unauthorized. Please check your API key.')
-        else:
-            logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
-    except Exception as e:
-        news_items = "No news items"
-        logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
-    return news_items
+    def shrink_news_items(news_items, entity):
+        shrink_news_prompt = ChatPromptTemplate.from_template(SHRINK_NEWS_TEMPLATE)
+        chain = ( shrink_news_prompt
+                | large_lang_model 
+                | StrOutputParser() 
+                )
+        try:
+            news_items = chain.invoke({"entity": entity.name, 
+                                       "news_items": news_items, 
+                                       "summary": entity.summary, 
+                                       "date_started": entity.date_started, 
+                                       "date_ended": entity.date_ended, 
+                                       "corp_fam": entity.corp_fam, 
+                                       "category": entity.category, 
+                                       "stage_current": entity.stage_current, })
+        except HTTPStatusError as e:
+            news_items = "No news items"
+            if e.response.status_code == 401:
+                logging.error(f'==> Error: Unauthorized. Please check your API key.')
+            else:
+                logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
+        except Exception as e:
+            news_items = "No news items"
+            logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+        return news_items
 
 
-def shrink_wikip_results(wikipedia_page_results):
+def shrink_wikip_results(wikipedia_page_results, entity):
     shrink_wikip_prompt = ChatPromptTemplate.from_template(SHRINK_WIKIP_TEMPLATE)
     chain = ( shrink_wikip_prompt
             | large_lang_model 
             | StrOutputParser() 
             )
     try:
-        wikipedia_page_results = chain.invoke({"entity": name, 
+        wikipedia_page_results = chain.invoke({"entity": entity.name, 
             "summary": entity.summary, 
             "date_started": entity.date_started, 
             "date_ended": entity.date_ended, 
@@ -370,14 +370,14 @@ def shrink_wikip_results(wikipedia_page_results):
     return wikipedia_page_results
 
 
-def shrink_ddg_results(ddg_results):
+def shrink_ddg_results(ddg_results, entity):
     shrink_ddg_prompt = ChatPromptTemplate.from_template(SHRINK_DDG_TEMPLATE)
     chain = ( shrink_ddg_prompt
             | large_lang_model 
             | StrOutputParser() 
             )
     try:
-        ddg_results = chain.invoke({"entity": name, 
+        ddg_results = chain.invoke({"entity": entity.name, 
             "summary": entity.summary, 
             "date_started": entity.date_started, 
             "date_ended": entity.date_ended, 
@@ -431,7 +431,7 @@ def make_new_timeline(entity):
     try:
         search = DuckDuckGoSearchRun()
         ddg_results = search.run(f'timeline about {name} corp')
-        logging.info(f'==> ddg_results results for {name}: {ddg_results}.')
+        logging.info(f'==> ddg_results for {name}: {ddg_results}.')
     except Exception as e:
         logging.error(f'==> ddg search returned {e}.')
         # raise RatelimitException(f"{resp.url} {resp.status_code} Ratelimit")
@@ -442,15 +442,18 @@ def make_new_timeline(entity):
     token_thresh = 2500 # set token thresh-hold over which to shrink content (1 token ≈ 4 characters)
 
     if news_tokens > token_thresh:
-        news_items = shrink_news_items(news_items)
+        news_items = shrink_news_items(news_items = news_items,
+                                       entity = entity)
         logging.info(f'==> Shrunk! news_items: {news_items}')
 
     if wikip_tokens > token_thresh:
-        wikipedia_page_results = shrink_wikip_results(wikipedia_page_results)
+        wikipedia_page_results = shrink_wikip_results(wikipedia_page_results = wikipedia_page_results,
+                                                      entity = entity)
         logging.info(f'==> Shrunk! wikipedia_page_results: {wikipedia_page_results}.')
 
     if ddg_tokens > token_thresh:
-        ddg_results = shrink_ddg_results(ddg_results)
+        ddg_results = shrink_ddg_results(ddg_results = ddg_results,
+                                         entity = entity)
         logging.info(f'==> Shrunk! ddg_results: {ddg_results}.')
 
     content_prompt = ChatPromptTemplate.from_template(CREATE_TIMELINE_CONTENT_TEMPLATE)

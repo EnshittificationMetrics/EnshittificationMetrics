@@ -22,6 +22,7 @@ import subprocess
 import os
 import shutil
 import re
+import time
 
 
 def check_for_updates(repo_dir):
