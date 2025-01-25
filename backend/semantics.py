@@ -30,7 +30,7 @@ import requests
 import socket
 import math
 from datetime import datetime
-from populate_blanks import create_timeline_content
+from populate_blanks import create_timeline_content, create_data_map_content
 
 hostn = socket.gethostname()
 
@@ -193,6 +193,8 @@ def semantic_processing(title, url, date, content):
                 if record.status == 'potential':
                     record.status = 'live'
                     logging.info(f'set status from potential to live')
+                """ generate new data_map for entity as stuff has changed """
+                record.data_map = create_data_map_content(record)
                 alert_data = f'Set {entity} to stage {record.stage_current} (weighted avg), due to new news of stage {stage_int_value}! '
                 judgment += alert_data
                 alert_data += f'(Per text from "{title}" referencing "{url}".) '

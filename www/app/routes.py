@@ -18,6 +18,7 @@ logging.basicConfig(level = logging.INFO,
 from app import app, db
 from app.forms import EntityAddForm, EntityEditForm, NewsForm, ArtForm, ReferencesForm, SelectForm, SelectAddForm
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, ChangePasswordForm, OtpcodeForm, SurveyNewUserForm, PasswordCheckForm
+from app.forms import NotificationSettingsForm
 from app.models import Entity, News, Art, References, User, SurveyNewUser
 from app.banners import banner_ads
 from flask import render_template, redirect, url_for, flash, request, session, send_from_directory, jsonify
@@ -462,6 +463,71 @@ def guest_sign_in():
     return redirect(next_page)
 
 
+@app.route('/alerts', methods=["GET", "POST"])
+@login_required
+def alerts():
+    form = NotificationSettingsForm()
+    new_captcha_dict = SIMPLE_CAPTCHA.create()
+    """ Generate a list of categories as tuples """
+    categories = [
+        ("social", "social"),
+        ("cloud", "cloud"),
+        ("B2B", "B2B"),
+        ("B2C", "B2C"),
+        ("C2C", "C2C"),
+        ("tech platform", "tech platform"),
+        ("P2P", "P2P")]
+    """ Generate a list of entities as tuples """
+    query = Entity.query
+    query = query.filter(Entity.status != 'disabled') # live and potential; (Entity.status == 'live') would be live only
+    query = query.order_by(asc(Entity.name))
+    entities_objs = query.all()
+    entities = [] # append to list of tuples # sample: entities = [("entity1", "Entity 1")] 
+    for index, ent in enumerate(entities_objs):
+        entities.append((ent.name, ent.name)) # was using index, but that saved wrong name
+    """ Dynamically assign choices generated above as cat and ent checkboxes avail """
+    form.categories_following.choices = categories
+    form.entities_following.choices = entities
+    if form.validate_on_submit():
+        """ If already went thru whole func w/ GET, now on 2nd pass with (validated) POST """
+        c_hash = request.form.get('captcha-hash')
+        c_text = request.form.get('captcha-text')
+        if not SIMPLE_CAPTCHA.verify(c_text, c_hash):
+            flash('CAPTCHA verification failed.')
+        else:
+            if not current_user.check_password(form.password.data):
+                flash('Password incorrect.')
+                logging.info(f'Bad password on alerts settings submit for {current_user.username}.')
+            else:
+                """ captcha and password good - save form data to DB and return back to form unchanged, but with flash message """
+                current_user.enable_notifications    = form.enable_notifications.data
+                current_user.notification_frequency  = form.notification_frequency.data
+                current_user.alert_on_art_item       = form.alert_on_art_item.data
+                current_user.alert_on_reference_item = form.alert_on_reference_item.data
+                current_user.categories_following    = form.categories_following.data
+                current_user.entities_following      = form.entities_following.data
+                current_user.alert_on_stage_change   = form.alert_on_stage_change.data
+                current_user.alert_on_news_item      = form.alert_on_news_item.data
+                current_user.ai_suggestions          = form.ai_suggestions.data
+                db.session.commit()
+                flash("Settings saved successfully!", "success")
+                return redirect(url_for("alerts"))
+    """ Continue if GET or not-validated POST or failed captcha or password """
+    """ Pre-populate the form with the user's saved values """
+    form.enable_notifications.data    = current_user.enable_notifications
+    form.notification_frequency.data  = current_user.notification_frequency
+    form.alert_on_art_item.data       = current_user.alert_on_art_item
+    form.alert_on_reference_item.data = current_user.alert_on_reference_item
+    form.categories_following.data    = current_user.categories_following
+    form.entities_following.data      = current_user.entities_following
+    form.alert_on_stage_change.data   = current_user.alert_on_stage_change
+    form.alert_on_news_item.data      = current_user.alert_on_news_item
+    form.ai_suggestions.data          = current_user.ai_suggestions
+    return render_template('alerts.html', 
+                            form=form, 
+                            captcha=new_captcha_dict)
+
+
 @app.route('/logout')
 def logout():
     if current_user.is_anonymous:
@@ -714,23 +780,36 @@ def exportaccount():
                 writer = csv.writer(output)
                 # Write the header row and some data rows
                 writer.writerow(['ID', 'Record Name', 'Value'])
-                writer.writerow([1,  'id',            current_user.id])
-                writer.writerow([2,  'username',      current_user.username])
-                writer.writerow([3,  'email',         current_user.email])
-                writer.writerow([4,  'password_hash', 'N/A'])
-                writer.writerow([5,  'full_name',     current_user.full_name])
-                writer.writerow([6,  'phone_number',  current_user.phone_number])
-                writer.writerow([7,  'role',          current_user.role])
-                writer.writerow([8,  'validations',   current_user.validations])
-                writer.writerow([9,  'last_access',   current_user.last_access])
-                writer.writerow([10, 'func_stage',    current_user.func_stage])
-                writer.writerow([11, 'per_page',      current_user.per_page])
-                writer.writerow([12, 'display_order', current_user.display_order])
-                writer.writerow([13, 'ranking_sort',  current_user.ranking_sort])
-                writer.writerow([14, 'ranking_cats',  current_user.ranking_cats])
-                writer.writerow([15, 'ranking_stat',  current_user.ranking_stat])
-                writer.writerow([16, 'viewing_mode',  current_user.viewing_mode])
-                writer.writerow([17, 'to_view',       current_user.to_view])
+                writer.writerow([1,  'Profile data:', ''])
+                writer.writerow([2,  'id',            current_user.id])
+                writer.writerow([3,  'username',      current_user.username])
+                writer.writerow([4,  'email',         current_user.email])
+                writer.writerow([5,  'password_hash', 'N/A'])
+                writer.writerow([6,  'full_name',     current_user.full_name])
+                writer.writerow([7,  'phone_number',  current_user.phone_number])
+                writer.writerow([8,  'role',          current_user.role])
+                writer.writerow([9,  'validations',   current_user.validations])
+                writer.writerow([10, 'Transitory profile settings:', ''])
+                writer.writerow([11, 'last_access',   current_user.last_access])
+                writer.writerow([12, 'func_stage',    current_user.func_stage])
+                writer.writerow([13, 'per_page',      current_user.per_page])
+                writer.writerow([14, 'display_order', current_user.display_order])
+                writer.writerow([15, 'ranking_sort',  current_user.ranking_sort])
+                writer.writerow([16, 'ranking_cats',  current_user.ranking_cats])
+                writer.writerow([17, 'ranking_stat',  current_user.ranking_stat])
+                writer.writerow([18, 'viewing_mode',  current_user.viewing_mode])
+                writer.writerow([19, 'to_view',       current_user.to_view])
+                writer.writerow([20, 'Alerts settings:', ''])
+                writer.writerow([21, 'enable_notifications',    current_user.enable_notifications])
+                writer.writerow([22, 'last_sent',               current_user.last_sent])
+                writer.writerow([23, 'notification_frequency',  current_user.notification_frequency])
+                writer.writerow([24, 'alert_on_art_item',       current_user.alert_on_art_item])
+                writer.writerow([25, 'alert_on_reference_item', current_user.alert_on_reference_item])
+                writer.writerow([26, 'categories_following',    current_user.categories_following])
+                writer.writerow([27, 'entities_following',      current_user.entities_following])
+                writer.writerow([28, 'alert_on_stage_change',   current_user.alert_on_stage_change])
+                writer.writerow([29, 'alert_on_news_item',      current_user.alert_on_news_item])
+                writer.writerow([30, 'ai_suggestions',          current_user.ai_suggestions])
                 # Move to the beginning of the StringIO buffer
                 output.seek(0)
                 # Create a response with the CSV data
@@ -909,6 +988,15 @@ def force_utilities():
     return render_template('force_utilities.html',)
 
 
+@app.route('/report_users')
+def report_users():
+    query = User.query
+    query = query.filter(User.role != 'disabled')
+    users = query.all()
+    return render_template('report_users.html',
+                           users=users)
+
+
 @app.route('/show_values')
 @login_required
 def show_values():
@@ -952,6 +1040,16 @@ def show_values():
     show_values.append(f'current_user.ranking_stat: {current_user.ranking_stat}\n')
     show_values.append(f'current_user.viewing_mode: {current_user.viewing_mode}\n')
     show_values.append(f'current_user.to_view: {current_user.to_view}\n')
+    show_values.append(f'current_user.enable_notifications: {current_user.enable_notifications}\n')
+    show_values.append(f'current_user.last_sent: {current_user.last_sent}\n')
+    show_values.append(f'current_user.notification_frequency: {current_user.notification_frequency}\n')
+    show_values.append(f'current_user.alert_on_art_item: {current_user.alert_on_art_item}\n')
+    show_values.append(f'current_user.alert_on_reference_item: {current_user.alert_on_reference_item}\n')
+    show_values.append(f'current_user.categories_following: {current_user.categories_following}\n')
+    show_values.append(f'current_user.entities_following: {current_user.entities_following}\n')
+    show_values.append(f'current_user.alert_on_stage_change: {current_user.alert_on_stage_change}\n')
+    show_values.append(f'current_user.alert_on_news_item: {current_user.alert_on_news_item}\n')
+    show_values.append(f'current_user.ai_suggestions: {current_user.ai_suggestions}\n')
     show_values.append(f'==> END\n')
     return render_template('show_values.html',
                            show_values = show_values)

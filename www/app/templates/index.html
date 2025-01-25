@@ -5,16 +5,24 @@
 <table border="3">
 	<tr>
 		<td>
-			<h1>Welcome...<br>
+			<div class="header-in-table">
+			Welcome...<br>
 			To the Enshitiffication Metrics portal; 
 			get and stay up to speed on this trend-ist term.<br>
-			Check out the <a href="{{ url_for('rankings') }}">rankings</a> page. 
-			Here for <a href="{{ url_for('references') }}">references</a> or <a href="{{ url_for('about') }}">about</a>.</h1>
+			<!-- Here for <a href="{{ url_for('references') }}">references</a> or <a href="{{ url_for('about') }}">about</a>.-->
+			</div>
 		</td>
 	</tr>
 	<tr>
 		<td>
-			<h1>Interesting <a href="{{ url_for('art') }}">Art</a>:</h1>
+			<div class="header-in-table">
+			Check out the <a href="{{ url_for('rankings') }}">rankings</a> page! 
+			</div>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<div class="header-in-table">Interesting <a href="{{ url_for('art') }}">Art</a>:</div>
 		</td>
 	</tr>
 	{% for item in art %}
@@ -39,7 +47,7 @@
 
 	<tr>
 		<td>
-			<h1>Interesting <a href="{{ url_for('references') }}">References</a>:</h1>
+			<div class="header-in-table">Interesting <a href="{{ url_for('references') }}">References</a>:</div>
 		</td>
 	</tr>
 	{% for item in references %}
@@ -56,7 +64,7 @@
 
 	<tr>
 		<td>
-			<h1>Latest <a href="{{ url_for('news') }}">News</a> Updates:</h1>
+			<div class="header-in-table">Latest <a href="{{ url_for('news') }}">News</a> Updates:</div>
 		</td>
 	</tr>
 	{% for news_item in news %}

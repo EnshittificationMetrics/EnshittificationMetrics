@@ -2,7 +2,9 @@
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, IntegerField, FieldList, FormField, SelectField, PasswordField, BooleanField, TextAreaField
+from wtforms import RadioField, SelectMultipleField
 from wtforms.validators import ValidationError, DataRequired, NumberRange, Email, EqualTo
+from wtforms.widgets import ListWidget, CheckboxInput
 from app.models import Entity, News, Art, References
 from app import db
 import sqlalchemy as sa
@@ -41,7 +43,12 @@ class EntityEditForm(FlaskForm):
     category = SelectField('category', choices=[
         ('None', 'None'),
         ('social', 'social'),
-        ('cloud', 'cloud')])
+        ('cloud', 'cloud'),
+        ("B2B", "B2B"),
+        ("B2C", "B2C"),
+        ("C2C", "C2C"),
+        ("tech-platform", "tech platform"),
+        ("P2P", "P2P")])
     timeline      = StringField('timeline')
     data_map      = StringField('data_map')
     submit        = SubmitField('Submit Entity')
@@ -173,3 +180,37 @@ class SurveyNewUserForm(FlaskForm):
     suggestions =  TextAreaField('Any suggestions or ideas for improvements or for additional features?')
     monetization = TextAreaField('Any ideas on how to monetize, without enshittifing ourselves?')
     submit = SubmitField('Submit')
+
+class NotificationSettingsForm(FlaskForm):
+    enable_notifications = BooleanField("Enable email notifications (Yes/No)", default=False)
+    notification_frequency = RadioField(
+        choices=[
+            ("daily", "Notify Daily"),
+            ("weekly", "Notify Weekly"),
+            ("monthly", "Notify Monthly"),
+            ("annually", "Notify Annually"),
+        ],
+        default="weekly",
+        validators=[DataRequired()],
+    )
+    categories_following = SelectMultipleField(
+        "Categories to follow:",
+        choices=[],  # Choices will be dynamically populated in routes.py
+        coerce=str,  # Ensure values are stored as strings
+        option_widget=CheckboxInput(),  # Render options as checkboxes
+        widget=ListWidget(prefix_label=False),  # Proper list rendering
+    )
+    entities_following = SelectMultipleField(
+        "Entities to follow:",
+        choices=[],
+        coerce=str,
+        option_widget=CheckboxInput(),
+        widget=ListWidget(prefix_label=False),
+    )
+    alert_on_stage_change = BooleanField("Alert on Change in Stage.", default=False)
+    alert_on_news_item = BooleanField("Alert on New News Item.", default=False)
+    alert_on_art_item = BooleanField("Alert on New Art Item.", default=False)
+    alert_on_reference_item = BooleanField("Alert on New Reference Item.", default=False)
+    ai_suggestions = BooleanField("Alert on what the AI guesses I might find interesting.", default=False)
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField("Save Settings")

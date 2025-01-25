@@ -97,7 +97,16 @@ For date entity ended return "None" is entity is current and continues to exist.
 
 For corporate family return corporate parent name, "None" if not a subsidiary or child corp, or "UNK" if undetermineable.
 
-For category return "social" if a social media platform, "cloud" if a cloud provider, or "None" if neither of these categories.
+For category return 
+"social" if a social media platform, 
+"cloud" if a cloud provider, 
+"B2B" if a business to business platform, 
+"B2C" if a business to consumer platform, 
+"C2C" if a consumer to consumer platform, 
+"tech platform" if a tech stack platform (SaaS), 
+"P2P" if a peer to peer platform, or, 
+"None" if none of these categories.
+(Multiple comma separated categories may be returned.)
 
 Format response _must_ be json, like: 
 {{

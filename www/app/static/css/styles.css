@@ -114,3 +114,52 @@ body.stage-4-dark {
     border: 1px solid #ccc;
     margin: 20px auto;
 }
+
+/* text displayed stating email or phone is validated (in profile) */
+.validated {
+    color: darkgreen;
+    font-weight: bold;
+}
+
+/* settings values displayed in profile */
+.transitory-profile-value {
+    font-weight: bold;
+}
+
+/* header type rows in display tables */
+.header-in-table {
+    font-size: 2em;
+    font-weight: bold;
+    line-height: 1.2;
+    margin-top: 0.67em;
+    margin-bottom: 0.67em;
+}
+
+/* around controls in alerts setting page */
+.alert-setting-item{
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #dcdcdc; /* Light gray border */
+    padding: 16px;            /* Space between content and border */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Light shadow for depth */
+    border-radius: 8px;       /* Rounded corners for a softer look */
+}
+
+/* remove ul bullets */
+.remove-ul-bullets ul {
+    list-style-type: none; /* Removes bullet points */
+    padding: 0;           /* Removes left padding */
+    margin: 0;            /* Removes top/bottom margin */
+}
+
+/* alerts setting page entity choice checkbox column wrap */
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.checkbox-item {
+    flex: 1 0 20%; /* Adjust width: 30% for three columns */
+    padding: 5px;
+}
+

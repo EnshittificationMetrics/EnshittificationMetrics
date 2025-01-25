@@ -20,12 +20,12 @@
 	{% endif %}
 		<h1>Enshittification Metrics:</h1>
 		Menu: 
+		<a href="{{ url_for('index') }}"        >home</a> ~ 
 		<a href="{{ url_for('rankings') }}"     >rankings</a> ~ 
 		<a href="{{ url_for('news') }}"         >news</a> ~ 
 		<a href="{{ url_for('art') }}"          >art</a> ~ 
 		<a href="{{ url_for('references') }}"   >references</a> ~ 
 		<a href="{{ url_for('about') }}"        >about</a> ~ 
-		<a href="{{ url_for('index') }}"        >home</a> ~ 
 		<a href="{{ url_for('survey') }}"       >survey</a> ~ 
 		{% if current_user.is_anonymous %}
 		<a href="{{ url_for('login') }}"        >login</a> ~ 
@@ -33,6 +33,7 @@
 		<a href="{{ url_for('guest_sign_in') }}">login as guest</a> ~ 
 		{% else %}
 		<a href="{{ url_for('user', username=current_user.username) }}">{{ current_user.username }} profile</a> ~ 
+		<a href="{{ url_for('alerts') }}"       >alerts</a> ~ 
 		<a href="{{ url_for('logout') }}"       >logout</a> ~ 
 		{% endif %}
 		<button id="modeToggle">dark/light</button><br>
@@ -78,7 +79,8 @@
 			<a href="{{ url_for('manual_add') }}"        >manual add</a> ~ 
 			<a href="{{ url_for('manual_edit') }}"       >manual edit</a> ~ 
 			<a href="{{ url_for('manual_delete') }}"     >manual delete</a> <br>
-			<a href="{{ url_for('show_values') }}"       >show current user values</a><br>
+			<a href="{{ url_for('show_values') }}"       >show current user values</a> ~ 
+			<a href="{{ url_for('report_users') }}"      >report all users</a><br>
 			<a href="{{ url_for('force_utilities') }}"   >DB force changes utilities</a><br>
 			</i><br>
 		{% endif %}

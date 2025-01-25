@@ -6,6 +6,7 @@
     <tr valign="top">
 
         <th colspan="2">
+            <br>
             <h1>{{ user.username }}'s profile:</h1>
         </th>
 
@@ -24,7 +25,7 @@
             <td>Email:</td>
             <td><h1>{{ user.email }}</h1>
             {% if user.validations == 'email' %}
-                email validated
+                <div class="validated">email validated</div>
             {% else %}
                 <a href="/send_otp?next={{ url_for('user', username=user.username) }}">Send validation code</a><br><br>
                 <form action="/verify_otp?next={{ url_for('user', username=user.username) }}" method="post">
@@ -50,82 +51,106 @@
         </tr>
         {% endif %}
 
+        <tr>
+            <td>ID:</td>
+            <td><h1>#{{ user.id }}</h1></td>
+        </tr>
+
+        <tr>
+            <td colspan="2" style="text-align: center;">
+                <br>
+                <div class="transitory-profile-value">Transitory profile settings / values:</div>
+            </td>
+        </tr>
+
+        {% if user.last_access %}
+        <tr>
+            <td>Last Logon:<br>
+            (UCT date/time)</td>
+            <td><div class="transitory-profile-value"><div style="color: red">{{ user.last_access }}</div></div></td>
+        </tr>
+        {% endif %}
+
         {% if user.func_stage %}
         <tr>
             <td>Functional Stage to use <br>Enshittification Metrics in:</td>
-            <td><h1>Stage {{ user.func_stage }}</h1></td>
+            <td><div class="transitory-profile-value">Stage {{ user.func_stage }}</div></td>
         </tr>
         {% endif %}
 
         {% if user.viewing_mode %}
         <tr>
             <td>Viewing Mode:</td>
-            <td><h1>{{ user.viewing_mode }} mode</h1></td>
-        </tr>
-        {% endif %}
-
-        {% if user.last_access %}
-        <tr>
-            <td>Last Logon:<br>
-            (UCT date/time)</td>
-            <td><h1>{{ user.last_access }}</h1></td>
+            <td><div class="transitory-profile-value">{{ user.viewing_mode }} mode</div></td>
         </tr>
         {% endif %}
 
         {% if user.ranking_cats %}
         <tr>
             <td>Ranking Categories:</td>
-            <td><h1>{{ user.ranking_cats }}</h1></td>
+            <td><div class="transitory-profile-value">{{ user.ranking_cats }}</div></td>
         </tr>
         {% endif %}
 
         {% if user.ranking_stat %}
         <tr>
             <td>Ranking Statuses:</td>
-            <td><h1>{{ user.ranking_stat }}</h1></td>
+            <td><div class="transitory-profile-value">{{ user.ranking_stat }}</div></td>
         </tr>
         {% endif %}
 
         {% if user.ranking_sort %}
         <tr>
             <td>Ranking Sort:</td>
-            <td><h1>{{ user.ranking_sort }}</h1></td>
+            <td><div class="transitory-profile-value">{{ user.ranking_sort }}</div></td>
         </tr>
         {% endif %}
 
         {% if user.display_order %}
         <tr>
             <td>Ranking Order:</td>
-            <td><h1>{{ user.display_order }}</h1></td>
+            <td><div class="transitory-profile-value">{{ user.display_order }}</div></td>
         </tr>
         {% endif %}
-
-        <tr>
-            <td>ID:</td>
-            <td><h1>#{{ user.id }}</h1></td>
-        </tr>
 
         {% if user.role != 'guest' %}
         {% if user == current_user %}
         <tr>
             <td colspan="2" style="text-align: center;">
-            <br><strong>
-            <a href="{{ url_for('change_password', username=user.username) }}">Change Password</a><br>
-            </strong><br>
+            <br>
+            <div class="header-in-table">
+            <a href="{{ url_for('change_password', username=user.username) }}">Change Password</a>
+            </div>
+            <br>
+            </td>
+            <br>
+        </tr>
+
+        <tr>
+            <td colspan="2" style="text-align: center;">
+            <br>
+            <div class="header-in-table">
+            <a href="{{ url_for('edit_profile', username=user.username) }}">Edit Profile</a>
+            </div>
+            <br>
+            </td>
+            <br>
+        </tr>
+
+        <tr>
+            <td colspan="2" style="text-align: center;">
+            <br>
+            <div class="header-in-table">
+            <a href="{{ url_for('alerts') }}">Alerts Subscription</a>
+            </div>
+            <br>
             </td>
         </tr>
 
         <tr>
             <td colspan="2" style="text-align: center;">
-            <br><strong>
-            <a href="{{ url_for('edit_profile', username=user.username) }}">Edit Profile</a><br>
-            </strong><br>
-            </td>
-        </tr>
-
-        <tr>
-            <td colspan="2" style="text-align: center;">
-            <p><strong>Export Account</strong></p>
+            <br>
+            <p><div class="header-in-table">Export Account</div></p>
             <form action="/exportaccount?next={{ url_for('user', username=user.username) }}" method="post">
                 {{ form_p.hidden_tag() }}
                 {{ form_p.password.label }}
@@ -136,12 +161,14 @@
                 <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </form>
+            <br>
             </td>
         </tr>
 
         <tr>
             <td colspan="2" style="text-align: center;">
-            <p><strong>Delete Account</strong></p>
+            <br>
+            <p><div class="header-in-table">Delete Account</div></p>
             <form action="/deleteaccount" method="post">
                 {{ form_p.hidden_tag() }}
                 {{ form_p.password.label }}
@@ -153,6 +180,7 @@
                 <span style="color: red;">[{{ error }}]</span>
                 {% endfor %}
             </form>
+            <br>
             </td>
         </tr>
         {% endif %}

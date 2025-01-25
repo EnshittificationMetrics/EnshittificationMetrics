@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% if current_user.role == 'administrator' %}
+	<h1>Alert Subscriptions Notification Settings:</h1>
+	<form method="POST">
+		{{ form.hidden_tag() }}
+
+		<div class="alert-setting-item">
+			{{ form.enable_notifications() }}
+			<strong>{{ form.enable_notifications.label }}</strong>
+			<br>
+			(this controls off/on for whole thing, you can set the frequency and categories at will, but nothing will happen unless this is checked)
+		</div>
+
+		<br>
+		<div class="alert-setting-item">
+			<!--<strong>{{ form.notification_frequency.label }}</strong>-->
+			<div class="remove-ul-bullets">
+				{{ form.notification_frequency() }}
+			</div>
+		<!-- show date / time of last_sent here -->
+		</div>
+
+		<br>
+		<div class="alert-setting-item">
+			{{ form.alert_on_art_item() }}
+			<strong>{{ form.alert_on_art_item.label }}</strong>
+			(triggered when a new art item is added)
+		</div>
+
+		<div class="alert-setting-item">
+			{{ form.alert_on_reference_item() }}
+			<strong>{{ form.alert_on_reference_item.label }}</strong>
+			(triggered when a new reference item is added)
+		</div>
+
+		<br>
+		<div class="alert-setting-item">
+			<strong>{{ form.categories_following.label }}</strong>
+			<div>
+				{% for choice in form.categories_following %}
+					<div>
+						{{ choice() }} {{ choice.label }}
+					</div>
+				{% endfor %}
+			</div>
+			(select none, one, or a few of interest; all entities in selected categories will be used)
+		</div>
+
+		<div class="alert-setting-item">
+			<strong>{{ form.entities_following.label }}</strong>
+			<div class="checkbox-container">
+				{% for echoice in form.entities_following %}
+					<div class="checkbox-item">
+						{{ echoice() }} {{ echoice.label }}
+					</div>
+				{% endfor %}
+			</div>
+			<p>
+				(Select a few of interest, or just use categories above - if an entity is included in the selected category, it need not show as selected here.)
+			</p>
+		</div>
+
+		<div class="alert-setting-item">
+			{{ form.alert_on_stage_change() }}
+			<strong>{{ form.alert_on_stage_change.label }}</strong>
+			(recommended; triggered when one of the entities selected above changes from one state to another)
+		</div>
+
+		<div class="alert-setting-item">
+			{{ form.alert_on_news_item() }}
+			<strong>{{ form.alert_on_news_item.label }}</strong>
+			(recommended with a small number of entities selected above, can be chatty; triggered when one of the entities selected above has a new news item attached to it)
+		</div>
+		Note that you must have alert_on_stage_change and/or alert_on_news_item checked for the entities and/or categories checked above to do anything.<br>
+
+		<br>
+		<div class="alert-setting-item">
+			{{ form.ai_suggestions() }}
+			<strong>{{ form.ai_suggestions.label }}</strong>
+			{% if current_user.func_stage %}
+				{% if current_user.func_stage == 1 %}
+					(not recommended - experimental)
+				{% else %}
+					(beta)
+				{% endif %}
+			{% endif %}
+		</div>
+
+		<br>
+		<div class="alert-setting-item">
+			{{ form.password.label }}
+			{{ form.password(size=32) }}<br>
+			<p>{{ captcha_html(captcha)|safe }}</p>
+			{% for error in form.password.errors %}
+			<span style="color: red;">[{{ error }}]</span>
+			{% endfor %}
+		</div>
+
+		<br>
+		<div class="alert-setting-item">
+			{{ form.submit() }}
+		</div>
+
+	</form>
+{% else %}
+	<h1>Opt-in Alert Subscriptions for Members are coming soon.</h1>
+{% endif %}
+
+{% endblock %}

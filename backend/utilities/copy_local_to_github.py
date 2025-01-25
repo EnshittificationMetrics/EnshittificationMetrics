@@ -12,6 +12,8 @@ git add, commit, push to https://github.com/EnshittificationMetrics/Enshittifica
 
 ISSUE: Does not clean up or deal with renamed or deleted files!
 
+ISSUE: Copies "local" files which aren't in github...
+
 To work from repo needs some authentication via Personal Access Token (PAT) for https...
 """
 

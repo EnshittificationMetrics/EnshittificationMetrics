@@ -6,6 +6,7 @@ from app import db, login
 from sqlalchemy.ext.mutable import MutableList
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import Text
+from datetime import datetime
 
 
 class Entity(UserMixin, db.Model):
@@ -95,6 +96,16 @@ class User(UserMixin, db.Model):
     #              light, dark
     to_view:       so.Mapped[str] = so.mapped_column(sa.String(4), default='XXXX')
     #              checkbox 1, 2, 3, and/or, 4 stages to view; XXXX
+    enable_notifications:    so.Mapped[Optional[bool]]     = so.mapped_column(sa.Boolean, default=False)
+    last_sent:               so.Mapped[Optional[datetime]] = so.mapped_column(sa.DateTime, nullable=True)
+    notification_frequency:  so.Mapped[Optional[str]]      = so.mapped_column(sa.String(10), nullable=True, default='weekly')
+    alert_on_art_item:       so.Mapped[Optional[bool]]     = so.mapped_column(sa.Boolean, default=False)
+    alert_on_reference_item: so.Mapped[Optional[bool]]     = so.mapped_column(sa.Boolean, default=False)
+    categories_following:    so.Mapped[Optional[list]]     = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
+    entities_following:      so.Mapped[Optional[list]]     = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
+    alert_on_stage_change:   so.Mapped[Optional[bool]]     = so.mapped_column(sa.Boolean, default=False)
+    alert_on_news_item:      so.Mapped[Optional[bool]]     = so.mapped_column(sa.Boolean, default=False)
+    ai_suggestions:          so.Mapped[Optional[bool]]     = so.mapped_column(sa.Boolean, default=False)
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -126,11 +137,13 @@ class SurveyNewUser(UserMixin, db.Model):
 """
 References:
 
-int:    so.Mapped[int] = so.mapped_column()
-string: so.Mapped[Optional[str]] = so.mapped_column(sa.String(20), nullable=True)
-float:  so.Mapped[Optional[float]] = so.mapped_column()
-list:   so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
-text:   so.Mapped[Optional[str]] = so.mapped_column(Text, nullable=True) # larger blocks of text
+int:          so.Mapped[int]                = so.mapped_column()
+string:       so.Mapped[Optional[str]]      = so.mapped_column(sa.String(20), nullable=True)
+float:        so.Mapped[Optional[float]]    = so.mapped_column()
+list:         so.Mapped[Optional[list]]     = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[])
+text:         so.Mapped[Optional[str]]      = so.mapped_column(Text, nullable=True) # larger blocks of text
+boolean:      so.Mapped[Optional[bool]]     = so.mapped_column(sa.Boolean, default=False)
+datetime_utc: so.Mapped[Optional[datetime]] = so.mapped_column(sa.DateTime, nullable=True)
 """
 
 

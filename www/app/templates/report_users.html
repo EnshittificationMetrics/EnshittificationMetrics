@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Report on all Users:</h1>
+
+<table border="3" style="text-align: center; vertical-align: middle; width: 100%;">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>username</th>
+			<th>role</th>
+			<th>email</th>
+			<th>validations</th>
+			<th>last_access</th>
+			<th>func_stage</th>
+			<th>viewing_mode</th>
+			<th>enable_notifications</th>
+			<th>last_sent</th>
+			<th>ai_suggestions</th>
+		</tr>
+	</thead>
+	<tbody>
+	{% for user in users %}
+		<tr>
+			<td>{{ user.id }}</td>
+			<td>{{ user.username }}</td>
+			<td>
+				{% if user.role != "regular" %}
+					<div style="color: red; font-weight: bold;">{{ user.role }}</div>
+				{% else %}
+					{{ user.role }}
+				{% endif %}
+			</td>
+			<td>{{ user.email }}</td>
+			<td>
+				{% if user.validations and (user.validations != "None") %}
+					{{ user.validations }}
+				{% endif %}
+			</td>
+			<td>
+				{% if user.last_access and (user.last_access != "None") %}
+					{{ user.last_access }}
+				{% endif %}
+			</td>
+			<td>{{ user.func_stage }}</td>
+			<td>{{ user.viewing_mode }}</td>
+			<td>
+				{% if user.enable_notifications and (user.enable_notifications != "None") %}
+					{{ user.enable_notifications }}
+				{% endif %}
+			</td>
+			<td>
+				{% if user.last_sent and (user.last_sent != "None") %}
+					{{ user.last_sent }}
+				{% endif %}
+			</td>
+			<td>
+				{% if user.ai_suggestions and (user.ai_suggestions != "None") %}
+					{{ user.ai_suggestions }}
+				{% endif %}
+			</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+
+{% endblock %}
