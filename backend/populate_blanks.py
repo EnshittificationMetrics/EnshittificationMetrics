@@ -316,31 +316,31 @@ def create_summary_content(name):
     return summary, date_started, date_ended, corp_fam, category
 
 
-    def shrink_news_items(news_items, entity):
-        shrink_news_prompt = ChatPromptTemplate.from_template(SHRINK_NEWS_TEMPLATE)
-        chain = ( shrink_news_prompt
-                | large_lang_model 
-                | StrOutputParser() 
-                )
-        try:
-            news_items = chain.invoke({"entity": entity.name, 
-                                       "news_items": news_items, 
-                                       "summary": entity.summary, 
-                                       "date_started": entity.date_started, 
-                                       "date_ended": entity.date_ended, 
-                                       "corp_fam": entity.corp_fam, 
-                                       "category": entity.category, 
-                                       "stage_current": entity.stage_current, })
-        except HTTPStatusError as e:
-            news_items = "No news items"
-            if e.response.status_code == 401:
-                logging.error(f'==> Error: Unauthorized. Please check your API key.')
-            else:
-                logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
-        except Exception as e:
-            news_items = "No news items"
-            logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
-        return news_items
+def shrink_news_items(news_items, entity):
+    shrink_news_prompt = ChatPromptTemplate.from_template(SHRINK_NEWS_TEMPLATE)
+    chain = ( shrink_news_prompt
+            | large_lang_model 
+            | StrOutputParser() 
+            )
+    try:
+        news_items = chain.invoke({"entity": entity.name, 
+                                   "news_items": news_items, 
+                                   "summary": entity.summary, 
+                                   "date_started": entity.date_started, 
+                                   "date_ended": entity.date_ended, 
+                                   "corp_fam": entity.corp_fam, 
+                                   "category": entity.category, 
+                                   "stage_current": entity.stage_current, })
+    except HTTPStatusError as e:
+        news_items = "No news items"
+        if e.response.status_code == 401:
+            logging.error(f'==> Error: Unauthorized. Please check your API key.')
+        else:
+            logging.error(f'==> chain.invoke Mistral LLM failed (HTTPStatusError): {e}')
+    except Exception as e:
+        news_items = "No news items"
+        logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+    return news_items
 
 
 def shrink_wikip_results(wikipedia_page_results, entity):

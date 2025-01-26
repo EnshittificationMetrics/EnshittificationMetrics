@@ -132,9 +132,21 @@ Filter status type: <!-- ranking_stat -->
 			</td>
 		</tr>
 	{% endfor %}
+	<!-- ranking_map -->
+	{% if ranking_map %}
+		<tr>
+			<td colspan="9">
+				<div id="cy_datamap"></div> <!-- cy dimensions and style (except nodes and edges) in css -->
+				<script>
+					const dataMap = {{ ranking_map | tojson }};
+				</script>
+			</td>
+		</tr>
+	{% endif %}
 	</tbody>
 </table>
 
 <script src="{{ url_for('static', filename='js/filtersortscript.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/graphdatamap.js') }}" defer></script>
 
 {% endblock %}

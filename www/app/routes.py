@@ -142,9 +142,46 @@ def rankings():
     # Get the final results
     entities = query.all()
     selected_ad = random.choice(banner_ads)
+    
+    """ Build ranking_map with nodes for all shown in table """
+    try:
+        edge_data = []
+        node_data = []
+        cat_ids = set()
+        """ node for each stage """
+        node_data.append( {"data": {"id": "stage 1", "label": "stage 1" }})
+        node_data.append( {"data": {"id": "stage 2", "label": "stage 2" }})
+        node_data.append( {"data": {"id": "stage 3", "label": "stage 3" }})
+        node_data.append( {"data": {"id": "stage 4", "label": "stage 4" }})
+        for item in entities:
+            """ node for (each) entity """
+            node_data.append( {"data": {"id": item.name, "label": item.name }})
+            """ edge from entity to stage """
+            edge_data.append( {"data": {"id": f"{item.name}-stage {item.stage_current}", "source": item.name, "target": f"stage {item.stage_current}"}})
+            if item.category and (item.category != "None"):
+                cat_ids.add(item.category)
+                """ edge from entity to category """
+                edge_data.append( {"data": {"id": f"{item.name}-stage {item.category}", "source": item.name, "target": item.category}})
+        for cat in cat_ids:
+            """ node for each category (if any) """
+            node_data.append( {"data": {"id": cat, "label": cat }})
+        """ put it all together """
+        graph_data = {"edges": edge_data, "nodes": node_data}
+        map = json.dumps(graph_data, indent=4)
+        ranking_map = json.loads(map)
+    except Exception as e:
+        logging.error(f'In attempting to make ranking_map, get error: {e}')
+    if not ranking_map:
+        edge_data = [{"data": {"id": "01", "source": "0", "target": "1"}}]
+        node_data = [{"data": {"id": "0", "label": "Rankings" }}, {"data": {"id": "1", "label": "No map data" }}]
+        graph_data = {"edges": edge_data, "nodes": node_data}
+        map = json.dumps(graph_data, indent=4)
+        ranking_map = json.loads(map)
+    
     return render_template('rankings.html', 
                            entities = entities, 
-                           banner = selected_ad)
+                           banner = selected_ad,
+                           ranking_map = ranking_map)
 
 
 @app.route('/entity_detail/<entname>')
