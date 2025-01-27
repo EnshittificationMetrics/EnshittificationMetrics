@@ -1283,6 +1283,10 @@ def manual_entity():
         db.session.add(entity)
         db.session.commit()
         flash(f'Added {form.name.data}')
+        logging.info(f'==> Created new entity "{entity.name}"' \
+            f'at stage {entity.stage_current} ({entity.stage_EM4view}),' \
+            f'{entity.date_started}, summary: {entity.summary},' \
+            f'fam: {entity.corp_fam}, cats: {entity.category}')
         return redirect(url_for('rankings'))
     else:
         if request.method == 'POST': print(f'form.errors = {form.errors}')
@@ -1319,6 +1323,7 @@ def manual_news():
         db.session.add(news)
         db.session.commit()
         flash(f'Added {form.text.data}')
+        logging.info(f'manual_news_add url: {news.url}, text: {news.text}')
         return redirect(url_for('news'))
     else:
         if request.method == 'POST': print(f'form.errors = {form.errors}')
@@ -1349,6 +1354,7 @@ def manual_art():
         db.session.add(art)
         db.session.commit()
         flash(f'Added {form.text.data}')
+        logging.info(f'Added manual_art_add url: {art.url}, text: {art.text}')
         return redirect(url_for('art'))
     else:
         if request.method == 'POST': print(f'form.errors = {form.errors}')
@@ -1377,6 +1383,7 @@ def manual_reference():
         db.session.add(ref)
         db.session.commit()
         flash(f'Added {form.text.data}')
+        logging.info(f'manual_reference_add url:{ref.url} text:{ref.text}')
         return redirect(url_for('references'))
     else:
         if request.method == 'POST': print(f'form.errors = {form.errors}')
@@ -1411,6 +1418,7 @@ def manual_entity_edit(id):
         entity.data_map      = form.data_map.data
         db.session.commit()
         flash(f'Edited {form.name.data}')
+        logging.info(f'manual_entity_edit on ID #{entity.id}, "{entity.name}"...')
         return redirect(url_for('rankings'))
     else:
         if request.method == 'POST': print(f'form.errors = {form.errors}')
@@ -1445,6 +1453,7 @@ def manual_news_edit(id):
         news.ent_names= form.ent_names.data
         db.session.commit()
         flash(f'Edited {form.text.data}')
+        logging.info(f'manual_news_edit on ID #{news.url}, "{news.text}"...')
         return redirect(url_for('news'))
     else:
         if request.method == 'POST': print(f'form.errors = {form.errors}')
@@ -1473,6 +1482,7 @@ def manual_art_edit(id):
         art.ent_names= form.ent_names.data
         db.session.commit()
         flash(f'Edited {form.text.data}')
+        logging.info(f'manual_art_edit ID #{art.id}, "{art.text}"...')
         return redirect(url_for('art'))
     else:
         if request.method == 'POST': print(f'form.errors = {form.errors}')
@@ -1500,6 +1510,7 @@ def manual_reference_edit(id):
         reference.summary  = form.summary.data
         db.session.commit()
         flash(f'Edited {form.text.data}')
+        logging.info(f'manual_reference_edit ID #{reference.id}, "{reference.text}"')
         return redirect(url_for('references'))
     else:
         if request.method == 'POST': print(f'form.errors = {form.errors}')

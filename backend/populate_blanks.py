@@ -132,14 +132,14 @@ For entity "{entity}" return summary, date_started, date_ended, corp_fam, and ca
 CREATE_TIMELINE_CONTENT_TEMPLATE = """
 Entity is "{entity}"; we need to write up its timeline.
 
-A timeline is a short story, up to 4096 characters.  
+A timeline is a condensed short story, like equivalent to a few paragraphs of text. (Our max is 4096 characters.)  
 A history of "{entity}" from it's start to current, or start to finish, (or pre-start to prediction for the future). 
 A story arching from stage 1 to 4 of the enshittification spiral. 
 Or not, maybe stays stage 1 its whole existence. 
 Or maybe stage 1 to swaying / oscillating / bouncing (/ flapping) btwn stages 2 and 3. 
 (Actually a weighted avgerages of news judgments, a sequence of stage_current-s captured in stage_history.)
 Noteworthy news events along the way (dates should be in YYYY-MMM-DD format) can be critical pieces of the timeline - but not just listing news items verbatim. 
-Timeline ur writing is basically a chronology of actions over words resulting in the entities' current brand sentiment. 
+Timeline you're writing is basically a chronology of actions over words resulting in the entities' current brand sentiment. 
 Ideally the timeline also gives the gist of what the entity is about, why it exists. 
 
 "{entity}" started "{date_started}", ended "{date_ended}"; is in corporate family "{corp_fam}", and category "{category}".
@@ -263,7 +263,7 @@ def create_summary_content(name):
     category = None
 
     wikipedia_page_results = ''
-    wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
+    wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper(top_k_results=1))
     wikipedia_page_results = wikipedia.run(f'about {name} corp')
     logging.info(f'==> wikipedia_page_results results for {name}: {wikipedia_page_results}.')
 
@@ -422,7 +422,7 @@ def make_new_timeline(entity):
     news_tokens = int( len(news_items) / 4 ) # A rough estimate for English text: 1 token ≈ 4 characters
     logging.info(f'==> {news_tokens} token count news_items for {name}: {news_items}')
 
-    wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
+    wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper(top_k_results=1))
     wikipedia_page_results = wikipedia.run(f'timeline about {name} corp')
     wikip_tokens = int( len(wikipedia_page_results) / 4 )
     logging.info(f'==> {wikip_tokens} token count for wikipedia_page_results results for {name}: {wikipedia_page_results}.')

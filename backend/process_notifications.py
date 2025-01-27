@@ -70,10 +70,11 @@ def create_report(user):
     query = Entity.query
     query = query.filter(Entity.status != 'disabled')
     entities_objs = query.all()
-    for ent in entities_objs: # defined in top init section of script
+    for ent in entities_objs: # tried to define entities_objs at top of script in inti area but didn't work, maybe due to lack of with app.app_context()
         ent_hit = False
         if ent.name in user.entities_following: ent_hit = True
-        for cat in ent.categories: 
+        words = ent.category.split(", ") # string so need to comma separate
+        for cat in words:
             if cat in user.categories_following: ent_hit = True
         if not ent_hit: continue
         logging.info(f'==> ++++++++++ hit for {ent.name} +++++++++++')

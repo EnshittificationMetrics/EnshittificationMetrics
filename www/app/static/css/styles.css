@@ -121,6 +121,11 @@ body.stage-4-dark {
     font-weight: bold;
 }
 
+/* timeline display - preserves line breaks and spaces */
+.timeline-display {
+    white-space: pre-wrap;
+}
+
 /* settings values displayed in profile */
 .transitory-profile-value {
     font-weight: bold;
