@@ -8,7 +8,7 @@
 		{% for item in entities %}
 			{{ item.id }}<br>
 			<strong>{{ item.name }}</strong><br>
-
+			
 			status:
 			{% if item.status == "live" %}
 				<strong>live</strong>
@@ -20,10 +20,14 @@
 				{{ item.status }}
 			{% endif %}
 			<br>
-
+			
+			ent_url: {{ item.ent_url }}<br>
+			
+			seed: {{ item.seed }}<br>
+			
 			stage_current: <strong>{{ item.stage_current }}</strong> ~ 
 			stage_EM4view: {{ item.stage_EM4view }}<br>
-
+			
 			stage_history:
 			{% if item.stage_history %}
 				[
@@ -34,17 +38,17 @@
 			{% else %}
 				None
 			{% endif %}<br>
-
+			
 			date_started: {{ item.date_started }} ~ 
 			date_ended: {{ item.date_ended }}<br>
 			<em>summary</em>: {{ item.summary }}<br>
 			corp_fam: {{ item.corp_fam }} ~ 
 			category: {{ item.category }}<br>
-
+			
 			<em>timeline</em>: {{ item.timeline }}<br>
-
+			
 			data_map: {{ item.data_map }}<br>
-
+			
 			<br>
 		{% endfor %}
 	</ul>

@@ -7,6 +7,8 @@
 		Existing:<br>
 		Status: {{ entity.status }}<br>
 		Name: {{ entity.name }}<br>
+		ent_url: {{ entity.ent_url }}<br>
+		seed: {{ entity.seed }}<br>
 		stage_current: {{ entity.stage_current }}<br>
 		stage_EM4view: {{ entity.stage_EM4view }}<br>
 
@@ -45,6 +47,14 @@
     <p>
         {{ form.stage_EM4view.label }} (<font color="red">reqd'</font> but will use stage current if blank)<br>
         {{ form.stage_EM4view }}<br>
+    </p>
+    <p>
+        {{ form.ent_url.label }}<br>
+        {{ form.ent_url(size=70) }}<br>
+    </p>
+    <p>
+        {{ form.seed.label }}<br>
+        {{ form.seed }}<br>
     </p>
 	<p>
 	stage_history:<br>

@@ -82,9 +82,7 @@ def check_for_restart_needed(filename):
         case 'migrations/versions':
             try:
                 time.sleep(.25 * 60) # 15 second pause for file copy to settle
-                subprocess.run(['cd /var/www/em'], check=True)
-                subprocess.run(['pipenv shell'], check=True)
-                result = subprocess.run(['flask db upgrade'], check=True)
+                result = subprocess.run(["pipenv", "run", "flask", "db", "upgrade"], cwd=dest_dir_www, check=True)
                 logging.info(f'==> Performed flask db upgrade (migrate new schema); output: {result}')
                 time.sleep(.25 * 60) # 15 second pause for migration to settle
             except subprocess.CalledProcessError as e:

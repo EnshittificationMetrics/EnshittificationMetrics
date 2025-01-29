@@ -49,6 +49,7 @@ def run_command(command):
 
 
 def get_upgradable_packages():
+    run_command('sudo apt update')
     output = run_command('apt list --upgradable')
     packages = []
     for line in output.splitlines():
@@ -70,7 +71,7 @@ def get_last_update_date(package_name):
 
 
 def upgrade_package(package_name, last_update_date):
-    run_command(f'sudo apt install -y {package_name}')
+    run_command(f'sudo apt install --only-upgrade -y {package_name}')
     logging.info(f'Upgrading {package_name}... Updated {last_update_date}.')
 
 

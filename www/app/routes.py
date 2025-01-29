@@ -210,29 +210,6 @@ def entity_detail(entname):
                            data_map = data_map)
 
 
-# API endpoint to provide graph data to cytoscape.js browser client
-@app.route('/graph-data-datamap')
-def graph_data():
-    # Example graph data
-    graph_json = {
-        "edges": [
-            {"data": {"id": "AB", "source": "A", "target": "B"}},
-            {"data": {"id": "BC", "source": "B", "target": "C"}},
-            {"data": {"id": "CA", "source": "C", "target": "A"}},
-            {"data": {"id": "CD", "source": "C", "target": "D"}},
-            {"data": {"id": "CE", "source": "C", "target": "E"}},
-        ],
-        "nodes": [
-            {"data": {"id": "A", "label": "Node A"}},
-            {"data": {"id": "B", "label": "Node B"}},
-            {"data": {"id": "C", "label": "Node C"}},
-            {"data": {"id": "D", "label": "Node D"}},
-            {"data": {"id": "E", "label": "Node E"}},
-        ],
-    }
-    return jsonify(graph_json)
-
-
 @app.route('/update-filtersort', methods=['POST'])
 @login_required
 def update_filtersort():
@@ -1280,6 +1257,8 @@ def manual_entity():
     if form.validate_on_submit():
         entity = Entity(status        = form.status.data, 
                         name          = form.name.data, 
+                        ent_url       = form.ent_url.data, 
+                        seed          = form.seed.data, 
                         stage_current = form.stage_current.data, 
                         stage_history = form.stage_history.data, 
                         stage_EM4view = form.stage_EM4view.data, 
@@ -1303,6 +1282,8 @@ def manual_entity():
         blank = Entity(id            = 0,
                        status        = 'empty',
                        name          = 'empty',
+                       ent_url       = None,
+                       seed          = None, 
                        stage_current = 1,
                        stage_history = [ ['YYYY MMM DD', 1], ['YYYY MMM DD', 2] ],
                        stage_EM4view = 1,
@@ -1417,6 +1398,8 @@ def manual_entity_edit(id):
     if form.validate_on_submit():
         entity.status        = form.status.data
         entity.name          = form.name.data
+        entity.ent_url       = form.ent_url.data
+        entity.seed          = form.seed.data
         entity.stage_current = form.stage_current.data
         entity.stage_history = form.stage_history.data
         entity.stage_EM4view = form.stage_EM4view.data
@@ -1434,6 +1417,8 @@ def manual_entity_edit(id):
         if request.method == 'POST': print(f'form.errors = {form.errors}')
         form.status.data = entity.status
         form.name.data = entity.name
+        form.ent_url.data = entity.ent_url
+        form.seed.data = entity.seed
         form.stage_current.data = entity.stage_current
         ### form.stage_history.data = entity.stage_history
         form.stage_EM4view.data = entity.stage_EM4view

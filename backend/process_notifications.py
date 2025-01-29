@@ -72,6 +72,8 @@ def create_report(user):
     entities_objs = query.all()
     for ent in entities_objs: # tried to define entities_objs at top of script in inti area but didn't work, maybe due to lack of with app.app_context()
         ent_hit = False
+        report_news = ""
+        report_stage = ""
         if ent.name in user.entities_following: ent_hit = True
         words = ent.category.split(", ") # string so need to comma separate
         for cat in words:
@@ -80,7 +82,6 @@ def create_report(user):
         logging.info(f'==> ++++++++++ hit for {ent.name} +++++++++++')
         """ report news items listed in stage_history for this entity in time since last_sent """
         if user.alert_on_news_item:
-            report_news = ""
             for item in ent.stage_history:
                 if item[0] > user.last_sent: # news item date ### TypeError: '>' not supported between instances of 'str' and 'datetime.datetime'
                     if item[2]: # news item id
@@ -90,7 +91,6 @@ def create_report(user):
                         report_news += f'On {news_item.date_pub} indexed stage {stage_int_value} "{news_item.text}" at {news_item.url}\n'
         """ report stage value changes for this entity in time since last_sent """
         if user.alert_on_stage_change:
-            report_stage = ""
             stage_values = str(ent.stage_current)
             for item in ent.stage_history:
                 if item[0] > user.last_sent: # news item date

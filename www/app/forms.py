@@ -33,6 +33,8 @@ class EntityEditForm(FlaskForm):
         ('live', 'live'),
         ('disabled', 'disabled')])
     name          = StringField('name')
+    ent_url       = StringField('ent_url')
+    seed          = StringField('seed')
     stage_current = IntegerField('stage_current', validators=[NumberRange(min=1, max=4)])
     stage_history = FieldList(FormField(HistItemForm), min_entries=0, max_entries=10)
     stage_EM4view = IntegerField('stage_EM4view', validators=[NumberRange(min=1, max=4)])

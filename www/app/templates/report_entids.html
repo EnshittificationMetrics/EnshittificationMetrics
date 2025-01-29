@@ -13,6 +13,8 @@
 			<th>EDIT</th>
 			<th>Name</th>
 			<th>Status</th>
+			<th>URL</th>
+			<th>Seed</th>
 			<th>Stage</th>
 			<th>History</th>
 			<th>Dates</th>
@@ -41,6 +43,16 @@
 							<font color="red">disabled</font>
 						{% else %}
 							{{ item.status }}
+						{% endif %}
+					</td>
+					<td>
+						{% if item.ent_url %}
+							{{ item.ent_url }}
+						{% endif %}
+					</td>
+					<td>
+						{% if item.seed %}
+							{{ item.seed }}
 						{% endif %}
 					</td>
 					<td>
