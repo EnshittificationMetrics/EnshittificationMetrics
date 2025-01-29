@@ -71,6 +71,7 @@
 		{% if current_user.role == 'administrator' %}
 			<i>DEV:</i><br>
 			Entities, News, Art, References: 
+			<a href="{{ url_for('report_entids') }}"     >entity list and edit</a> ~ 
 			<a href="{{ url_for('report_all') }}"        >report all</a> ~ 
 			<a href="{{ url_for('report_entities') }}"   >report entities</a> ~ 
 			<a href="{{ url_for('report_news') }}"       >report news</a> ~ 

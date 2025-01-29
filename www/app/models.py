@@ -13,6 +13,8 @@ class Entity(UserMixin, db.Model):
     id:            so.Mapped[int] = so.mapped_column(primary_key=True)
     status:        so.Mapped[str] = so.mapped_column(sa.String(10), default='potential') # live, potential, disabled
     name:          so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
+    ent_url:       so.Mapped[str] = so.mapped_column(sa.String(70), nullable=True)
+    seed:          so.Mapped[str] = so.mapped_column(sa.Text, nullable=True)
     stage_current: so.Mapped[int] = so.mapped_column(default='1')
     stage_history: so.Mapped[Optional[list]] = so.mapped_column(MutableList.as_mutable(sa.PickleType), default=[]) # each list item should be date and stage value, with hopefully a third, news item id
     stage_EM4view: so.Mapped[int] = so.mapped_column(default='2')
@@ -22,7 +24,7 @@ class Entity(UserMixin, db.Model):
     corp_fam:      so.Mapped[str] = so.mapped_column(sa.String(64), nullable=True)
     category:      so.Mapped[str] = so.mapped_column(sa.String(64), nullable=True) # Social, Cloud, B2B, B2C, C2C, tech platform, P2P
     timeline:      so.Mapped[str] = so.mapped_column(sa.String(4096), nullable=True)
-    data_map:      so.Mapped[str] = so.mapped_column(sa.Text, nullable=True)  # Store DOT syntax
+    data_map:      so.Mapped[str] = so.mapped_column(sa.Text, nullable=True)
 
     def __repr__(self):
         return '<Entity {}>'.format(self.name)

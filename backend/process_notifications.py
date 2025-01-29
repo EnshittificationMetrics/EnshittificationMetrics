@@ -82,7 +82,7 @@ def create_report(user):
         if user.alert_on_news_item:
             report_news = ""
             for item in ent.stage_history:
-                if item[0] > user.last_sent: # news item date
+                if item[0] > user.last_sent: # news item date ### TypeError: '>' not supported between instances of 'str' and 'datetime.datetime'
                     if item[2]: # news item id
                         query = News.query
                         query = query.filter(News.id == item[2])

@@ -1121,6 +1121,16 @@ def report_entities():
                            references = None)
 
 
+@app.route('/report_entids')
+@login_required
+def report_entids():
+    if current_user.role != 'administrator':
+        return render_template('index.html')
+    entities = Entity.query.all()
+    return render_template('report_entids.html', 
+                           entities = entities)
+
+
 @app.route('/report_news')
 @login_required
 def report_news():

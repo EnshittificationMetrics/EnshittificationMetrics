@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Entities and IDs:</h2>
+
+<p><a href="{{ url_for('manual_entity') }}"><strong>Add a new Entity</strong></a></p>
+
+<table border="3" style="text-align: center; vertical-align: middle; width: 100%;">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>EDIT</th>
+			<th>Name</th>
+			<th>Status</th>
+			<th>Stage</th>
+			<th>History</th>
+			<th>Dates</th>
+			<th>Summary</th>
+			<th>Family</th>
+			<th>Category</th>
+			<th>Timeline</th>
+			<th>Map</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% if entities %}
+			{% for item in entities %}
+				<tr>
+					<td>{{ item.id }}</td>
+					<td>
+						<a href="{{ url_for('manual_entity_edit', id = item.id) }}">edit</a>
+					</td>
+					<td>{{ item.name }}</td>
+					<td>
+						{% if item.status == "live" %}
+							live
+						{% elif item.status == "potential" %}
+							<strong><font color="green">potential</font></strong>
+						{% elif item.status == "disabled" %}
+							<font color="red">disabled</font>
+						{% else %}
+							{{ item.status }}
+						{% endif %}
+					</td>
+					<td>
+						<strong>{{ item.stage_current }}</strong> 
+						( {{ item.stage_EM4view }} )
+					</td>
+					<td>
+						{% if item.stage_history and item.stage_history != "None" %}
+							Exists
+						{% else %}
+						{% endif %}
+					</td>
+					<td>
+						{% if item.date_started %}
+							{{ item.date_started }} 
+						{% endif %}
+						{% if item.date_ended and item.date_ended != "None" %}
+							to 
+							{{ item.date_ended }}
+						{% endif %}
+					</td>
+					<td>
+						{% if item.summary and item.summary != "None" %}
+							Exists
+						{% else %}
+						{% endif %}
+					</td>
+					<td>
+						{% if item.corp_fam != "None" %}
+							{{ item.corp_fam }}
+						{% endif %}
+					</td>
+					<td>
+						{% if item.category != "None" %}
+							{{ item.category }}
+						{% endif %}
+					</td>
+					<td>
+						{% if item.timeline and item.timeline != "None" %}
+							Exists
+						{% else %}
+						{% endif %}
+					</td>
+					<td>
+						{% if item.data_map and item.data_map != "None" %}
+							Exists
+						{% else %}
+						{% endif %}
+					</td>
+				</tr>
+			{% endfor %}
+		{% endif %}
+	</tbody>
+</table>
+
+<p><a href="{{ url_for('manual_entity') }}"><strong>Add a new Entity</strong></a></p>
+
+{% endblock %}
