@@ -41,7 +41,8 @@ some_days_ago = today - datetime.timedelta(days=days_delay)
 
 def run_command(command):
     try:
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # check=True ensures completing successfully before proceeding
     except subprocess.CalledProcessError as e:
         logging.error(f'Error during subprocess.run({command}) attempt: {e}')
         return "" # works on all cases in this program while returning None fails
@@ -71,8 +72,9 @@ def get_last_update_date(package_name):
 
 
 def upgrade_package(package_name, last_update_date):
-    run_command(f'sudo apt install --only-upgrade -y {package_name}')
-    logging.info(f'Upgrading {package_name}... Updated {last_update_date}.')
+    result = run_command(f'sudo apt install --only-upgrade -y {package_name}')
+    logging.info(f'Upgrading {package_name}... Updated {last_update_date}. {result.stderr}')
+    # result.stderr to check for errors; result.stdout to check what is happening when installing
 
 
 def get_uptime():

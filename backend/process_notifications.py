@@ -35,6 +35,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEBUG'] = True  # Enable debug mode
 
 mail = Mail(app)
 
@@ -116,7 +117,7 @@ def create_report(user):
     if user.ai_suggestions:
         pass # future development...
         report += "ai_suggestions:\n"
-        report += "\n"
+        report += "None at this time...\n"
     logging.info(f'==> ++++++++++ report creation complete +++++++++++')
     return report
 
@@ -140,8 +141,8 @@ def send_report_to_user(report, user):
                f"Thanks,\n" \
                f"EnshittificationMetrics.com\n"
                ### add bit about changing or stopping via alerts settings tab on EM, or worst case can reply with unsubscribe or no.
-    # mail.send(msg)
     test_print(report=report, snappy_subject=snappy_subject, un=user.username, email=email)
+    mail.send(msg)
     logging.info(f'==> ++++++++++ {snappy_subject} - report sent +++++++++++')
 
 
@@ -151,7 +152,7 @@ def test_print(report, snappy_subject, un, email):
     tp += f'snappy_subject: {snappy_subject}\n'
     tp += f'un: {un}\n'
     tp += f'report: {report}\n'
-    print(tp)
+    ### print(tp)
     logging.info(tp)
 
 
@@ -181,7 +182,7 @@ def one_off_report_to_user(username_str):
 
 
 def create_send_alerts():
-    logging.info(f'==> ++++++++++ alerts starting +++++++++++')
+    logging.info(f'\n\n==> ++++++++++ alerts starting +++++++++++')
     """ loop through all the users """
     with app.app_context():
         query = User.query
