@@ -40,6 +40,7 @@ pyjwt = "*"
 six = "*"
 pillow = "*"
 urllib3 = "*"
+dateparser = "*"
 
 [dev-packages]
 

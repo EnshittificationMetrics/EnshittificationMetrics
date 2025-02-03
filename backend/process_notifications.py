@@ -35,7 +35,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_DEBUG'] = True  # Enable debug mode
+# app.config['MAIL_DEBUG'] = True  # Debug mode quite verbose in logs
 
 mail = Mail(app)
 
@@ -50,10 +50,10 @@ def create_report(user):
         query = query.filter(Art.date_pub > user.last_sent).order_by(asc(Art.date_pub))
         art_objs = query.all()
         for art in art_objs:
-            report_art += f'On {art.date_pub} indexed "{art.text}" at {art.url}\n'
+            report_art += f'*  On {art.date_pub} indexed "{art.text}" at {art.url}\n\n'
         if report_art:
-            report += "alert_on_art_items:\n"
-            report += report_art + "\n"
+            report += "alert_on_art_items:\n\n"
+            report += report_art + "\n\n"
             logging.info(f'==> ++++++++++ {len(report_art)} characters on art +++++++++++')
     """ report on reference items since last_sent """
     if user.alert_on_reference_item:
@@ -62,10 +62,10 @@ def create_report(user):
         query = query.filter(References.date_pub > user.last_sent).order_by(asc(References.date_pub))
         ref_objs = query.all()
         for ref in ref_objs:
-            report_ref += f'On {ref.date_pub} indexed "{ref.text}" at {ref.url}\n'
+            report_ref += f'*  On {ref.date_pub} indexed "{ref.text}" at {ref.url}\n\n'
         if report_ref:
-            report += "alert_on_reference_item:\n"
-            report += report_ref + "\n"
+            report += "alert_on_reference_item:\n\n"
+            report += report_ref + "\n\n"
             logging.info(f'==> ++++++++++ {len(report_ref)} characters on references +++++++++++')
     """ report on entities and/or categories followed """
     query = Entity.query
@@ -80,7 +80,7 @@ def create_report(user):
         for cat in words:
             if cat in user.categories_following: ent_hit = True
         if not ent_hit: continue
-        logging.info(f'==> ++++++++++ hit for {ent.name} +++++++++++')
+        logging.info(f'==> ++++++++++ hit for {ent.name} +++++++++++') # might comment this logging line as too chatty, or summarize somehow
         """ report news items listed in stage_history for this entity in time since last_sent """
         if user.alert_on_news_item:
             for item in ent.stage_history:
@@ -89,7 +89,7 @@ def create_report(user):
                         query = News.query
                         query = query.filter(News.id == item[2])
                         news_item = query.all()
-                        report_news += f'On {news_item.date_pub} indexed stage {stage_int_value} "{news_item.text}" at {news_item.url}\n'
+                        report_news += f'*  On {news_item.date_pub} indexed stage {stage_int_value} "{news_item.text}" at {news_item.url}\n\n'
         """ report stage value changes for this entity in time since last_sent """
         if user.alert_on_stage_change:
             stage_values = str(ent.stage_current)
@@ -109,7 +109,7 @@ def create_report(user):
             else:
                 logging.error(f"stage_values didn't resolve to an expected unique_count: {stage_values}")
         if report_news or report_stage:
-            report += f"alert on entity {ent.name}\n"
+            report += f"Entity {ent.name}:\n\n"
             report += report_news + report_stage + "\n"
             logging.info(f'==> ++++++++++ {len(report_news)} characters on news +++++++++++')
             logging.info(f'==> ++++++++++ stage history values: {unique_chars} +++++++++++')
@@ -135,7 +135,7 @@ def send_report_to_user(report, user):
     if not snappy_subject:
         snappy_subject = 'EnshittificationMetrics.com Alert'
     msg = Message(snappy_subject, sender = app.config['MAIL_USERNAME'], recipients = [email])
-    msg.body = f'"Alerts" from EnshittificationMetrics.com for {user.username}.\n' \
+    msg.body = f'"Alerts" from EnshittificationMetrics.com for {user.username}.\n\n\n' \
                f"{report}\n" \
                f"\n" \
                f"Thanks,\n" \
@@ -169,7 +169,6 @@ def one_off_report_to_user(username_str):
         if not user.enable_notifications:
             logging.warning(f'==> ++++++++++ user.enable_notifications == False +++++++++++')
             return False
-        now = datetime.now()
         report = create_report(user=user)
         if report:
             send_report_to_user(report=report, user=user)

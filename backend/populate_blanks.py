@@ -61,6 +61,7 @@ from json import JSONDecodeError
 import requests
 from httpx import HTTPStatusError
 # import graphviz # sudo apt install graphviz (for local display!?) # pipenv install graphviz (this is in Pipfile)
+from datetime import datetime
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
 
@@ -127,27 +128,36 @@ Duck Duck Go search result content: {ddg_results} \n
 
 For entity "{entity}" return summary, date_started, date_ended, corp_fam, and category.
 """
- 
+
 
 CREATE_TIMELINE_CONTENT_TEMPLATE = """
 Entity is "{entity}"; we need to write up its timeline.
+Current date is {current_date}.
 
-A timeline is a condensed short story, like equivalent to a few paragraphs of text. (Our max is 4096 characters.)  
-A history of "{entity}" from it's start to current, or start to finish, (or pre-start to prediction for the future). 
-A story arching from stage 1 to 4 of the enshittification spiral. 
-Or not, maybe stays stage 1 its whole existence. 
-Or maybe stage 1 to swaying / oscillating / bouncing (/ flapping) btwn stages 2 and 3. 
-(Actually a weighted avgerages of news judgments, a sequence of stage_current-s captured in stage_history.)
-Noteworthy news events along the way (dates should be in YYYY-MMM-DD format) can be critical pieces of the timeline - but not just listing news items verbatim. 
-Timeline you're writing is basically a chronology of actions over words resulting in the entities' current brand sentiment. 
-Ideally the timeline also gives the gist of what the entity is about, why it exists. 
+A timeline is: 
+* A condensed short story, like equivalent to a few paragraphs of text. (Our absolute max is 4096 characters.)  
+* A brief overview history of "{entity}" from it's start to current, or start to finish, (or pre-start to prediction for the future). 
+* A chronology of actions over words resulting in the entities' current brand sentiment. 
+* Ideally something that gives the gist of what the entity is about, why it exists. 
 
-"{entity}" started "{date_started}", ended "{date_ended}"; is in corporate family "{corp_fam}", and category "{category}".
-"{entity}" currently judged to be at: stage {stage_current} 
-"{entity}" summary: {summary} 
+Examples:
+* A very short story arching from stage 1 to 4 of the enshittification spiral.
+* A very short story about staying stage 1 [its whole existence] do far. 
+* A very short story about swaying / oscillating / bouncing / flapping btwn stages 2 and 3. 
+* A short bulleted list of noteworthy [news] events (dates should be in YYYY-MMM-DD format); the few critical points which match changes in stage. Not just listing all news items verbatim. 
+
+Some foundational info about "{entity}": 
+* Started "{date_started}", ended "{date_ended}" 
+* In corporate family "{corp_fam}" 
+* In category "{category}" 
+* Currently judged to be at: stage {stage_current} 
+* URL: {ent_url} 
+* Summary: {summary} 
+* Some authoritative guidance: {seed} 
 
 News items related to "{entity}" include: 
 {news_items}
+(Note that stage values in news items are actually a weighted avgerages of news judgments, a sequence of stage_current-s captured in stage_history.)
 
 Wikipedia results (content pulled from Wikipedia may be incorrect or partially incorrect as containing undisambiguationed hits of the entity name): {wikipedia_page_results} 
 
@@ -220,32 +230,6 @@ Search results to return shortened form of:
 {ddg_results} 
 
 Please return shortened form of search results for "{entity}".
-"""
-
-
-TIMELINE_MERGE_TEMPLATE = """
-Task is to merge existing old timeline text together with newly created timeline text, 
-to form final new current timeline for "{entity}".
-
-A timeline is a short story, up to 4096 characters.  
-A history of "{entity}" from it's start to current, or start to finish, (or pre-start to prediction for the future). 
-A story arching from stage 1 to 4 of the enshittification spiral. 
-Or not, maybe stays stage 1 its whole existence. 
-Or maybe stage 1 to swaying / oscillating / bouncing (/ flapping) btwn stages 2 and 3. 
-(Actually a weighted avgerages of news judgments, a sequence of stage_current-s captured in stage_history.)
-Noteworthy news events along the way (dates should be in YYYY-MMM-DD format) can be critical pieces of the timeline - but not just listing news items verbatim. 
-Timeline ur writing is basically a chronology of actions over words resulting in the entities' current brand sentiment. 
-Ideally the timeline also gives the gist of what the entity is about, why it exists. 
-
-"{entity}" started "{date_started}", ended "{date_ended}"; is in corporate family "{corp_fam}", and category "{category}".
-"{entity}" currently judged to be at: stage {stage_current} 
-"{entity}" summary: {summary} 
-
-Existing old timeline text: {existing_old_timeline}
-
-Newly created timeline text: (newly_generated_timeline)
-
-Please return timeline for entity "{entity}"!
 """
 
 
@@ -397,6 +381,22 @@ def shrink_ddg_results(ddg_results, entity):
     return ddg_results
 
 
+TIMELINE_MERGE_TEMPLATE = """
+Task is to merge existing old timeline text together with newly created timeline text, 
+to form final new current timeline for "{entity}". 
+A smaller merged/updated timeline is preferable; 
+concise and quickly illustrative.
+
+Existing old timeline text: 
+{existing_old_timeline}
+
+Newly created timeline text: 
+(newly_generated_timeline)
+
+Please return timeline for entity "{entity}" ;-)
+"""
+
+
 def make_new_timeline(entity):
     logging.info(f'==> +++++++++ create_timeline_content +++++++++++')
     name = entity.name
@@ -464,15 +464,19 @@ def make_new_timeline(entity):
     """ Dump all this stuff into LLM, get back timeline content """
     try:
         content = chain.invoke({"entity": name, 
-                                "news_items": news_items, 
-                                "summary": entity.summary, 
+                                "current_date": datetime.today().strftime('%B %d, %Y'), # format is "January 17, 2020"
+                                "stage_current": entity.stage_current, 
+                                "ent_url": entity.ent_url, 
+                                "seed": entity.seed, 
                                 "date_started": entity.date_started, 
                                 "date_ended": entity.date_ended, 
+                                "summary": entity.summary, 
                                 "corp_fam": entity.corp_fam, 
                                 "category": entity.category, 
+                                "news_items": news_items, 
                                 "wikipedia_page_results": wikipedia_page_results, 
                                 "ddg_results": ddg_results, 
-                                "stage_current": entity.stage_current, })
+        })
         logging.info(f'==> Raw LLM content return: {content}') # keep this logging and comment one in semantics.py
     except HTTPStatusError as e:
         content = "No timeline"
@@ -529,12 +533,6 @@ def merge_timelines(entity, new_timeline):
             )
     try:
         merged_timeline = chain.invoke({"entity": entity.name, 
-                                "summary": entity.summary, 
-                                "date_started": entity.date_started, 
-                                "date_ended": entity.date_ended, 
-                                "corp_fam": entity.corp_fam, 
-                                "category": entity.category, 
-                                "stage_current": entity.stage_current, 
                                 "existing_old_timeline": entity.timeline, 
                                 "newly_generated_timeline": new_timeline, })
         logging.info(f'==> Raw LLM merged_timeline return: {merged_timeline}') # keep this logging and comment one in semantics.py
@@ -548,28 +546,28 @@ def merge_timelines(entity, new_timeline):
         merged_timeline = "No timeline"
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
     """ Decide which of the three timelines to use! """
-    if entity.timeline:
-        len_old = len(entity.timeline) # existing/old timeline
-    else:
-        len_old = 0
+    len_old = len(entity.timeline) if entity.timeline else 0
+    # If bla is truthy (i.e., not empty), len(bla) is assigned to len_old.
+    # If bla is falsy (e.g., None, '', []), 0 is assigned to len_old.
     len_new = len(new_timeline) # just generated moments ago (w/ new news item)
     len_mer = len(merged_timeline) # LLM attempt to merge old and new timelines
-    if len_mer >= ( ( (len_old + len_new) / 2 ) * .65 ):
-        # merged is not truncated relative to avg of old and new
+    if len_mer >= ( ( (len_old + len_new) / 2 ) * .20 ):
+        # this should catch 80% of the flow (may be slightly more errors and some lossyness though) merged is not truncated relative to avg of old and new
         content = merged_timeline
-        logging.info(f'==> content = (1) merged_timeline - {len_mer} >= 65% avg of other two')
+        logging.info(f'==> content = (1) merged_timeline - {len_mer} >= 20% avg of other two')
     elif len_new >= len_old:
-        # new at least bigger/better than old
+        # new at least bigger than old; this should catch 10% of the flow (one less llm hop, or just new)
         content = new_timeline
         logging.info(f'==> content = (2) new_timeline - new {len_new} > old {len_old}')
     elif len_old >= ( ( (len_mer + len_new) / 2 ) * .25 ):
-        # old has some content, new and/or merge are truncated or none
+        # ~2%, old has some content, new and/or merge are truncated or none 
         content = entity.timeline
         logging.info(f'==> content = (3) entity.timeline - {len_old} > 25% avg of other two')
     else:
         # hope it worked
         content = merged_timeline
         logging.info(f'==> content = (4) merged_timeline - hope all the LLM calls worked...')
+    # replace w/ JsonOutputParser() from langchain_core.output_parsers.json
     ### """ Pull timeline content string out of supposed json formatted return from LLM """
     ### try:
     ###     data = json.loads(content) # 1st try

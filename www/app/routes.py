@@ -35,9 +35,10 @@ from flask_mail import Mail, Message
 from dotenv import load_dotenv
 from urllib.parse import urlsplit
 import requests
-import datetime
+from datetime import datetime
 import random
 import json
+import dateparser
 
 load_dotenv('../.env')
 hostn = socket.gethostname()
@@ -401,7 +402,7 @@ def login():
             login_user(user, remember=form.remember_me.data)
             # Flask-Login sets 365 day (default) expiration time for "remember me" cookie.
             flash("If you haven't done it yet, please take the survey when you get a chance.")
-            user.last_access = datetime.datetime.now(datetime.timezone.utc).strftime('%Y %b %d') # ex: '2024 Sep 26'
+            user.last_access = datetime.now(datetime.timezone.utc).strftime('%Y %b %d') # ex: '2024 Sep 26'
             db.session.commit()
             logging.info(f'=*=*=*> User "{current_user.username}" logged in.')
             ip_addr = get_client_ip()
@@ -434,7 +435,7 @@ def login():
 
 @user_loaded_from_cookie.connect # flask-Login signal custom handler
 def log_remember_me_login(sender, user):
-    user.last_access = datetime.datetime.now(datetime.timezone.utc).strftime('%Y %b %d')
+    user.last_access = datetime.now(datetime.timezone.utc).strftime('%Y %b %d')
     db.session.commit()
     logging.info(f'=*=*=*> User "{user.username}" logged in via flask_login login_user "remember me" cookie.')
 
@@ -952,7 +953,7 @@ def survey():
                                        form = form, 
                                        captcha = new_captcha_dict)
             else:
-                survey_datetime = datetime.datetime.now(datetime.timezone.utc).strftime('%Y %b %d @ %H:%M') # ex: '2024 Sep 27 @ 23:26'
+                survey_datetime = datetime.now(datetime.timezone.utc).strftime('%Y %b %d @ %H:%M') # ex: '2024 Sep 27 @ 23:26'
                 survey = SurveyNewUser(discovery = form.discovery.data, 
                                        thoughts = form.thoughts.data, 
                                        suggestions = form.suggestions.data, 
@@ -995,11 +996,195 @@ def survey():
 def force_utilities():
     if current_user.role != 'administrator':
         return render_template('index.html')
-    if call_type == 'POST':
-        pass
-        ### pull button values selected
-        return 
-    return render_template('force_utilities.html',)
+    return render_template('force_utilities.html', display = '')
+
+
+@app.route('/statusfix/<dryorwet>')
+@login_required
+def statusfix(dryorwet):
+    if current_user.role != 'administrator':
+        return render_template('index.html')
+    display = ''
+    commit = False
+    """ check Entity.status """
+    query = Entity.query
+    query = query.filter(Entity.status != 'disabled')
+    entities = query.all()
+    for ent in entities:
+        if not ent.status:
+            display += f'Entity ID #{ent.id} has NO stage_current value!\n'
+        if not ent.stage_history: # no history
+            if ent.status == 'potential':
+                continue # set right
+            else:
+                if dryorwet == 'dry':
+                    display += f'Entity ID #{ent.id} has no history so status should be "potential" not "{ent.status}".\n'
+                elif dryorwet == 'wet':
+                    display += f'Entity ID #{ent.id} has no history so status changed to "potential" from "{ent.status}".\n'
+                    logging.info(f'Entity ID #{ent.id} has no history so status changed to "potential" from "{ent.status}".')
+                    ent.status = "potential"
+                    commit = True
+                else:
+                    logging.error(f"dryorwet value of {dryorwet} sent to datefix, which doesn't work...")
+        else: # has history
+            if ent.status == 'live':
+                continue # set right
+            else:
+                if dryorwet == 'dry':
+                    display += f'Entity ID #{ent.id} has history so status should be "live" not "{ent.status}".\n'
+                elif dryorwet == 'wet':
+                    display += f'Entity ID #{ent.id} has history so status change to "live" from "{ent.status}".\n'
+                    logging.info(f'Entity ID #{ent.id} has history so status change to "live" from "{ent.status}".')
+                    ent.status = "live"
+                    commit = True
+                else:
+                    logging.error(f"dryorwet value of {dryorwet} sent to datefix, which doesn't work...")
+    if commit:
+        db.session.commit()
+        display += f'Commited Entities'
+    if not display:
+        display = f'Nothing to display...'
+    return render_template('force_utilities.html', display = display)
+
+
+@app.route('/stagefix/<dryorwet>')
+@login_required
+def stagefix(dryorwet):
+    if current_user.role != 'administrator':
+        return render_template('index.html')
+    display = ''
+    commit = False
+    """ check Entity.stage_current """
+    query = Entity.query
+    query = query.filter(Entity.status != 'disabled')
+    entities = query.all()
+    for ent in entities:
+        if not ent.stage_current:
+            display += f'Entity ID #{ent.id} has NO stage_current value!\n'
+        if isinstance(ent.stage_current, int):
+            continue # already int
+        fix = int(ent.stage_current)
+        if dryorwet == 'dry':
+            display += f'Entity ID #{ent.id} has stage of "{ent.stage_current}" which would be changed to "{fix}".'
+        elif dryorwet == 'wet':
+            display += f'Entity ID #{ent.id} had stage of "{ent.stage_current}" which was changed to "{fix}".'
+            logging.info(f'Entity ID #{ent.id} had stage of "{ent.stage_current}" which was changed to "{fix}".')
+            ent.stage_current = fix
+            commit = True
+        else:
+            logging.error(f"dryorwet value of {dryorwet} sent to datefix, which doesn't work...")
+    if commit:
+        db.session.commit()
+        display += f'Commited Entities'
+    if not display:
+        display = f'Nothing to display...'
+    return render_template('force_utilities.html', display = display)
+
+
+@app.route('/datefix/<dryorwet>')
+@login_required
+def datefix(dryorwet):
+    if current_user.role != 'administrator':
+        return render_template('index.html')
+    display = ''
+    commit = False
+    """ check References.date_pub """
+    references = References.query.all()
+    for ref in references:
+        if not ref.date_pub:
+            display += f'Reference ID #{ref.id} has NO date!\n'
+        if isinstance(ref.date_pub, datetime):
+            continue # already datetime
+        fix = dateparser.parse(ref.date_pub)
+        if ref.date_pub == str(fix):
+            continue # already correct but just saved as type str and not type datetime
+        if dryorwet == 'dry':
+            display += f'Reference ID #{ref.id} has date_pub of "{ref.date_pub}" which would be changed to "{fix}"\n'
+        elif dryorwet == 'wet':
+            display += f'Reference ID #{ref.id} had date_pub of "{ref.date_pub}" which was changed to "{fix}"\n'
+            logging.info(f'Reference ID #{ref.id} had date_pub of "{ref.date_pub}" which was changed to "{fix}"')
+            ref.date_pub = str(fix)
+            commit = True
+        else:
+            logging.error(f"dryorwet value of {dryorwet} sent to datefix, which doesn't work...")
+    if commit:
+        db.session.commit()
+        display += f'Commited References'
+    """ check Art.date_pub """
+    commit = False
+    arts = Art.query.all()
+    for art in arts:
+        if not art.date_pub:
+            display += f'Art ID #{ref.id} has NO date!\n'
+        if isinstance(art.date_pub, datetime):
+            continue # already datetime
+        fix = dateparser.parse(art.date_pub)
+        if art.date_pub == str(fix):
+            continue # already correct but just saved as type str and not type datetime
+        if dryorwet == 'dry':
+            display += f'Art ID #{art.id} has date_pub of "{art.date_pub}" which would be changed to "{fix}"\n'
+        elif dryorwet == 'wet':
+            display += f'Art ID #{art.id} had date_pub of "{art.date_pub}" which was changed to "{fix}"\n'
+            logging.info(f'Art ID #{art.id} had date_pub of "{art.date_pub}" which was changed to "{fix}"')
+            art.date_pub = str(fix)
+            commit = True
+        else:
+            logging.error(f"dryorwet value of {dryorwet} sent to datefix, which doesn't work...")
+    if commit:
+        db.session.commit()
+        display += f'Commited Art'
+    """ check News.date_pub (not used in notifications) """
+    commit = False
+    newses = News.query.all()
+    for news in newses:
+        if not news.date_pub:
+            display += f'News ID #{ref.id} has NO date!\n'
+        if isinstance(news.date_pub, datetime):
+            continue # already datetime
+        fix = dateparser.parse(news.date_pub)
+        if news.date_pub == str(fix):
+            continue # already correct but just saved as type str and not type datetime
+        if dryorwet == 'dry':
+            display += f'News ID #{news.id} has date_pub of "{news.date_pub}" which would be changed to "{fix}"\n'
+        elif dryorwet == 'wet':
+            display += f'News ID #{news.id} had date_pub of "{news.date_pub}" which was changed to "{fix}"\n'
+            logging.info(f'News ID #{news.id} had date_pub of "{news.date_pub}" which was changed to "{fix}"')
+            news.date_pub = str(fix)
+            commit = True
+        else:
+            logging.error(f"dryorwet value of {dryorwet} sent to datefix, which doesn't work...")
+    if commit:
+        db.session.commit()
+        display += f'Commited News'
+    commit = False
+    """ check Entity.stage_history --> list where item[0] is date, [1] is stage value, [2] is news item id """
+    query = Entity.query
+    query = query.filter(Entity.status != 'disabled')
+    entities = query.all()
+    for ent in entities:
+        for count, item in enumerate(ent.stage_history, start=1): # stage_history is a mutable list
+            if not item[0]:
+                display += f'Entity ID #{ent.id} has in stage_history item #{count} NO date!\n'
+            if isinstance(item[0], datetime):
+                continue # already datetime
+            fix = dateparser.parse(item[0])
+            if item[0] == str(fix):
+                continue # already correct but just saved as type str and not type datetime
+            if dryorwet == 'dry':
+                display += f'Entity ID #{ent.id} has in stage_history item #{count} a date of "{item[0]}" which would be changed to "{fix}"\n'
+            elif dryorwet == 'wet':
+                display += f'Entity ID #{ent.id} had in stage_history item #{count} a date of "{item[0]}" which was changed to "{fix}"\n'
+                logging.info(f'Entity ID #{ent.id} had in stage_history item #{count} a date of "{item[0]}" which was changed to "{fix}"')
+                item[0] = str(fix) ### THIS DOES NOT SEEM TO WORK YET, MUTABLE LIST SHOULD HANDLE
+                commit = True
+            else:
+                logging.error(f"dryorwet value of {dryorwet} sent to datefix, which doesn't work...")
+    if commit:
+        db.session.commit()
+        display += f'Commited Entities'
+    if not display:
+        display = f'Nothing to display...'
+    return render_template('force_utilities.html', display = display)
 
 
 @app.route('/report_users')

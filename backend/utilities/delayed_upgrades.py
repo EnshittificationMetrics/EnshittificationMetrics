@@ -14,11 +14,13 @@ if __file__.startswith('/home/bsea/em/'):
     log_path = '/home/bsea/em/utilities/delayed_upgrades.log' # EM prod
     days_delay = 9
     days_force_reboot = 36
+    cwd_loc = '/home/bsea/em/utilities'
     pipfile_locs = ["/home/bsea/em", "/var/www/em"]
 else:
     log_path = '/home/leet/EnshittificationMetrics/backend/utilities/delayed_upgrades.log' # EM dev or CLI (testing)
     days_delay = 8
     days_force_reboot = 28
+    cwd_loc = '/home/leet/EnshittificationMetrics/backend/utilities'
     pipfile_locs = ["/home/leet/EnshittificationMetrics/backend", "/home/leet/EnshittificationMetrics/www"]
 
 import logging
@@ -39,19 +41,19 @@ today = datetime.date.today()
 some_days_ago = today - datetime.timedelta(days=days_delay)
 
 
-def run_command(command):
+def run_command(command, cwd_loc):
     try:
-        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(command, cwd=cwd_loc, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         # check=True ensures completing successfully before proceeding
     except subprocess.CalledProcessError as e:
-        logging.error(f'Error during subprocess.run({command}) attempt: {e}')
+        logging.error(f"Error during subprocess.run('{command}') attempt. Exit Code:, {e.returncode}; Error Message:, {e.stderr}")
         return "" # works on all cases in this program while returning None fails
     return result.stdout
 
 
 def get_upgradable_packages():
-    run_command('sudo apt update')
-    output = run_command('apt list --upgradable')
+    run_command(command = 'sudo apt update', cwd_loc = cwd_loc)
+    output = run_command(command = 'apt list --upgradable', cwd_loc = cwd_loc)
     packages = []
     for line in output.splitlines():
         if '/' in line:
@@ -62,7 +64,7 @@ def get_upgradable_packages():
 
 def get_last_update_date(package_name):
     """ Reads package changelog and matches ".com>  Day, DD Mmm YYYY HH:MM:SS ±HHMM" and captures "DD Mmm YYYY" """
-    output = run_command(f'apt changelog {package_name}')
+    output = run_command(command = f'apt changelog {package_name}', cwd_loc = cwd_loc)
     date_pattern = re.compile(r"\.com>\s{2}[A-Z][a-z]{2},\s(\d{2}\s\w{3}\s\d{4})\s\d{2}:\d{2}:\d{2}\s[+-]\d{4}")
     dates = date_pattern.findall(output)
     if dates:
@@ -72,14 +74,14 @@ def get_last_update_date(package_name):
 
 
 def upgrade_package(package_name, last_update_date):
-    result = run_command(f'sudo apt install --only-upgrade -y {package_name}')
-    logging.info(f'Upgrading {package_name}... Updated {last_update_date}. {result.stderr}')
-    # result.stderr to check for errors; result.stdout to check what is happening when installing
+    result = run_command(command = f'sudo apt install --only-upgrade -y {package_name}', cwd_loc = cwd_loc)
+    logging.info(f'Upgrading {package_name}... Updated {last_update_date}. stdout: {result.stdout}')
+    # result.stderr to check for errors?; result.stdout to check what is happening when installing
 
 
 def get_uptime():
     """ Runs the 'uptime' command, captures the output, converts to days, hours, and minutes. """
-    output = run_command('uptime')
+    output = run_command(command = 'uptime', cwd_loc = cwd_loc)
     # ex: ' 11:44:27 up 7 days,  8:13,  2 users,  load average: 0.16, 0.20, 0.17'
     # ex: ' 03:35:22 up 7 days, 4 min,  2 users,  load average: 0.22, 0.31, 0.27' # no hours!
     # ex: ' 12:34:56 up 5 hours, 42 mins,  3 users,  load average: 0.12, 0.15, 0.09' # no days!
@@ -122,7 +124,7 @@ def get_uptime():
 
 
 def check_logged_in_users():
-    users = run_command("who -m") # with -m should show SSH and not WinSCP users
+    users = run_command(command = "who -m", cwd_loc = cwd_loc) # with -m should show SSH and not WinSCP users
     if len(users) > 0:
         logging.info(f'who -m returned: {users[:-1]}') # slice off CR
         return True
@@ -131,7 +133,7 @@ def check_logged_in_users():
 
 def check_web_server_activity():
     """ Checks for active web server connections; Apache on port 80 or 443. """
-    connections = run_command("sudo ss -tuln | grep -E ':80|:443'")
+    connections = run_command(command = "sudo ss -tuln | grep -E ':80|:443'", cwd_loc = cwd_loc)
     # if just 'listen' skip/ignore as cause to not reboot
     conn_lines = connections.split('\n')
     for line in conn_lines:
@@ -142,7 +144,7 @@ def check_web_server_activity():
 
 
 def check_open_files():
-    open_files = run_command("lsof /var/www/")
+    open_files = run_command(command = "lsof /var/www/", cwd_loc = cwd_loc)
     if len(open_files) > 0:
         logging.info(f"lsof /var/www/ returned: {open_files}")
         return True
@@ -167,7 +169,7 @@ def force_reboot():
     """ Run the 'reboot' command """
     if can_reboot():
         logging.info(f'Rebooting system...')
-        run_command('sudo reboot')
+        run_command(command = 'sudo reboot', cwd_loc = cwd_loc)
     else:
         logging.warning("Reboot canceled due to active users or processes; should try again next crontab run.")
 
@@ -192,7 +194,7 @@ def get_library_last_update_date(package_name):
 
 def upgrade_library_package(pipfile_loc, package_name, last_update_date):
     """ run pipenv upgrade <package> and log result """
-    pipenv_return = run_command(f'cd {pipfile_loc} && pipenv upgrade {package_name}')
+    pipenv_return = run_command(command = f'pipenv upgrade {package_name}', cwd_loc = pipfile_loc)
     pattern = r"\bSuccess\b"
     matches = re.findall(pattern, pipenv_return)
     if matches:
@@ -202,7 +204,7 @@ def upgrade_library_package(pipfile_loc, package_name, last_update_date):
 
 
 def main():
-    runningas = run_command("whoami")
+    runningas = run_command(command = "whoami", cwd_loc = cwd_loc)
     logging.info(f'Running {__file__} as: {runningas[0:-1]}')
     
     """ I. if needed, reload apache2 """
@@ -210,8 +212,8 @@ def main():
     # 'apache_reload_needed' created by 'copy_github_to_local.py'
     if os.path.exists(flag_path):
         try:
-            run_command("sudo systemctl reload apache2")
-            run_command(f"sudo rm {flag_path}")
+            run_command(command = "sudo systemctl reload apache2", cwd_loc = cwd_loc)
+            run_command(command = f"sudo rm {flag_path}", cwd_loc = cwd_loc)
             logging.info(f'Performed systemctl reload apache2 due to {flag_path}')
         except Exception as e:
             logging.error(f'Failed systemctl reload apache2 and rm due to {flag_path}, error: {e}')
@@ -242,7 +244,7 @@ def main():
     for pipfile_loc in pipfile_locs:
         logging.info(f'Checking {pipfile_loc}/Pipfile')
         """ run pipenv update --outdated where the Pipfile is """
-        outdated_packs = run_command(f"cd {pipfile_loc} && pipenv update --outdated")
+        outdated_packs = run_command(command = f"pipenv update --outdated", cwd_loc = pipfile_loc)
         """ parse out the package name(s) from the results, like "Package 'orjson' out-of-date: {'ver..." """
         pattern = r"Package '(.*?)' out-of-date"
         packages = re.findall(pattern, outdated_packs)
@@ -266,7 +268,7 @@ def main():
                     logging.error(f'Need to figure out what was listed and tune to deal with it.')
             """ if any upgrades done then run lock """
             if need_pipenv_lock:
-                pipenv_return = run_command(f'cd {pipfile_loc} && pipenv lock')
+                pipenv_return = run_command(command = f'pipenv lock', cwd_loc = pipfile_loc)
                 pattern = r"\bSuccess\b"
                 matches = re.findall(pattern, pipenv_return)
                 if matches:
