@@ -32,6 +32,7 @@ pydantic = "*"
 marshmallow = "*"
 sqlalchemy = "*"
 huggingface-hub = "*"
+dateparser = "*"
 
 [dev-packages]
 
