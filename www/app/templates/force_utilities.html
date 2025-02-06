@@ -4,23 +4,25 @@
 
 <h1>Utilities:</h1>
 
-<p>Change stage_current from str to int - 
+<p>Change Entity.stage_current and Entity.stage_history[i][1] from str to int - 
 <a href="/stagefix/dry">dryrun</a>, <a href="/stagefix/wet">force</a>.</p>
 
-<p>Set entity status to potential if stage history is blank, to live if stage history is populated - 
+<p>Set Entity.status to potential if stage history is blank, to live if stage history is populated - 
 <a href="/statusfix/dry">dryrun</a>, <a href="/statusfix/wet">force</a>.</p>
 
-<p>From "Entity.stage_history" pop oldest mundane stuff off list when gets too big - 
+<p>From Entity.stage_history pop oldest mundane stuff off list when gets too big - 
 <a href="/stagehistpop/dry">dryrun</a>, <a href="/stagehistpop/wet">force</a>. 
 (not yet implemented)</p>
 
-<p>If stage_history has date and stage value but no news item id, try to find and add news item id - 
+<p>If Entity.stage_history has date and stage value but no news item id, try to find and add news item id - 
 <a href="/missnewsid/dry">dryrun</a>, <a href="/missnewsid/wet">force</a>. 
 (not yet implemented)</p>
 
-<p>Convert date fields from str to datetime.datetime - 
-<a href="/datefix/dry">dryrun</a>, <a href="/datefix/wet">force</a>. 
-(not fully functional)</p>
+<p>Convert various date fields from str to datetime.datetime - 
+<a href="/datefix/dry">dryrun</a>, <a href="/datefix/wet">force</a>.</p>
+
+<p>Clear Utility Display - 
+<a href="/clr-util-display">clear</a>.</p>
 
 <h1>Utility Display:</h1>
 

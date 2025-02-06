@@ -28,6 +28,12 @@ from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from sqlalchemy import or_, asc, desc, func
 import sqlalchemy as sa
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_mistralai.chat_models import ChatMistralAI
+from langchain_core.output_parsers import StrOutputParser
+
+llm_api_key = os.getenv('MISTRAL_API_KEY')
+llm_temp = 0.25
 
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY') # secure Flask session management
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
@@ -53,7 +59,7 @@ def create_report(user):
             report_art += f'*  On {art.date_pub} indexed "{art.text}" at {art.url}\n\n'
         if report_art:
             report += "alert_on_art_items:\n\n"
-            report += report_art + "\n\n"
+            report += report_art + "\n"
             logging.info(f'==> ++++++++++ {len(report_art)} characters on art +++++++++++')
     """ report on reference items since last_sent """
     if user.alert_on_reference_item:
@@ -65,7 +71,7 @@ def create_report(user):
             report_ref += f'*  On {ref.date_pub} indexed "{ref.text}" at {ref.url}\n\n'
         if report_ref:
             report += "alert_on_reference_item:\n\n"
-            report += report_ref + "\n\n"
+            report += report_ref + "\n"
             logging.info(f'==> ++++++++++ {len(report_ref)} characters on references +++++++++++')
     """ report on entities and/or categories followed """
     query = Entity.query
@@ -122,32 +128,70 @@ def create_report(user):
     return report
 
 
+def large_lang_model(query):
+    large_lang_model = ChatMistralAI(model_name = 'open-mixtral-8x7b', 
+                                     mistral_api_key = llm_api_key, 
+                                     temperature = llm_temp, 
+                                     verbose = True )
+    return large_lang_model
+
+
+SNAPPY_SUBJECT_TEMPLATE = """
+Summarize this report down to a nice terse email subject line. 
+Should convey some of the report content, but not be too long to wrap or go off-screen when read. 
+As possible and appropriate, give email subject line a little "pop" with an enshittification pun or something. 
+Here is report: 
+{report}
+"""
+
+
 def generate_snappy_subject(report):
-    ### langchain llm call with prompt to summarize the report down to a nice short subject line and maybe give it a little pop with a enshittification pun
-    return None
+    content_prompt = ChatPromptTemplate.from_template(SNAPPY_SUBJECT_TEMPLATE)
+    chain = ( content_prompt
+            | large_lang_model 
+            | StrOutputParser() 
+            )
+    try:
+        snappy_subject = chain.invoke({"report": report})
+        logging.info(f'snappy_subject: "{snappy_subject}"')
+    except Exception as e:
+        snappy_subject = None
+        logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+    return snappy_subject
 
 
 def send_report_to_user(report, user):
+    
+    default_subject_text = f"""EnshittificationMetrics.com Alert"""
+    
+    salutation_text = f""""Alerts" from EnshittificationMetrics.com for {user.username}.\n"""
+    
+    timerange_text = f"""Alert time-range is from {user.last_sent} to now.\n"""
+    
+    signature_text = f"""Thanks, \nEnshittificationMetrics.com\n"""
+    
+    footer_text = """Note that to change or stop these alerts, please use the "Alert Subscriptions Notification Settings" area in EnshittificationMetrics.com, https://www.enshittificationmetrics.com/alerts."""
+    ### Eventually will add a reply with UNSUBSCRIBE or STOP feature.
+    
     logging.info(f'==> ++++++++++ sending report to {user.username} +++++++++++')
     ### need to tweak the reply-to on this email!?
     email = user.email
     snappy_subject = generate_snappy_subject(report=report)
     if not snappy_subject:
-        snappy_subject = 'EnshittificationMetrics.com Alert'
+        snappy_subject = default_subject_text
     msg = Message(snappy_subject, sender = app.config['MAIL_USERNAME'], recipients = [email])
-    msg.body = f'"Alerts" from EnshittificationMetrics.com for {user.username}.\n\n\n' \
+    msg.body = f'{salutation_text}\n' \
+               f"{timerange_text}\n" \
                f"{report}\n" \
-               f"\n" \
-               f"Thanks,\n" \
-               f"EnshittificationMetrics.com\n"
-               ### add bit about changing or stopping via alerts settings tab on EM, or worst case can reply with unsubscribe or no.
+               f"{signature_text}\n" \
+               f"{footer_text}\n"
     test_print(report=report, snappy_subject=snappy_subject, un=user.username, email=email)
     mail.send(msg)
     logging.info(f'==> ++++++++++ {snappy_subject} - report sent +++++++++++')
 
 
 def test_print(report, snappy_subject, un, email):
-    tp =  f'Test Alerts Report\n'
+    tp =  f'Alerts Report\n'
     tp += f'email: {email}\n'
     tp += f'snappy_subject: {snappy_subject}\n'
     tp += f'un: {un}\n'

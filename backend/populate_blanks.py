@@ -53,6 +53,7 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.tools import WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_mistralai.chat_models import ChatMistralAI
 import html5lib
@@ -262,9 +263,13 @@ def create_summary_content(name):
         # duckduckgo_search.exceptions.RatelimitException: https://duckduckgo.com/ 202 Ratelimit
 
     content_prompt = ChatPromptTemplate.from_template(CREATE_SUMMARY_CONTENT_TEMPLATE)
+    ### chain = ( content_prompt
+    ###         | large_lang_model 
+    ###         | StrOutputParser() 
+    ###         )
     chain = ( content_prompt
             | large_lang_model 
-            | StrOutputParser() 
+            | JsonOutputParser() # automatically parses the output into a Python dictionary
             )
     try:
         content = chain.invoke({"entity": name, 
@@ -281,19 +286,25 @@ def create_summary_content(name):
     except Exception as e:
         content = ''
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
-    # extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation
-    start = content.find('{')
-    end = content.rfind('}')
-    if start != -1 and end != -1 and start < end:
-        content = content[start:end + 1]
-        logging.info(f'==> Cropped, leaving content btwn first open and last close curly bracket (which should be only json) for {name}:\n{content}')
+    ### # extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation
+    ### start = content.find('{')
+    ### end = content.rfind('}')
+    ### if start != -1 and end != -1 and start < end:
+    ###     content = content[start:end + 1]
+    ###     logging.info(f'==> Cropped, leaving content btwn first open and last close curly bracket (which should be only json) for {name}:\n{content}')
     try:
-        data = json.loads(content)
-        summary = data.get('summary')
-        date_started = data.get('date_started')
-        date_ended = data.get('date_ended')
-        corp_fam = data.get('corp_fam')
-        category = data.get('category')
+        ### data = json.loads(content)
+        ### summary = data.get('summary')
+        ### date_started = data.get('date_started')
+        ### date_ended = data.get('date_ended')
+        ### corp_fam = data.get('corp_fam')
+        ### category = data.get('category')
+        # data = json.loads(content) ### JSON object must be str, bytes or bytearray, not dict
+        summary = content.get('summary')
+        date_started = content.get('date_started')
+        date_ended = content.get('date_ended')
+        corp_fam = content.get('corp_fam')
+        category = content.get('category')
     except Exception as e:
         summary = None
         logging.error(f'==> For {name}, unable to process return from LLM into needed variables; got error: {e} ~ Value of content: {content}')
@@ -897,10 +908,10 @@ def create_data_map_for_entity(entity_name_str):
         logging.info(f'==> Populated data map for {entity.name}:\n data_map = {data_map}')
 
 
-# this func might not be used / called at all from anywhere
 def create_timeline_for_entity(entity_name_str):
     """
     Click in GUI utility submits name of entity selected to run a timeline creation on.
+    Also useful in testing from CLI.
     Pulls entity object from Entities, passes to create_timeline_content.
     Saves new timeline
     """

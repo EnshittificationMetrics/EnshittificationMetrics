@@ -10,6 +10,8 @@ crontab = """30 3 * * * /usr/bin/python3 /home/leet/EnshittificationMetrics/back
 
 crontab = """30 10 * * *     /usr/bin/python3 /home/bsea/em/utilities/delayed_upgrades.py     >> /home/bsea/em/utilities/cron_issues.log 2>&1""" # prod as bsea; PT = UTC - 7.5 so 10 UTC = 03:00 or 04:00 PT
 
+overall_mode_of_operations = 'no upgrade' # 'no upgrade' or 'full upgrade' or 'delayed upgrade'
+
 if __file__.startswith('/home/bsea/em/'):
     log_path = '/home/bsea/em/utilities/delayed_upgrades.log' # EM prod
     days_delay = 9
@@ -206,7 +208,6 @@ def upgrade_library_package(pipfile_loc, package_name, last_update_date):
 def main():
     runningas = run_command(command = "whoami", cwd_loc = cwd_loc)
     logging.info(f'Running {__file__} as: {runningas[0:-1]}')
-    
     """ I. if needed, reload apache2 """
     flag_path = os.path.dirname(log_path) + '/apache_reload_needed'
     # 'apache_reload_needed' created by 'copy_github_to_local.py'
@@ -217,69 +218,89 @@ def main():
             logging.info(f'Performed systemctl reload apache2 due to {flag_path}')
         except Exception as e:
             logging.error(f'Failed systemctl reload apache2 and rm due to {flag_path}, error: {e}')
-    
-    """ II. if needed and old enough, apt install package_name """
-    upgradable_packages = get_upgradable_packages()
-    if not upgradable_packages:
-        logging.info(f'No upgradable package right now.')
-    else:
-        skipped_list = ''
-        for package in upgradable_packages:
-            last_update_date = get_last_update_date(package)
-            if last_update_date:
-                if last_update_date < some_days_ago:
-                    upgrade_package(package, last_update_date)
-                else:
-                    # print(f"{package} last updated on {last_update_date}, skipping as less than {days_delay} days old.")
-                    skipped_list += f'{package} (updated {last_update_date}), '
+    match overall_mode_of_operations:
+        case 'no upgrade':
+            pass
+        case 'full upgrade':
+            pass
+            """ II. apt install """
+            try:
+                run_command(command = "sudo apt update", cwd_loc = cwd_loc)
+                run_command(command = "sudo apt full-upgrade -y", cwd_loc = cwd_loc)
+                # sudo apt upgrade -y # safer than full-upgrade
+                # sudo apt list --upgradable
+                # sudo apt full-upgrade --dry-run
+            except Exception as e:
+                logging.error(f'Failed to run apt update, apt full-upgrade with error: {e}')
+            """ III. pipenv update """
+            try:
+                for pipfile_loc in pipfile_locs:
+                    run_command(command = "pipenv update", cwd_loc = pipfile_loc)
+            except Exception as e:
+                logging.error(f'Failed to run pipenv update with error: {e}')
+        case 'delayed upgrade':
+            """ II. if needed and old enough, apt install package_name """
+            upgradable_packages = get_upgradable_packages()
+            if not upgradable_packages:
+                logging.info(f'No upgradable package right now.')
             else:
-                logging.error(f'Could not retrieve changelog date for package "{package}".')
-                logging.error(f'Need to figure out what was listed and tune "date_pattern" to deal with it.')
-        if skipped_list:
-            logging.info(f'Note: Skipped: {skipped_list[:-2]}')
-        print(f'sleeping 3 min')
-        time.sleep(3 * 60) # 3 min pause for updates to settle...
-    
-    """ III. if needed and old enough, pipenv upgrade package_name """
-    for pipfile_loc in pipfile_locs:
-        logging.info(f'Checking {pipfile_loc}/Pipfile')
-        """ run pipenv update --outdated where the Pipfile is """
-        outdated_packs = run_command(command = f"pipenv update --outdated", cwd_loc = pipfile_loc)
-        """ parse out the package name(s) from the results, like "Package 'orjson' out-of-date: {'ver..." """
-        pattern = r"Package '(.*?)' out-of-date"
-        packages = re.findall(pattern, outdated_packs)
-        if not packages:
-            logging.info(f'No upgradable packages right now.')
-        else:
-            """ loop thru update-able packages """
-            skipped_list = ''
-            need_pipenv_lock = False
-            for package in packages:
-                last_update_date = get_library_last_update_date(package)
-                if last_update_date:
-                    if last_update_date < some_days_ago:
-                        """ update package """
-                        upgrade_library_package(pipfile_loc, package, last_update_date)
-                        need_pipenv_lock = True
+                skipped_list = ''
+                for package in upgradable_packages:
+                    last_update_date = get_last_update_date(package)
+                    if last_update_date:
+                        if last_update_date < some_days_ago:
+                            upgrade_package(package, last_update_date)
+                        else:
+                            # print(f"{package} last updated on {last_update_date}, skipping as less than {days_delay} days old.")
+                            skipped_list += f'{package} (updated {last_update_date}), '
                     else:
-                        skipped_list += f'{package} (updated {last_update_date}), '
+                        logging.error(f'Could not retrieve changelog date for package "{package}".')
+                        logging.error(f'Need to figure out what was listed and tune "date_pattern" to deal with it.')
+                if skipped_list:
+                    logging.info(f'Note: Skipped: {skipped_list[:-2]}')
+                print(f'sleeping 3 min')
+                time.sleep(3 * 60) # 3 min pause for updates to settle...
+            """ III. if needed and old enough, pipenv upgrade package_name """
+            for pipfile_loc in pipfile_locs:
+                logging.info(f'Checking {pipfile_loc}/Pipfile')
+                """ run pipenv update --outdated where the Pipfile is """
+                outdated_packs = run_command(command = f"pipenv update --outdated", cwd_loc = pipfile_loc)
+                """ parse out the package name(s) from the results, like "Package 'orjson' out-of-date: {'ver..." """
+                pattern = r"Package '(.*?)' out-of-date"
+                packages = re.findall(pattern, outdated_packs)
+                if not packages:
+                    logging.info(f'No upgradable packages right now.')
                 else:
-                    logging.error(f'Could not retrieve changelog date for package "{package}".')
-                    logging.error(f'Need to figure out what was listed and tune to deal with it.')
-            """ if any upgrades done then run lock """
-            if need_pipenv_lock:
-                pipenv_return = run_command(command = f'pipenv lock', cwd_loc = pipfile_loc)
-                pattern = r"\bSuccess\b"
-                matches = re.findall(pattern, pipenv_return)
-                if matches:
-                    logging.info(f'Ran pipenv lock.')
-                else:
-                    logging.info(f'Tried pipenv lock - but got no success. Detail: {pipenv_return}')
-            if skipped_list:
-                logging.info(f'Note: Skipped: {skipped_list[:-2]}')
-            print(f'sleeping 2 min')
-            time.sleep(2 * 60) # 2 min pause for updates to settle...
-
+                    """ loop thru update-able packages """
+                    skipped_list = ''
+                    need_pipenv_lock = False
+                    for package in packages:
+                        last_update_date = get_library_last_update_date(package)
+                        if last_update_date:
+                            if last_update_date < some_days_ago:
+                                """ update package """
+                                upgrade_library_package(pipfile_loc, package, last_update_date)
+                                need_pipenv_lock = True
+                            else:
+                                skipped_list += f'{package} (updated {last_update_date}), '
+                        else:
+                            logging.error(f'Could not retrieve changelog date for package "{package}".')
+                            logging.error(f'Need to figure out what was listed and tune to deal with it.')
+                    """ if any upgrades done then run lock """
+                    if need_pipenv_lock:
+                        pipenv_return = run_command(command = f'pipenv lock', cwd_loc = pipfile_loc)
+                        pattern = r"\bSuccess\b"
+                        matches = re.findall(pattern, pipenv_return)
+                        if matches:
+                            logging.info(f'Ran pipenv lock.')
+                        else:
+                            logging.info(f'Tried pipenv lock - but got no success. Detail: {pipenv_return}')
+                    if skipped_list:
+                        logging.info(f'Note: Skipped: {skipped_list[:-2]}')
+                    print(f'sleeping 2 min')
+                    time.sleep(2 * 60) # 2 min pause for updates to settle...
+        case _:
+            logging.error(f'match overall_mode_of_operations set incorrectly to "{overall_mode_of_operations}".')
     """ IV. if needed, reboot """
     reboot_file = "/var/run/reboot-required" # on Ubuntu
     if os.path.isfile(reboot_file):

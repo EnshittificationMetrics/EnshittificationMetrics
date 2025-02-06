@@ -28,6 +28,7 @@ from flask_simple_captcha import CAPTCHA
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlalchemy as sa
 from sqlalchemy import or_, asc, desc, func
+from sqlalchemy.orm.attributes import flag_modified
 import socket
 # pipenv install Flask pyotp Flask-Mail
 import pyotp
@@ -999,14 +1000,32 @@ def force_utilities():
     return render_template('force_utilities.html', display = '')
 
 
+@app.route('/clr-util-display')
+@login_required
+def clr_util_display():
+    return render_template('force_utilities.html', display = '')
+
+
+@app.route('/stagehistpop/<dryorwet>')
+@login_required
+def stagehistpop(dryorwet):
+    return render_template('force_utilities.html', display = 'not yet implemented')
+
+
+@app.route('/missnewsid/<dryorwet>')
+@login_required
+def missnewsid(dryorwet):
+    return render_template('force_utilities.html', display = 'not yet implemented')
+
+
 @app.route('/statusfix/<dryorwet>')
 @login_required
 def statusfix(dryorwet):
+    """ Code to Set Entity.status to "potential" when Entity.stage_history is empty, set to "live" when Entity.stage_history has content """
     if current_user.role != 'administrator':
         return render_template('index.html')
     display = ''
     commit = False
-    """ check Entity.status """
     query = Entity.query
     query = query.filter(Entity.status != 'disabled')
     entities = query.all()
@@ -1050,11 +1069,13 @@ def statusfix(dryorwet):
 @app.route('/stagefix/<dryorwet>')
 @login_required
 def stagefix(dryorwet):
+    """ Code to check stage values and change from str to int if needed """
     if current_user.role != 'administrator':
         return render_template('index.html')
     display = ''
     commit = False
     """ check Entity.stage_current """
+    """ prob never does anything as Entity.stage_current is of type int """
     query = Entity.query
     query = query.filter(Entity.status != 'disabled')
     entities = query.all()
@@ -1076,6 +1097,36 @@ def stagefix(dryorwet):
     if commit:
         db.session.commit()
         display += f'Commited Entities'
+    """ check Entity.stage_history[i][1] """
+    """ should be int; may be str like 'Stage 3' or '3' """
+    query = Entity.query
+    query = query.filter(Entity.status != 'disabled')
+    entities = query.all()
+    for ent in entities:
+        for count, item in enumerate(ent.stage_history, start=1): # stage_history is a mutable list
+            stage_value = ent.stage_history[count-1][1]
+            if not stage_value:
+                display += f'Entity ID #{ent.id} has in stage_history item #{count} NO stage value!\n'
+            if isinstance(stage_value, int):
+                continue # already int
+            if isinstance(stage_value, str):
+                if len(stage_value) == 1:
+                    fix = int(stage_value)
+                else:
+                    fix = int(stage_value[-1:])
+            if dryorwet == 'dry':
+                display += f'Entity ID #{ent.id} has in stage_history item #{count} a date of "{stage_value}" which would be changed to "{fix}"\n'
+            elif dryorwet == 'wet':
+                display += f'Entity ID #{ent.id} had in stage_history item #{count} a date of "{stage_value}" which was changed to "{fix}"\n'
+                logging.info(f'Entity ID #{ent.id} had in stage_history item #{count} a date of "{stage_value}" which was changed to "{fix}"')
+                ent.stage_history[count-1][1] = fix # Modify the list in place (not a reference like item[1] = fix )
+                flag_modified(ent, "stage_history") # (model instance, column name storing the mutable list) call once per entity (inside the loop)
+                commit = True
+            else:
+                logging.error(f"dryorwet value of {dryorwet} sent to datefix, which doesn't work...")
+    if commit:
+        db.session.commit() # Call only once at the end to save all changes at once.
+        display += f'Flaged (mutable list) and commited Entities'
     if not display:
         display = f'Nothing to display...'
     return render_template('force_utilities.html', display = display)
@@ -1084,6 +1135,7 @@ def stagefix(dryorwet):
 @app.route('/datefix/<dryorwet>')
 @login_required
 def datefix(dryorwet):
+    """ Code to ensure all date fields are in datetime format! """
     if current_user.role != 'administrator':
         return render_template('index.html')
     display = ''
@@ -1163,25 +1215,27 @@ def datefix(dryorwet):
     entities = query.all()
     for ent in entities:
         for count, item in enumerate(ent.stage_history, start=1): # stage_history is a mutable list
-            if not item[0]:
+            dt_value = ent.stage_history[count-1][0]
+            if not dt_value:
                 display += f'Entity ID #{ent.id} has in stage_history item #{count} NO date!\n'
-            if isinstance(item[0], datetime):
+            if isinstance(dt_value, datetime):
                 continue # already datetime
-            fix = dateparser.parse(item[0])
-            if item[0] == str(fix):
+            fix = dateparser.parse(dt_value)
+            if dt_value == str(fix):
                 continue # already correct but just saved as type str and not type datetime
             if dryorwet == 'dry':
-                display += f'Entity ID #{ent.id} has in stage_history item #{count} a date of "{item[0]}" which would be changed to "{fix}"\n'
+                display += f'Entity ID #{ent.id} has in stage_history item #{count} a date of "{dt_value}" which would be changed to "{fix}"\n'
             elif dryorwet == 'wet':
-                display += f'Entity ID #{ent.id} had in stage_history item #{count} a date of "{item[0]}" which was changed to "{fix}"\n'
-                logging.info(f'Entity ID #{ent.id} had in stage_history item #{count} a date of "{item[0]}" which was changed to "{fix}"')
-                item[0] = str(fix) ### THIS DOES NOT SEEM TO WORK YET, MUTABLE LIST SHOULD HANDLE
+                display += f'Entity ID #{ent.id} had in stage_history item #{count} a date of "{dt_value}" which was changed to "{fix}"\n'
+                logging.info(f'Entity ID #{ent.id} had in stage_history item #{count} a date of "{dt_value}" which was changed to "{fix}"')
+                ent.stage_history[count-1][0] = str(fix) # Modify the list in place (not a reference like item[0] = str(fix) )
+                flag_modified(ent, "stage_history") # (model instance, column name storing the mutable list) call once per entity (inside the loop)
                 commit = True
             else:
                 logging.error(f"dryorwet value of {dryorwet} sent to datefix, which doesn't work...")
     if commit:
-        db.session.commit()
-        display += f'Commited Entities'
+        db.session.commit() # Call only once at the end to save all changes at once.
+        display += f'Flaged (mutable list) and commited Entities'
     if not display:
         display = f'Nothing to display...'
     return render_template('force_utilities.html', display = display)
