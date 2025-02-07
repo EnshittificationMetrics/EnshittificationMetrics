@@ -205,9 +205,17 @@ def upgrade_library_package(pipfile_loc, package_name, last_update_date):
         logging.error(f'Tried to upgrade {pipfile_loc}/Pipfile {package_name} (updated {last_update_date}) - but got no success. Detail: {pipenv_return}')
 
 
+"""
+For automation, configure passwordless sudo for the specific command in /etc/sudoers.
+sudo visudo # Edit sudoers file
+your-username ALL=(ALL) NOPASSWD: /usr/sbin/ss # Add this line (replace your-username) to enable "sudo ss -tuln | grep -E ':80|:443'" to run
+Be careful—this allows passwordless execution for ss, but not for all sudo commands.
+"""
+
+
 def main():
     runningas = run_command(command = "whoami", cwd_loc = cwd_loc)
-    logging.info(f'Running {__file__} as: {runningas[0:-1]}')
+    logging.info(f'Running {__file__} as {runningas[0:-1]}; mode = "{overall_mode_of_operations}"')
     """ I. if needed, reload apache2 """
     flag_path = os.path.dirname(log_path) + '/apache_reload_needed'
     # 'apache_reload_needed' created by 'copy_github_to_local.py'
@@ -226,8 +234,9 @@ def main():
             """ II. apt install """
             try:
                 run_command(command = "sudo apt update", cwd_loc = cwd_loc)
-                run_command(command = "sudo apt full-upgrade -y", cwd_loc = cwd_loc)
+                run_command(command = "sudo apt upgrade -y", cwd_loc = cwd_loc)
                 # sudo apt upgrade -y # safer than full-upgrade
+                # sudo apt full-upgrade -y # Removes packages if needed for dependency resolution; Installs new dependencies that are required for updates
                 # sudo apt list --upgradable
                 # sudo apt full-upgrade --dry-run
             except Exception as e:

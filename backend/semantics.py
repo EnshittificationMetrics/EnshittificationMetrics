@@ -31,6 +31,7 @@ import socket
 import math
 from datetime import datetime
 from populate_blanks import create_timeline_content, create_data_map_content
+import dateparser
 
 hostn = socket.gethostname()
 
@@ -175,6 +176,7 @@ def semantic_processing(title, url, date, content):
             record = Entity.query.filter_by(name=entity).first()
             if record:
                 # add stage to entity stage history
+                logging.info(f'Processing "{entity}" to add stage to entity stage_history and update stage_current.')
                 if record.stage_history is None:
                     record.history = []
                 record.stage_history.append([date, stage_int_value, news_item_id]) 
@@ -208,15 +210,21 @@ def semantic_processing(title, url, date, content):
 
 
 def weighted_avg_stage_hist(stage_values):
-    # each (mutable) list item in stage_values should be date (str %Y-%b-%d) and stage value (int) pair
-    # ex: [['2024-AUG-17', 2], ['2024-AUG-18', 1], ['2024-SEP-06', 3], ['2024-SEP-06', 1], ['2024-SEP-09', 3], ['2024-SEP-11', 3]]
-    most_recent_date = max([datetime.strptime(entry[0], '%Y-%b-%d').date() for entry in stage_values])
+    # updated format and structure
+    #   each (mutable) list item in stage_values should be [0] date (datetime type in str type?), [1] stage value (int), [2] news item ID (int)
+    #   ex: [ ['2025-01-22 00:00:00', 2, 813], ['2025-01-28 00:00:00', 2, 853], ['2025-02-06 00:00:00', 3, 903], ] 
+    # original format and structure
+    #   each (mutable) list item in stage_values should be date (str %Y-%b-%d) and stage value (int) pair
+    #   ex: [['2024-AUG-17', 2], ['2024-AUG-18', 1], ['2024-SEP-06', 3], ['2024-SEP-06', 1], ['2024-SEP-09', 3], ['2024-SEP-11', 3]]
+    #   most_recent_date = max([datetime.strptime(entry[0], '%Y-%b-%d').date() for entry in stage_values])
+    #   time_diff = (most_recent_date - datetime.strptime(date, '%Y-%b-%d').date()).days
+    most_recent_date = max([dateparser.parse(entry[0]).date() for entry in stage_values])
     total_weighted_value = 0
     total_weight = 0
     for date, value, *rest in stage_values:
         news_item_id = rest
         # Calculate time difference in days
-        time_diff = (most_recent_date - datetime.strptime(date, '%Y-%b-%d').date()).days
+        time_diff = (most_recent_date - dateparser.parse(date).date()).days
         # Calculate weight using exponential decay (more recent = higher weight)
         weight = math.exp(-time_diff / decay_factor)
         # Accumulate weighted value and weight

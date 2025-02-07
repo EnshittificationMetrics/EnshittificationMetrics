@@ -63,6 +63,7 @@ import requests
 from httpx import HTTPStatusError
 # import graphviz # sudo apt install graphviz (for local display!?) # pipenv install graphviz (this is in Pipfile)
 from datetime import datetime
+import dateparser
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
 
@@ -234,6 +235,31 @@ Please return shortened form of search results for "{entity}".
 """
 
 
+def dt_parse(date_in):
+    """ use dateparser.parse() to convert whatever to datetime """
+    if isinstance(date_in, datetime):
+        """ if input is datetime just pass as is """
+        logging.info(f'dt_parse: already datetime!')
+        date_out = date_in
+    elif isinstance(date_in, str):
+        """ if input is str, and value is 'None' just pass as is, otherwise run through dateparser """
+        if date_in == 'None':
+            logging.info(f'dt_parse: value str "None"')
+            date_out = 'None'
+        else:
+            logging.info(f'dt_parse: type str')
+            date_out = dateparser.parse(date_in)
+    else:
+        """ anything else try to convert to str and then run through dateparser """
+        logging.info(f'dt_parse: input of "{date_in}" is type {type(date_in)} - trying conver to str and parse')
+        try:
+            date_out = dateparser.parse(str(date_in))
+        except Exception as e:
+            logging.error(f'dateparser failed with error {e}')
+            date_out = 'None'
+    return date_out
+
+
 def create_summary_content(name):
     """
     Query Wikipedia and DDG on name.
@@ -263,10 +289,6 @@ def create_summary_content(name):
         # duckduckgo_search.exceptions.RatelimitException: https://duckduckgo.com/ 202 Ratelimit
 
     content_prompt = ChatPromptTemplate.from_template(CREATE_SUMMARY_CONTENT_TEMPLATE)
-    ### chain = ( content_prompt
-    ###         | large_lang_model 
-    ###         | StrOutputParser() 
-    ###         )
     chain = ( content_prompt
             | large_lang_model 
             | JsonOutputParser() # automatically parses the output into a Python dictionary
@@ -275,6 +297,7 @@ def create_summary_content(name):
         content = chain.invoke({"entity": name, 
                                 "wikipedia_page_results": wikipedia_page_results, 
                                 "ddg_results": ddg_results})
+         # JsonOutputParser returns a dictionary
         logging.info(f'==> Raw content return (which should be json) for {name}:\n{content}')
     except HTTPStatusError as e:
         content = ''
@@ -286,23 +309,10 @@ def create_summary_content(name):
     except Exception as e:
         content = ''
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
-    ### # extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation
-    ### start = content.find('{')
-    ### end = content.rfind('}')
-    ### if start != -1 and end != -1 and start < end:
-    ###     content = content[start:end + 1]
-    ###     logging.info(f'==> Cropped, leaving content btwn first open and last close curly bracket (which should be only json) for {name}:\n{content}')
     try:
-        ### data = json.loads(content)
-        ### summary = data.get('summary')
-        ### date_started = data.get('date_started')
-        ### date_ended = data.get('date_ended')
-        ### corp_fam = data.get('corp_fam')
-        ### category = data.get('category')
-        # data = json.loads(content) ### JSON object must be str, bytes or bytearray, not dict
         summary = content.get('summary')
-        date_started = content.get('date_started')
-        date_ended = content.get('date_ended')
+        date_started = dt_parse(content.get('date_started'))
+        date_ended = dt_parse(content.get('date_ended'))
         corp_fam = content.get('corp_fam')
         category = content.get('category')
     except Exception as e:
@@ -498,40 +508,6 @@ def make_new_timeline(entity):
     except Exception as e:
         content = "No timeline"
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
-
-    ### """ Pull timeline content string out of supposed json formatted return from LLM """
-    ### try:
-    ###     data = json.loads(content) # 1st try
-    ###     # json.decoder.JSONDecodeError: Extra data: line 5 column 1 (char 730)
-    ###     # json.decoder.JSONDecodeError: Unterminated string starting at: line 2 column 13 (char 14)
-    ###     timeline = data.get('timeline')
-    ###     logging.info(f'==> json.loads!')
-    ###     return timeline
-    ### except JSONDecodeError as e:
-    ###     error_message = str(e)
-    ###     if "Unterminated string" in error_message:
-    ###         """ manually add json open chars """
-    ###         content = '{"timeline": "' + content
-    ###         logging.warning(f'==> added json open chars; Error: {e}')
-    ###     if "Extra data" in error_message:
-    ###         start = None
-    ###         # end = None
-    ###         start = content.find('{')
-    ###         end = content.rfind('}')
-    ###         if start != -1 and end != -1 and start < end:
-    ###             """ extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation """
-    ###             content = content[start:end + 1]
-    ###             logging.warning(f'==> string manipulation cropped out non-json; Error: {e}')
-    ###     """ sanitize, replace literal newline characters """
-    ###     content = content.replace("\n", "\\n")
-    ### try:
-    ###     data = json.loads(content) # 2nd try
-    ###     timeline = data.get('timeline')
-    ###     logging.info(f'==> json.loads on 2nd try!')
-    ###     return timeline
-    ### except Exception as e:
-    ###     logging.error(f'==> json loading LLM return results in: {e}')
-    ### return timeline
     return content
 
 
@@ -578,40 +554,7 @@ def merge_timelines(entity, new_timeline):
         # hope it worked
         content = merged_timeline
         logging.info(f'==> content = (4) merged_timeline - hope all the LLM calls worked...')
-    # replace w/ JsonOutputParser() from langchain_core.output_parsers.json
-    ### """ Pull timeline content string out of supposed json formatted return from LLM """
-    ### try:
-    ###     data = json.loads(content) # 1st try
-    ###     # json.decoder.JSONDecodeError: Extra data: line 5 column 1 (char 730)
-    ###     # json.decoder.JSONDecodeError: Unterminated string starting at: line 2 column 13 (char 14)
-    ###     timeline = data.get('timeline')
-    ###     logging.info(f'==> json.loads!')
-    ###     return timeline
-    ### except JSONDecodeError as e:
-    ###     error_message = str(e)
-    ###     if "Unterminated string" in error_message:
-    ###         """ manually add json open chars """
-    ###         content = '{"timeline": "' + content
-    ###         logging.warning(f'==> added json open chars; Error: {e}')
-    ###     if "Extra data" in error_message:
-    ###         start = None
-    ###         # end = None
-    ###         start = content.find('{')
-    ###         end = content.rfind('}')
-    ###         if start != -1 and end != -1 and start < end:
-    ###             """ extract the content between first '{' and last '}' as LLM tends to be chatty and bookend the needed json with intro and explanation """
-    ###             content = content[start:end + 1]
-    ###             logging.warning(f'==> string manipulation cropped out non-json; Error: {e}')
-    ###     """ sanitize, replace literal newline characters """
-    ###     content = content.replace("\n", "\\n")
-    ### try:
-    ###     data = json.loads(content) # 2nd try
-    ###     timeline = data.get('timeline')
-    ###     logging.info(f'==> json.loads on 2nd try!')
-    ###     return timeline
-    ### except Exception as e:
-    ###     logging.error(f'==> json loading LLM return results in: {e}')
-    ### return timeline
+    # replaced w/ JsonOutputParser() from langchain_core.output_parsers.json!
     return content
 
 
@@ -689,104 +632,6 @@ def create_data_map_content(entity):
     return map_data
 
 
-def create_data_map_content_stale(entity):
-    """ place name in center, and make line out for each of stage, started, end, category, status, summary, timeline, news items, (wikipedia), (URLs) """
-    """ json.dumps to serialize for storage as text in SQLite """
-    json_map = json.dumps({
-        "edges": [
-            {"data": {"id": "01", "source": "0", "target": "1"}},
-            {"data": {"id": "02", "source": "0", "target": "2"}},
-            {"data": {"id": "03", "source": "0", "target": "3"}},
-            {"data": {"id": "04", "source": "0", "target": "4"}},
-            {"data": {"id": "05", "source": "0", "target": "5"}},
-            {"data": {"id": "06", "source": "0", "target": "6"}},
-            {"data": {"id": "07", "source": "0", "target": "7"}},
-            {"data": {"id": "08", "source": "0", "target": "8"}},
-            {"data": {"id": "09", "source": "0", "target": "9"}},
-        ],
-        "nodes": [
-            {"data": {"id": "0", "label": f"{entity.name}" }},
-            {"data": {"id": "1", "label": f"Stage {entity.stage_current}" }},
-            {"data": {"id": "2", "label": f"started: {entity.date_started}"}},
-            {"data": {"id": "3", "label": f"ended: {entity.date_ended}" }},
-            {"data": {"id": "4", "label": f"categories: {entity.category}" }},
-            {"data": {"id": "5", "label": f"corp fam: {entity.corp_fam}" }},
-            {"data": {"id": "6", "label": f"status: {entity.status}" }},
-            {"data": {"id": "7", "label": f"summary: {entity.summary}" }},
-            {"data": {"id": "8", "label": f"{len(entity.stage_history)} linked news items" }},
-            {"data": {"id": "9", "label": f"timeline: {entity.timeline}" }},
-        ],
-    })
-    return json_map
-
-
-def create_data_map_content_old(entity):
-    """ place name in center, and make line out for each of stage, started, end, category, status, summary, timeline, news items, (wikipedia), (URLs) """
-    dot_string = f''
-    dot_string += f'//{entity.name} Data Map\n'
-    dot_string += f'digraph {{\n'
-    dot_string += f'0 [label="{entity.name}"]\n'
-    dot_string += f'1 [label="Stage {entity.stage_current}"]\n'
-    dot_string += f'0 -> 1\n'
-    ### Ideally add a few more here like: word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
-    dot_string += f'2 [label="started: {entity.date_started}"]\n'
-    dot_string += f'0 -> 2\n'
-    if entity.date_ended:
-        dot_string += f'3 [label="started: {entity.date_started}"]\n'
-        dot_string += f'0 -> 3\n'
-    if entity.category:
-        dot_string += f'4 [label="categories: {entity.category}"]\n' # could make each a link
-        dot_string += f'0 -> 4\n'
-    if entity.corp_fam:
-        dot_string += f'5 [label="corp fam: {entity.corp_fam}"]\n' # could make each a sub-link
-        dot_string += f'0 -> 5\n'
-    dot_string += f'6 [label="status: {entity.status}"]\n'
-    dot_string += f'0 -> 6\n'
-    if entity.summary:
-        dot_string += f'7 [label="summary: {entity.summary}"]\n'
-        dot_string += f'0 -> 7\n'
-    if entity.stage_history:
-        dot_string += f'8 [label="{len(entity.stage_history)} linked news items"]\n' # could make each a sub-link
-        dot_string += f'0 -> 8\n'
-    if entity.timeline:
-        dot_string += f'9 [label="timeline"]\n' # reference only, not content
-        dot_string += f'0 -> 9\n'
-    dot_string += f'}}\n'
-    dot_string += f'\n'
-    return dot_string
-
-
-def create_data_map_content_older(entity):
-    dot = graphviz.Digraph(comment=f'{entity.name} Data Map')
-    dot.node('0', entity.name)
-    dot.node('1', f'Stage {entity.stage_current}') # essentially sentiment
-    dot.edge('0', '1')
-    ### Ideally add a few more here like: word cloud of nature of entity, market cap, EBICD, stock summary, daily active users
-    dot.node('2', f'started: {entity.date_started}')
-    dot.edge('0', '2')
-    if entity.date_ended:
-        dot.node('3', f'ended: {entity.date_ended}')
-        dot.edge('0', '3')
-    if entity.category:
-        dot.node('4', f'categories: {entity.category}') # could make each a link
-        dot.edge('0', '4')
-    if entity.corp_fam:
-        dot.node('5', f'corp fam: {entity.corp_fam}') # could make each a sub-link
-        dot.edge('0', '5')
-    dot.node('6', f'status: {entity.status}')
-    dot.edge('0', '6')
-    if entity.summary:
-        dot.node('7', f'summary: {entity.summary}')
-        dot.edge('0', '7')
-    if entity.stage_history:
-        dot.node('8', f'{len(entity.stage_history)} linked news items') # could make each a sub-link
-        dot.edge('0', '8')
-    if entity.timeline:
-        dot.node('9', f'timeline') # reference only, not content
-        dot.edge('0', '9')
-    return dot # this is a Digraph object, not a dot formatted string
-
-
 def large_lang_model(query):
     large_lang_model = ChatMistralAI(model_name = 'open-mixtral-8x7b', 
                                      mistral_api_key = llm_api_key, 
@@ -819,8 +664,8 @@ def parse_for_blank_summary(count_max_sm):
                     logging.info(f'==> Tried, but unable to get content for {entity.name}. ')
                     continue
                 entity.summary = summary
-                entity.date_started = date_started
-                entity.date_ended = date_ended
+                entity.date_started = dt_parse(date_started)
+                entity.date_ended = dt_parse(date_ended)
                 if not entity.corp_fam:
                     entity.corp_fam = corp_fam
                 if not entity.category:
@@ -924,9 +769,9 @@ def create_timeline_for_entity(entity_name_str):
                 logging.info(f'==> Summary needed for timeline, exited before timeline creation. ')
                 return None
             entity.summary = summary
-            entity.date_started = date_started
+            entity.date_started = dt_parse(date_started)
             if date_ended:
-                entity.date_ended = date_ended
+                entity.date_ended = dt_parse(date_ended)
             if corp_fam:
                 entity.corp_fam = corp_fam
             if category:
