@@ -1147,7 +1147,7 @@ def datefix(dryorwet):
             display += f'Reference ID #{ref.id} has NO date!\n'
         if isinstance(ref.date_pub, datetime):
             continue # already datetime
-        fix = dateparser.parse(ref.date_pub)
+        fix = dateparser.parse(ref.date_pub).date()
         if ref.date_pub == str(fix):
             continue # already correct but just saved as type str and not type datetime
         if dryorwet == 'dry':
@@ -1170,7 +1170,7 @@ def datefix(dryorwet):
             display += f'Art ID #{ref.id} has NO date!\n'
         if isinstance(art.date_pub, datetime):
             continue # already datetime
-        fix = dateparser.parse(art.date_pub)
+        fix = dateparser.parse(art.date_pub).date()
         if art.date_pub == str(fix):
             continue # already correct but just saved as type str and not type datetime
         if dryorwet == 'dry':
@@ -1193,7 +1193,7 @@ def datefix(dryorwet):
             display += f'News ID #{ref.id} has NO date!\n'
         if isinstance(news.date_pub, datetime):
             continue # already datetime
-        fix = dateparser.parse(news.date_pub)
+        fix = dateparser.parse(news.date_pub).date()
         if news.date_pub == str(fix):
             continue # already correct but just saved as type str and not type datetime
         if dryorwet == 'dry':
@@ -1220,7 +1220,7 @@ def datefix(dryorwet):
                 display += f'Entity ID #{ent.id} has in stage_history item #{count} NO date!\n'
             if isinstance(dt_value, datetime):
                 continue # already datetime
-            fix = dateparser.parse(dt_value)
+            fix = dateparser.parse(dt_value).date()
             if dt_value == str(fix):
                 continue # already correct but just saved as type str and not type datetime
             if dryorwet == 'dry':

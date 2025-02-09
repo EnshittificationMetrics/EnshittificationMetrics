@@ -20,6 +20,7 @@ from semantics import semantic_processing
 import html5lib # Parses HTML like a web browser, very lenient, handles malformed HTML, slower than native ‘html.parser’ or recommended 'lxml'
 import re
 import requests
+import dateparser
 
 
 site_url = 'https://slashdot.org/'
@@ -84,6 +85,7 @@ def parse_slashdot_posts():
             if div_with_text:
                 sd_fhtime_text = div_with_text.get_text(strip=True)
                 post_timestamp = yyyy_mmm_dd_format(sd_fhtime_text)
+                post_timestamp = dateparser.parse(post_timestamp).date() # change to datetime; from "2025-FEB-07" to "2025-02-07"
                 div_with_text = None # reset if used
             else:
                 note += f'No timestamp for {title_id}.\n'

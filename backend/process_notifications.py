@@ -31,6 +31,8 @@ import sqlalchemy as sa
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_mistralai.chat_models import ChatMistralAI
 from langchain_core.output_parsers import StrOutputParser
+import dateparser
+import re
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
 llm_temp = 0.25
@@ -47,7 +49,7 @@ mail = Mail(app)
 
 
 def create_report(user):
-    logging.info(f'==> ++++++++++ creating report for {user.username} +++++++++++')
+    logging.info(f'==> ++++++++++ creating report for {user.username} with last_sent value of {user.last_sent} +++++++++++')
     report = ""
     """ report on art items since last_sent """
     if user.alert_on_art_item:
@@ -74,51 +76,52 @@ def create_report(user):
             report += report_ref + "\n"
             logging.info(f'==> ++++++++++ {len(report_ref)} characters on references +++++++++++')
     """ report on entities and/or categories followed """
-    query = Entity.query
-    query = query.filter(Entity.status != 'disabled')
-    entities_objs = query.all()
-    for ent in entities_objs: # tried to define entities_objs at top of script in inti area but didn't work, maybe due to lack of with app.app_context()
-        ent_hit = False
-        report_news = ""
-        report_stage = ""
-        if ent.name in user.entities_following: ent_hit = True
-        words = ent.category.split(", ") # string so need to comma separate
-        for cat in words:
-            if cat in user.categories_following: ent_hit = True
-        if not ent_hit: continue
-        logging.info(f'==> ++++++++++ hit for {ent.name} +++++++++++') # might comment this logging line as too chatty, or summarize somehow
-        """ report news items listed in stage_history for this entity in time since last_sent """
-        if user.alert_on_news_item:
-            for item in ent.stage_history:
-                if item[0] > user.last_sent: # news item date ### TypeError: '>' not supported between instances of 'str' and 'datetime.datetime'
-                    if item[2]: # news item id
-                        query = News.query
-                        query = query.filter(News.id == item[2])
-                        news_item = query.all()
-                        report_news += f'*  On {news_item.date_pub} indexed stage {stage_int_value} "{news_item.text}" at {news_item.url}\n\n'
-        """ report stage value changes for this entity in time since last_sent """
-        if user.alert_on_stage_change:
-            stage_values = str(ent.stage_current)
-            for item in ent.stage_history:
-                if item[0] > user.last_sent: # news item date
-                    stage_values += str(item[1]) # stage value
-            unique_chars = set(stage_values)
-            unique_count = len(unique_chars)
-            if unique_count == 1:
-                pass # that's okay
-            elif unique_count == 2:
-                report_stage += f'Crossed stages {unique_chars[0]} and {unique_chars[1]}.'
-            elif unique_count == 3:
-                report_stage += f'Crossed stages {unique_chars[0]} and {unique_chars[1]} and {unique_chars[2]}.'
-            elif unique_count == 4:
-                report_stage += f'Crossed stages {unique_chars[0]} and {unique_chars[1]} and {unique_chars[2]} and {unique_chars[3]}.'
-            else:
-                logging.error(f"stage_values didn't resolve to an expected unique_count: {stage_values}")
-        if report_news or report_stage:
-            report += f"Entity {ent.name}:\n\n"
-            report += report_news + report_stage + "\n"
-            logging.info(f'==> ++++++++++ {len(report_news)} characters on news +++++++++++')
-            logging.info(f'==> ++++++++++ stage history values: {unique_chars} +++++++++++')
+    if user.alert_on_news_item or user.alert_on_stage_change:
+        query = Entity.query
+        query = query.filter(Entity.status != 'disabled')
+        entities_objs = query.all()
+        for ent in entities_objs: # tried to define entities_objs at top of script in inti area but didn't work, maybe due to lack of with app.app_context()
+            ent_hit = False
+            report_news = ""
+            report_stage = ""
+            if ent.name in user.entities_following: ent_hit = True
+            words = ent.category.split(", ") # string so need to comma separate
+            for cat in words:
+                if cat in user.categories_following: ent_hit = True
+            if not ent_hit: continue
+            logging.info(f'==> ++++++++++ hit for {ent.name} +++++++++++') # might comment this logging line as too chatty, or summarize somehow
+            """ report news items listed in stage_history for this entity in time since last_sent """
+            if user.alert_on_news_item:
+                for item in ent.stage_history:
+                    if dateparser.parse(item[0]) > user.last_sent: # news item date # last_sent is defined/stored as datetime already
+                        if item[2]: # news item id
+                            query = News.query.filter(News.id == item[2])
+                            news_item = query.first() # Returns a single User object or None, not a list
+                            report_news += f'*  {ent.name} {news_item.date_pub} (stage {ent.stage_current} event) "{news_item.text}"; at {news_item.url}\n\n'
+            """ report stage value changes for this entity in time since last_sent """
+            if user.alert_on_stage_change:
+                stage_values = str(ent.stage_current)
+                for item in ent.stage_history:
+                    if dateparser.parse(item[0]) > user.last_sent: # news item date
+                        stage_values += str(item[1]) # stage value
+                unique_chars = ''.join(set(stage_values)) # set makes, for ex., {'3', '2', '1'}, then we join it into a str, for ex. '321'
+                unique_count = len(unique_chars)
+                if unique_count == 1:
+                    pass # that's okay
+                elif unique_count == 2:
+                    report_stage += f'*  {ent.name} crossed stages {unique_chars[0]} and {unique_chars[1]}.\n'
+                elif unique_count == 3:
+                    report_stage += f'*  {ent.name} crossed stages {unique_chars[0]} and {unique_chars[1]} and {unique_chars[2]}.\n'
+                elif unique_count == 4:
+                    report_stage += f'*  {ent.name} crossed stages {unique_chars[0]} and {unique_chars[1]} and {unique_chars[2]} and {unique_chars[3]}.\n'
+                else:
+                    logging.error(f"stage_values didn't resolve to an expected unique_count: {stage_values}")
+            if report_news:
+                report += report_news
+                logging.info(f'==> ++++++++++ {len(report_news)} characters on news +++++++++++')
+            if report_stage:
+                report += report_stage + "\n"
+                logging.info(f'==> ++++++++++ stage history values: {unique_chars} +++++++++++')
     """ ai_suggestions """
     if user.ai_suggestions:
         pass # future development...
@@ -157,6 +160,9 @@ def generate_snappy_subject(report):
     except Exception as e:
         snappy_subject = None
         logging.error(f'==> chain.invoke Mistral LLM failed: {e}')
+    snappy_subject = snappy_subject.replace("\n", " ") # Email headers must not contain newlines as they can be exploited for email header injection
+    match = re.search(r'"(.*?)"', snappy_subject) # Extract first quoted section; not sure why LLM returned quoted content, this is not requested in prompt
+    snappy_subject = match.group(1) if match else snappy_subject # Sorry LLM, if you offer multiple options I'm just taking first one
     return snappy_subject
 
 
@@ -202,17 +208,20 @@ def test_print(report, snappy_subject, un, email):
 
 def one_off_report_to_user(username_str):
     """ few checks, just force an alert out for that user """
+    testing = True
     logging.info(f'==> ++++++++++ one-off alert starting against user "{username_str}" +++++++++++')
     with app.app_context():
-        query = User.query
-        query = query.filter(User.username == username_str)
-        user = query.all()
+        query = User.query.filter(User.username == username_str)
+        user = query.first()  # Returns a single User object or None
         if not user:
             logging.warning(f'==> ++++++++++ user "{username_str}" not found +++++++++++')
             return False
         if not user.enable_notifications:
             logging.warning(f'==> ++++++++++ user.enable_notifications == False +++++++++++')
             return False
+        if testing:
+            user.last_sent = datetime.now() - timedelta(days=10)
+            print(f'In test mode - dropped last_sent to {user.last_sent}')
         report = create_report(user=user)
         if report:
             send_report_to_user(report=report, user=user)
