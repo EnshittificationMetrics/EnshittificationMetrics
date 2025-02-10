@@ -218,22 +218,18 @@ def weighted_avg_stage_hist(stage_values):
     #   ex: [['2024-AUG-17', 2], ['2024-AUG-18', 1], ['2024-SEP-06', 3], ['2024-SEP-06', 1], ['2024-SEP-09', 3], ['2024-SEP-11', 3]]
     #   most_recent_date = max([datetime.strptime(entry[0], '%Y-%b-%d').date() for entry in stage_values])
     #   time_diff = (most_recent_date - datetime.strptime(date, '%Y-%b-%d').date()).days
-    logging.info(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    logging.info(f'check why dateparser throws TypeError: Input type must be str')
-    for entry in stage_values:
-        logging.info(f'value: {entry[0]} - type{type(entry[0])}')
-    logging.info(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    try:
-        most_recent_date = max([dateparser.parse(entry[0]).date() for entry in stage_values]) ### sometimes throws TypeError: Input type must be str
-    except Exception as e:
-        most_recent_date = datetime.today().date()
-        logging.error(f'Using todays date as trying to find most_recent_date in stage_values[i][0] errored with: {e}')
+    ### logging.info(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    ### logging.info(f'check why dateparser throws TypeError: Input type must be str')
+    ### for entry in stage_values:
+    ###     logging.info(f'value: {entry[0]} - type{type(entry[0])}')
+    ### logging.info(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    most_recent_date = max([dateparser.parse(str(entry[0])).date() for entry in stage_values]) # added str() as sometimes threw TypeError: Input type must be str
     total_weighted_value = 0
     total_weight = 0
     for date, value, *rest in stage_values:
         news_item_id = rest
         # Calculate time difference in days
-        time_diff = (most_recent_date - dateparser.parse(date).date()).days
+        time_diff = (most_recent_date - dateparser.parse(str(date)).date()).days
         # Calculate weight using exponential decay (more recent = higher weight)
         weight = math.exp(-time_diff / decay_factor)
         # Accumulate weighted value and weight
