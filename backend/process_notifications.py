@@ -93,7 +93,7 @@ def create_report(user):
             """ report news items listed in stage_history for this entity in time since last_sent """
             if user.alert_on_news_item:
                 for item in ent.stage_history:
-                    if dateparser.parse(item[0]) > user.last_sent: # news item date # last_sent is defined/stored as datetime already
+                    if dateparser.parse(str(item[0])) > user.last_sent: # news item date # last_sent is defined/stored as datetime already
                         if item[2]: # news item id
                             query = News.query.filter(News.id == item[2])
                             news_item = query.first() # Returns a single User object or None, not a list
@@ -102,7 +102,7 @@ def create_report(user):
             if user.alert_on_stage_change:
                 stage_values = str(ent.stage_current)
                 for item in ent.stage_history:
-                    if dateparser.parse(item[0]) > user.last_sent: # news item date
+                    if dateparser.parse(str(item[0])) > user.last_sent: # news item date
                         stage_values += str(item[1]) # stage value
                 unique_chars = ''.join(set(stage_values)) # set makes, for ex., {'3', '2', '1'}, then we join it into a str, for ex. '321'
                 unique_count = len(unique_chars)
