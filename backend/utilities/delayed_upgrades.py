@@ -8,9 +8,9 @@ Reboots (safely) if required, or if no reboot in last "days_force_reboot" days.
 
 crontab = """30 3 * * * /usr/bin/python3 /home/leet/EnshittificationMetrics/backend/utilities/delayed_upgrades.py""" # dev as root
 
-crontab = """30 10 * * *     /usr/bin/python3 /home/bsea/em/utilities/delayed_upgrades.py     >> /home/bsea/em/utilities/cron_issues.log 2>&1""" # prod as bsea; PT = UTC - 7.5 so 10 UTC = 03:00 or 04:00 PT
+crontab = """30 10 * * *     /usr/bin/python3 /home/bsea/em/utilities/delayed_upgrades.py     >> /home/bsea/em/utilities/cron_issues.log 2>&1""" # prod as root; PT = UTC - 7.5 so 10 UTC = 03:00 or 04:00 PT
 
-overall_mode_of_operations = 'no upgrade' # 'no upgrade' or 'full upgrade' or 'delayed upgrade'
+overall_mode_of_operations = 'delayed upgrade' # 'no upgrade' or 'full upgrade' or 'delayed upgrade'
 
 if __file__.startswith('/home/bsea/em/'):
     log_path = '/home/bsea/em/utilities/delayed_upgrades.log' # EM prod

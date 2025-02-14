@@ -89,7 +89,7 @@ def create_report(user):
             for cat in words:
                 if cat in user.categories_following: ent_hit = True
             if not ent_hit: continue
-            logging.info(f'==> ++++++++++ hit for {ent.name} +++++++++++') # might comment this logging line as too chatty, or summarize somehow
+            logging.info(f'==> Checking {ent.name}') # might comment this logging line as too chatty, or summarize somehow
             """ report news items listed in stage_history for this entity in time since last_sent """
             if user.alert_on_news_item:
                 for item in ent.stage_history:
@@ -98,6 +98,7 @@ def create_report(user):
                             query = News.query.filter(News.id == item[2])
                             news_item = query.first() # Returns a single User object or None, not a list
                             report_news += f'*  {ent.name} {news_item.date_pub} (stage {ent.stage_current} event) "{news_item.text}"; at {news_item.url}\n\n'
+                            logging.info(f'==> bullet for news item ID #{news_item.id}')
             """ report stage value changes for this entity in time since last_sent """
             if user.alert_on_stage_change:
                 stage_values = str(ent.stage_current)
@@ -110,10 +111,13 @@ def create_report(user):
                     pass # that's okay
                 elif unique_count == 2:
                     report_stage += f'*  {ent.name} crossed stages {unique_chars[0]} and {unique_chars[1]}.\n'
+                    logging.info(f'==> bullet for stage crossing {unique_chars}')
                 elif unique_count == 3:
                     report_stage += f'*  {ent.name} crossed stages {unique_chars[0]} and {unique_chars[1]} and {unique_chars[2]}.\n'
+                    logging.info(f'==> bullet for stage crossing {unique_chars}')
                 elif unique_count == 4:
                     report_stage += f'*  {ent.name} crossed stages {unique_chars[0]} and {unique_chars[1]} and {unique_chars[2]} and {unique_chars[3]}.\n'
+                    logging.info(f'==> bullet for stage crossing {unique_chars}')
                 else:
                     logging.error(f"stage_values didn't resolve to an expected unique_count: {stage_values}")
             if report_news:
@@ -166,17 +170,17 @@ def generate_snappy_subject(report):
     return snappy_subject
 
 
-def send_report_to_user(report, user):
+def send_report_to_user(report, user, now):
     
     default_subject_text = f"""EnshittificationMetrics.com Alert"""
     
     salutation_text = f""""Alerts" from EnshittificationMetrics.com for {user.username}.\n"""
     
-    timerange_text = f"""Alert time-range is from {user.last_sent} to now.\n"""
+    timerange_text = f"""Alert time-range is from {user.last_sent.strftime("%Y-%b-%d %H:%M")} to {now.strftime("%Y-%b-%d %H:%M")}.\n\n"""
     
     signature_text = f"""Thanks, \nEnshittificationMetrics.com\n"""
     
-    footer_text = """Note that to change or stop these alerts, please use the "Alert Subscriptions Notification Settings" area in EnshittificationMetrics.com, https://www.enshittificationmetrics.com/alerts."""
+    footer_text = """To change or stop these alerts, please use the "Alert Subscriptions Notification Settings" area in EnshittificationMetrics.com, https://www.enshittificationmetrics.com/alerts."""
     ### Eventually will add a reply with UNSUBSCRIBE or STOP feature.
     
     logging.info(f'==> ++++++++++ sending report to {user.username} +++++++++++')
@@ -208,6 +212,7 @@ def test_print(report, snappy_subject, un, email):
 
 def one_off_report_to_user(username_str):
     """ few checks, just force an alert out for that user """
+    now = datetime.now()
     testing = True
     logging.info(f'==> ++++++++++ one-off alert starting against user "{username_str}" +++++++++++')
     with app.app_context():
@@ -220,12 +225,12 @@ def one_off_report_to_user(username_str):
             logging.warning(f'==> ++++++++++ user.enable_notifications == False +++++++++++')
             return False
         if testing:
-            user.last_sent = datetime.now() - timedelta(days=10)
+            user.last_sent = now - timedelta(days=10)
             print(f'In test mode - dropped last_sent to {user.last_sent}')
         report = create_report(user=user)
         if report:
-            send_report_to_user(report=report, user=user)
-            user.last_sent = datetime.now()
+            send_report_to_user(report=report, user=user, now=now)
+            user.last_sent = now
             db.session.commit()
         else:
             logging.info(f'==> ++++++++++ blank report generated, nothing to send +++++++++++')
@@ -234,7 +239,8 @@ def one_off_report_to_user(username_str):
 
 
 def create_send_alerts():
-    logging.info(f'\n\n==> ++++++++++ alerts starting +++++++++++')
+    logging.info(f'')
+    logging.info(f'==> ++++++++++ alerts starting +++++++++++')
     """ loop through all the users """
     with app.app_context():
         query = User.query
@@ -270,8 +276,8 @@ def create_send_alerts():
                     report = create_report(user=user)
                     if report:
                         """ send report """
-                        send_report_to_user(report=report, user=user)
-                        user.last_sent = datetime.now()
+                        send_report_to_user(report=report, user=user, now=now)
+                        user.last_sent = now
                         db.session.commit()
                     else:
                         logging.info(f'==> ++++++++++ blank report generated, nothing to send +++++++++++')
