@@ -77,7 +77,7 @@ def get_last_update_date(package_name):
 
 def upgrade_package(package_name, last_update_date):
     result = run_command(command = f'sudo apt install --only-upgrade -y {package_name}', cwd_loc = cwd_loc)
-    logging.info(f'Upgrading {package_name}... Updated {last_update_date}. stdout: {result}')
+    logging.info(f'Upgrading {package_name}, updated {last_update_date}, result {result}')
 
 
 def get_uptime():
