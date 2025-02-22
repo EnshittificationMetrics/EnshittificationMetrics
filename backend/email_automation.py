@@ -113,7 +113,7 @@ def fetch_unseen_imap():
                         spoof += "No DKIM Signature: Email may be spoofed! "
                     if "spf=fail" in spf_header.lower():
                         spoof += f'SPF Failed: This email may be spoofed! "{spf_header}". '
-                    if date_sent > current_date + timedelta(years = 2):
+                    if date_sent > current_date + timedelta(days = 2 * 365.25):
                         spoof += f'Likely SPAM - date at least two years in future; {date_sent}. '
                     """ parses subject & body (handles plain text & multipart emails) """
                     subject, encoding = decode_header(msg["Subject"])[0]
