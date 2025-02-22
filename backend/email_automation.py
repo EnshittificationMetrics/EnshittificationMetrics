@@ -2,7 +2,7 @@
 
 """ Check email in and perform action as able and send email as appropriate """
 
-crontab = """ ? ? * * * cd /home/bsea/em/ && python3 email_automation.py >> /home/bsea/em/email_automations.log 2>&1 """
+crontab = """ 50 0-22/2 * * * cd /home/bsea/em/ && pipenv run python3 email_automation.py      >> /home/bsea/em/email_automations.log 2>&1 """
 
 import os
 import sys
@@ -30,6 +30,9 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from app import app, db
 from app.models import User
+from langchain_core.output_parsers.json import JsonOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_mistralai.chat_models import ChatMistralAI
 
 load_dotenv('.env')
 
@@ -46,6 +49,10 @@ SENT_BOX_NAME = os.getenv('SENT_BOX_NAME') # "Sent" or "[Gmail]/Sent Mail" or "I
 JUNK_BOX_NAME = os.getenv('JUNK_BOX_NAME')
 HITL_BOX_NAME = os.getenv('HITL_BOX_NAME')
 
+# LLM stuff
+llm_api_key = os.getenv('MISTRAL_API_KEY')
+llm_temp = 0.25
+
 
 def fetch_unseen_imap():
     """ only reads single unseen """
@@ -61,6 +68,7 @@ def fetch_unseen_imap():
         date_sent = 'no email'
         spoof = ''
         remaining = 0
+        email_uid = ""
         # Search for unread emails
         status, email_ids = mail.uid("search", None, "UNSEEN") # get UID # was status, messages = mail.search(None, "UNSEEN") # get MSN (Message Sequence Number)
         email_ids = email_ids[0].split() # was email_ids = messages[0].split()
@@ -202,6 +210,100 @@ def move_email(email_from, email_uid, email_to):
             mail.expunge() # Permanently remove deleted emails
 
 
+def large_lang_model(query):
+    large_lang_model = ChatMistralAI(model_name = 'open-mixtral-8x7b', 
+                                     mistral_api_key = llm_api_key, 
+                                     temperature = llm_temp, 
+                                     verbose = True )
+    return large_lang_model
+
+
+EMAIL_REPLY_ACTION_TEMPLATE = """
+Can you compose a reasonable reply to this email?
+
+Respond in JSON format as illustrated in these examples.
+
+Example JSON response:
+{{
+  "replyable": "False", 
+  "disable_alerts": "False", 
+  "reply": "", 
+  "notes": "Unable to confidently understand what the user was talking about."
+}}
+
+Example JSON response:
+{{
+  "replyable": "True", 
+  "disable_alerts": "True", 
+  "reply": "Thank you for your email. Understand you appreciate the emailed alerts but want to pause them for a bit. Have initiated disabling your alerts. Have a great day!", 
+  "notes": "User requested that Enshittification Metrics notification alerts be disabled. They like them, but need to pause them for a bit and will manually re-enable them on the website in a few weeks."
+}}
+
+Example JSON response:
+{{
+  "replyable": "True", 
+  "disable_alerts": "False", 
+  "reply": "There is no need to reply to emailed OTP codes. Please simply request another code from on the Enshittification Metrics website; when you receive the code in email, enter it onto the appropriate form on the website. This validates that the email address is correct and controlled by you. Thanks for using the site!", 
+  "notes": ""
+}}
+
+Example JSON response:
+{{
+  "replyable": "True", 
+  "disable_alerts": "False", 
+  "reply": "Hi. Understand you received an unexpected OTP code. This should not happen. Best practice would be to log into Enshittification Metrics website, check your registered email address, validate it if needed, change your password, and enable MFA as available.", 
+  "notes": "User claimed they never requested a code..."
+}}
+
+Example JSON response:
+{{
+  "replyable": "True", 
+  "disable_alerts": "False", 
+  "reply": "", 
+  "notes": ""
+}}
+
+Setting "replyable" to "True" results in replying to the user's email with the content of "reply" as the email reply body. 
+Setting "replyable" to "False" means not to send any email reply. 
+Setting "disable_alerts" to "True" initiates disabling alerts for the specific user. 
+Setting "disable_alerts" to "False" means to do nothing, leave the user's alert setting as is. 
+Value of "reply" is sent as reply email content to user, assuming "replyable" is "True". 
+Value of "notes" is not shared with users, it is only used internally by site administrators, some human in the loop, or possibly other GenAI processes.
+
+You are a GenAI inference tasked with ingesting email from a site user, trying to comprehend it, and generating a response.
+You are representing enshittificationmetrics.com! If it's not crystal clear what the user is asking / stating, then do not reply. 
+(You can reply stating you don't really understand what they're after, and request clarification or re-phrasing.) 
+It is critical NOT to make up some answer. 
+It is important to be polite and tactful, not to say anything potentially controversial or embarrassing, or which might get us sued or fined. 
+
+Enshittification Metrics, https://www.enshittificationmetrics.com, is a site that gathers and displays enshittification metrics for (popular) tech platforms. 
+Transparency and fairness in judgment and assignment of metric scores is a goal of this site; 
+as such all judgment processes algorithms and LLM use are exposed - 
+visit github.com/EnshittificationMetrics/EnshittificationMetrics to see all code in use. 
+This site strives to be fully automated, enabling all news gathering and metrics value determinations to occur automatically 
+by way of software code and generative-AI agentic functions. 
+Our Ethics Board serves as critical human-in-the-loop; ensuring the autonomous metric gathering and reporting is reasonable and human-friendly.
+The "EnshittificationMetrics.com" site is just an agent collecting and collating publicly available news articles and internet forum postings. 
+Note that positive / constructive suggestions, comments, and discussion, are welcome on our sub Reddit r/Enshitif_Metrics! 
+Branded gear is available at https://enshitif-metrics.printify.me/products. 
+Enshittification (noun) - Coined by Cory Doctorow; transformation of a tech platform from a user-centric service to a profit-centric one. 
+The Four Stages of the Downward Enshittification Spiral:
+- Stage 1 - Attraction - great UX; innovation and features
+- Stage 2 - Monetization - introduce ads, premium features, subscription models; increased data collection
+- Stage 3 - Exploitation - algorithms tweaked for revenue, terms for creators less favorable, intrusive ads, paywalls
+- Stage 4 - Exodus - dissatisfied users, negative reviews, migration to alternatives, platform doubles down on profit maximization
+
+The current date is {current_date}.
+
+Here is email from user: 
+Date sent: {date_sent}
+From email address: {from_header}
+Email subject: {subject}
+Email body content: 
+{body}
+"""
+
+
 def main():
     salutation_text = f"""Salutations, \n"""
     signature_text = f"""Thanks, \nEnshittificationMetrics.com\n"""
@@ -249,107 +351,60 @@ def main():
             logging.info(f'Alert Notifications turned off for {from_header}.')
             continue
         """ Send to LLM to try to figure out and respond """
-        ### send to LLM, get JSON response
-        ### if "replyable" == "True":
-            ### if "disable_alerts" == "True" then call disable_alerts(target = from_header)
-            ### reply to email
-            ### logging.info()
-            ### continue
-        ### else: # "replyable" == "False"
-            ### move_email(email_from = INBOX_NAME, email_uid = email_uid, email_to = HITL_BOX_NAME)
-            ### logging.warning()
-            ### continue
-        """ dropped all the way thru with no meaning found and no action taken """
+        content_prompt = ChatPromptTemplate.from_template(EMAIL_REPLY_ACTION_TEMPLATE)
+        chain = ( content_prompt
+                | large_lang_model 
+                | JsonOutputParser()
+                )
+        try:
+            content = chain.invoke({"current_date": current_date, 
+                                    "date_sent": date_sent, 
+                                    "from_header": from_header, 
+                                    "subject": subject, 
+                                    "body": body})
+        except Exception as e:
+            logging.error(f'LLM email reply invoke failed w/ error {e}')
+            content = {"replyable": "False", "disable_alerts": "False", "reply": "", "notes": "LLM email reply invoke failed"}
+        try:
+            replyable = content.get('replyable')
+            disable_alerts = content.get('disable_alerts')
+            reply = content.get('reply')
+            notes = content.get('notes')
+        except Exception as e:
+            logging.error(f'Reading from LLM JSON reply failed w/ error {e}')
+        if "replyable" == "True":
+            if "disable_alerts" == "True":
+                mess = disable_alerts(target = from_header)
+                logging.info(f'Alert Notifications turned off for {from_header}.')
+            else:
+                mess = None
+            email_to = from_header
+            email_subj = f'Re: {subject}'
+            email_body = f"{salutation_text}\n"
+            if mess:
+                email_body += f"{mess} \n"
+            email_body += f'\n{reply}\n\n' \
+                          f'To change / enable / disable alerts, please use the "Alert Subscriptions Notification Settings" ' \
+                          f'area in EnshittificationMetrics.com, https://www.enshittificationmetrics.com/alerts. \n' \
+                          f"{signature_text}\n" \
+                          f"\n~~~Forewarded text~~~\n" \
+                          f"{body}"
+            send_email(email_to = email_to, email_subj = email_subj, email_body = email_body)
+            logging.info(f'LLM authored reply which was sent!')
+            logging.info(f'reply content: {reply}')
+            logging.info(f'LLM notes: {notes}')
+            continue
+        else: # "replyable" == "False"
+            move_email(email_from = INBOX_NAME, email_uid = email_uid, email_to = HITL_BOX_NAME)
+            logging.info(f'LLM UNable to pen a reply.')
+            logging.info(f'LLM notes: {notes}')
+            logging.warning(f'Email from {from_header} sent {date_sent} with subject {subject} - please check it out.')
+            continue
+        """ dropped all the way thru with no meaning found and no action taken (technically should never get here) """
         move_email(email_from = INBOX_NAME, email_uid = email_uid, email_to = HITL_BOX_NAME)
         logging.warning(f'No idea what to do with email from {from_header} sent {date_sent} with subject {subject} - please check it out.')
     ### should implement some check on mailbox size used, delete older Junk and read emails in Inbox and read emails in HITL
     logging.info(f'Ended email automations run')
-
-
-EMAIL_REPLY_ACTION_TEMPLATE = """
-Can you compose a reasonable reply to this email?
-
-Respond in JSON format as illustrated in these examples.
-
-Example JSON response:
-{{
-  "replyable": "False", 
-  "disable_alerts": "False", 
-  "reply": "", 
-  "Notes": "Unable to confidently understand what the user was talking about."
-}}
-
-Example JSON response:
-{{
-  "replyable": "True", 
-  "disable_alerts": "True", 
-  "reply": "Thank you for your email. Understand you appreciate the emailed alerts but want to pause them for a bit. Have initiated disabling your alerts. Have a great day!", 
-  "Notes": "User requested that Enshittification Metrics notification alerts be disabled. They like them, but need to pause them for a bit and will manually re-enable them on the website in a few weeks."
-}}
-
-Example JSON response:
-{{
-  "replyable": "True", 
-  "disable_alerts": "False", 
-  "reply": "There is no need to reply to emailed OTP codes. Please simply request another code from on the Enshittification Metrics website; when you receive the code in email, enter it onto the appropriate form on the website. This validates that the email address is correct and controlled by you. Thanks for using the site!", 
-  "Notes": ""
-}}
-
-Example JSON response:
-{{
-  "replyable": "True", 
-  "disable_alerts": "False", 
-  "reply": "Hi. Understand you received an unexpected OTP code. This should not happen. Best practice would be to log into Enshittification Metrics website, check your registered email address, validate it if needed, change your password, and enable MFA as available.", 
-  "Notes": "User claimed they never requested a code..."
-}}
-
-Example JSON response:
-{{
-  "replyable": "True", 
-  "disable_alerts": "False", 
-  "reply": "", 
-  "Notes": ""
-}}
-
-Setting "replyable" to "True" results in replying to the user's email with the content of "reply" as the email reply body. 
-Setting "replyable" to "False" means not to send any email reply. 
-Setting "disable_alerts" to "True" initiates disabling alerts for the specific user. 
-Setting "disable_alerts" to "False" means to do nothing, leave the user's alert setting as is. 
-Value of "reply" is sent as reply email content to user, assuming "replyable" is "True". 
-Value of "Notes" is not shared with users, it is only used internally by site administrators, some human in the loop, or possibly other GenAI processes.
-
-You are a GenAI inference tasked with ingesting email from a site user, trying to comprehend it, and generating a response.
-You are representing enshittificationmetrics.com! If it's not crystal clear what the user is asking / stating, then do not reply. 
-(You can reply stating you don't really understand what they're after, and request clarification or re-phrasing.) 
-It is critical NOT to make up some answer. 
-It is important to be polite and tactful, not to say anything potentially controversial or embarrassing, or which might get us sued or fined. 
-
-Enshittification Metrics, https://www.enshittificationmetrics.com, is a site that gathers and displays enshittification metrics for (popular) tech platforms. 
-Transparency and fairness in judgment and assignment of metric scores is a goal of this site; 
-as such all judgment processes algorithms and LLM use are exposed - 
-visit github.com/EnshittificationMetrics/EnshittificationMetrics to see all code in use. 
-This site strives to be fully automated, enabling all news gathering and metrics value determinations to occur automatically 
-by way of software code and generative-AI agentic functions. 
-Our Ethics Board serves as critical human-in-the-loop; ensuring the autonomous metric gathering and reporting is reasonable and human-friendly.
-The "EnshittificationMetrics.com" site is just an agent collecting and collating publicly available news articles and internet forum postings. 
-Note that positive / constructive suggestions, comments, and discussion, are welcome on our sub Reddit r/Enshitif_Metrics! 
-Branded gear is available at https://enshitif-metrics.printify.me/products. 
-Enshittification (noun) - Coined by Cory Doctorow; transformation of a tech platform from a user-centric service to a profit-centric one. 
-The Four Stages of the Downward Enshittification Spiral:
-- Stage 1 - Attraction - great UX; innovation and features
-- Stage 2 - Monetization - introduce ads, premium features, subscription models; increased data collection
-- Stage 3 - Exploitation - algorithms tweaked for revenue, terms for creators less favorable, intrusive ads, paywalls
-- Stage 4 - Exodus - dissatisfied users, negative reviews, migration to alternatives, platform doubles down on profit maximization
-
-The current date is {current_date}.
-
-Here is email from user: 
-Date sent: {date_sent}
-From email address: {from_header}
-Email subject: {subject}
-Email body content: 
-{body}
-"""
 
 
 if __name__ == "__main__":
