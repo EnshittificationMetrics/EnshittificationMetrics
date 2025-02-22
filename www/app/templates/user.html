@@ -114,76 +114,76 @@
         {% endif %}
 
         {% if user.role != 'guest' %}
-        {% if user == current_user %}
-        <tr>
-            <td colspan="2" style="text-align: center;">
-            <br>
-            <div class="header-in-table">
-            <a href="{{ url_for('change_password', username=user.username) }}">Change Password</a>
-            </div>
-            <br>
-            </td>
-            <br>
-        </tr>
+			{% if user == current_user %}
+				<tr>
+					<td colspan="2" style="text-align: center;">
+					<br>
+					<div class="header-in-table">
+					<a href="{{ url_for('change_password', username=user.username) }}">Change Password</a>
+					</div>
+					<br>
+					</td>
+					<br>
+				</tr>
 
-        <tr>
-            <td colspan="2" style="text-align: center;">
-            <br>
-            <div class="header-in-table">
-            <a href="{{ url_for('edit_profile', username=user.username) }}">Edit Profile</a>
-            </div>
-            <br>
-            </td>
-            <br>
-        </tr>
+				<tr>
+					<td colspan="2" style="text-align: center;">
+					<br>
+					<div class="header-in-table">
+					<a href="{{ url_for('edit_profile', username=user.username) }}">Edit Profile</a>
+					</div>
+					<br>
+					</td>
+					<br>
+				</tr>
 
-        <tr>
-            <td colspan="2" style="text-align: center;">
-            <br>
-            <div class="header-in-table">
-            <a href="{{ url_for('alerts') }}">Alerts Subscription</a>
-            </div>
-            <br>
-            </td>
-        </tr>
+				<tr>
+					<td colspan="2" style="text-align: center;">
+					<br>
+					<div class="header-in-table">
+					<a href="{{ url_for('alerts') }}">Alerts Subscription</a>
+					</div>
+					<br>
+					</td>
+				</tr>
 
-        <tr>
-            <td colspan="2" style="text-align: center;">
-            <br>
-            <p><div class="header-in-table">Export Account</div></p>
-            <form action="/exportaccount?next={{ url_for('user', username=user.username) }}" method="post">
-                {{ form_p.hidden_tag() }}
-                {{ form_p.password.label }}
-                {{ form_p.password(size=32) }}<br>
-                <p>{{ captcha_html(captcha)|safe }}</p>
-                {{ form_p.submit() }}
-                {% for error in form_p.password.errors %}
-                <span style="color: red;">[{{ error }}]</span>
-                {% endfor %}
-            </form>
-            <br>
-            </td>
-        </tr>
+				<tr>
+					<td colspan="2" style="text-align: center;">
+					<br>
+					<p><div class="header-in-table">Export Account</div></p>
+					<form action="/exportaccount?next={{ url_for('user', username=user.username) }}" method="post">
+						{{ form_p.hidden_tag() }}
+						{{ form_p.password.label }}
+						{{ form_p.password(size=32) }}<br>
+						<p>{{ captcha_html(captcha)|safe }}</p>
+						{{ form_p.submit() }}
+						{% for error in form_p.password.errors %}
+						<span style="color: red;">[{{ error }}]</span>
+						{% endfor %}
+					</form>
+					<br>
+					</td>
+				</tr>
 
-        <tr>
-            <td colspan="2" style="text-align: center;">
-            <br>
-            <p><div class="header-in-table">Delete Account</div></p>
-            <form action="/deleteaccount" method="post">
-                {{ form_p.hidden_tag() }}
-                {{ form_p.password.label }}
-                {{ form_p.password(size=32) }}<br>
-                <p>{{ captcha_html(captcha)|safe }}</p>
-                <p>Caution - delete is permanent and is not reversible.</p>
-                {{ form_p.submit() }}
-                {% for error in form_p.password.errors %}
-                <span style="color: red;">[{{ error }}]</span>
-                {% endfor %}
-            </form>
-            <br>
-            </td>
-        </tr>
-        {% endif %}
+				<tr>
+					<td colspan="2" style="text-align: center;">
+					<br>
+					<p><div class="header-in-table">Delete Account</div></p>
+					<form action="/deleteaccount" method="post">
+						{{ form_p.hidden_tag() }}
+						{{ form_p.password.label }}
+						{{ form_p.password(size=32) }}<br>
+						<p>{{ captcha_html(captcha)|safe }}</p>
+						<p>Caution - delete is permanent and is not reversible.</p>
+						{{ form_p.submit() }}
+						{% for error in form_p.password.errors %}
+						<span style="color: red;">[{{ error }}]</span>
+						{% endfor %}
+					</form>
+					<br>
+					</td>
+				</tr>
+			{% endif %}
         {% endif %}
 
     </tr>

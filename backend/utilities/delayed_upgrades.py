@@ -10,7 +10,7 @@ crontab = """30 3 * * * /usr/bin/python3 /home/leet/EnshittificationMetrics/back
 
 crontab = """30 10 * * *     /usr/bin/python3 /home/bsea/em/utilities/delayed_upgrades.py     >> /home/bsea/em/utilities/cron_issues.log 2>&1""" # prod as root; PT = UTC - 7.5 so 10 UTC = 03:00 or 04:00 PT
 
-overall_mode_of_operations = 'delayed upgrade' # 'no upgrade' or 'full upgrade' or 'delayed upgrade'
+overall_mode_of_operations = 'full upgrade' # 'no upgrade' or 'full upgrade' or 'delayed upgrade'
 
 if __file__.startswith('/home/bsea/em/'):
     log_path = '/home/bsea/em/utilities/delayed_upgrades.log' # EM prod
@@ -48,7 +48,7 @@ def run_command(command, cwd_loc):
         result = subprocess.run(command, cwd=cwd_loc, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         # check=True ensures completing successfully before proceeding
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error during subprocess.run('{command}') attempt. Exit Code:, {e.returncode}; Error Message:, {e.stderr}")
+        logging.error(f"Error during subprocess.run('{command}') attempt at {cwd_loc}. Exit Code: {e.returncode}; Error Message: {e.stderr}")
         return "" # works on all cases in this program while returning None fails
     return result.stdout
 
@@ -77,8 +77,7 @@ def get_last_update_date(package_name):
 
 def upgrade_package(package_name, last_update_date):
     result = run_command(command = f'sudo apt install --only-upgrade -y {package_name}', cwd_loc = cwd_loc)
-    logging.info(f'Upgrading {package_name}... Updated {last_update_date}. stdout: {result.stdout}')
-    # result.stderr to check for errors?; result.stdout to check what is happening when installing
+    logging.info(f'Upgrading {package_name}... Updated {last_update_date}. stdout: {result}')
 
 
 def get_uptime():
@@ -273,7 +272,7 @@ def main():
             for pipfile_loc in pipfile_locs:
                 logging.info(f'Checking {pipfile_loc}/Pipfile')
                 """ run pipenv update --outdated where the Pipfile is """
-                outdated_packs = run_command(command = f"pipenv update --outdated", cwd_loc = pipfile_loc)
+                outdated_packs = run_command(command = f"python3 -m pipenv update --outdated", cwd_loc = pipfile_loc)
                 """ parse out the package name(s) from the results, like "Package 'orjson' out-of-date: {'ver..." """
                 pattern = r"Package '(.*?)' out-of-date"
                 packages = re.findall(pattern, outdated_packs)

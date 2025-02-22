@@ -176,7 +176,7 @@ def send_report_to_user(report, user, now):
     
     salutation_text = f""""Alerts" from EnshittificationMetrics.com for {user.username}.\n"""
     
-    timerange_text = f"""Alert time-range is from {user.last_sent.strftime("%Y-%b-%d %H:%M")} to {now.strftime("%Y-%b-%d %H:%M")}.\n\n"""
+    timerange_text = f"""Alert time-range is from {user.last_sent.strftime("%Y-%b-%d %H:%M")} to {now.strftime("%Y-%b-%d %H:%M")} UTC.\n\n"""
     
     signature_text = f"""Thanks, \nEnshittificationMetrics.com\n"""
     

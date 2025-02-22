@@ -3,11 +3,18 @@
 """
 Finds all entities with blank summaries and tries to create content for them.
 Queries Wikipedia and DDG.
-Queries LLM for "summary", "date_started", "date_ended", "corp_fam", "category".
+Queries LLM for "summary", "date_started", "date_ended", "corp_fam", "category", "ent_url".
 Limited to a max number of summaries, count_max_sm.
 
 Finds all entities with blank timeline and tries to create content for them.
 Limited to a max number of timelines, count_max_tl.
+
+Finds all entities with no data map and tries to create content for them.
+Limited to a max number of data maps, count_max_dm.
+
+Finds all entities with no URL and tries to create content for them.
+Limited to a max number of URLs, count_max_ur.
+
 Code also run against entities with new news items linked to them.
 Create / update timeline(s) for entities.
 Reads (existing) "summary", "date_started", "date_ended", "corp_fam", "category"
@@ -66,14 +73,13 @@ from datetime import datetime
 import dateparser
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
-
 llm_temp = 0.25
 
-count_max_sm = 7 # max how many summaries to do (should be run daily)
-
+# this script should end up being run daily
+count_max_sm = 7 # max how many summaries to do
 count_max_tl = 2 # max how many timelines to do - keep low as many tokens used
-
 count_max_dm = 28 # max how many data maps to do - can be big as just DB and text process, no LLM calls
+count_max_ur = 0 # max how many URLs to do
 
 
 CREATE_SUMMARY_CONTENT_TEMPLATE = """
@@ -96,7 +102,7 @@ Dates are to be in YYYY-MMM-DD format where YYYY is four digit year, MMM is thre
 Date entity started can be "UNK" if unknown or undetermineable, 
 just year if just year and not month and day can not be determined, 
 or just year and month if day can not be determined.
-For date entity ended return "None" is entity is current and continues to exist.
+For date entity ended return "None" if entity is current and continues to exist.
 
 For corporate family return corporate parent name, "None" if not a subsidiary or child corp, or "UNK" if undetermineable.
 
@@ -111,13 +117,17 @@ For category return
 "None" if none of these categories.
 (Multiple comma separated categories may be returned.)
 
-Format response _must_ be json, like: 
+For ent_url return the authoritative single main URL for the entity on the internet. 
+If URL is not mentioned or it is not quite clear what it is, no guesses, just return "UNK".
+
+Format response _must_ be json, like for example: 
 {{
   "summary": "This is the summary.", 
   "date_started": "2024 JUL 04", 
   "date_ended": "None", 
   "corp_fam": "None", 
   "category": "None"
+  "ent_url": "UNK"
 }}
 
 To obtain date(s), category, family, and summary - relevant Wikipedia page, corporate homepage, and Duck Duck Go search results are provided.
@@ -128,7 +138,7 @@ Relevant Wikipedia page content: {wikipedia_page_results} \n
 Content from search may be incorrect or partially incorrect due to multiple different hits for a single entity name; 
 Duck Duck Go search result content: {ddg_results} \n
 
-For entity "{entity}" return summary, date_started, date_ended, corp_fam, and category.
+For entity "{entity}" return summary, date_started, date_ended, corp_fam, category, and, ent_url in JSON format.
 """
 
 
@@ -263,8 +273,7 @@ def dt_parse(date_in):
 def create_summary_content(name):
     """
     Query Wikipedia and DDG on name.
-    Query LLM w/ wikipedia and DDG results and ask for json of "summary", "date_started", "date_ended", "corp_fam", "category".
-    Extract the content between first '{' and last '}'...
+    Query LLM w/ wikipedia and DDG results and ask for json of "summary", "date_started", "date_ended", "corp_fam", "category", "ent_url".
     If good json then copy out results, otherwise return summary None.
     """
     summary = None
@@ -315,10 +324,66 @@ def create_summary_content(name):
         date_ended = dt_parse(content.get('date_ended'))
         corp_fam = content.get('corp_fam')
         category = content.get('category')
+        ent_url = content.get('ent_url')
     except Exception as e:
         summary = None
         logging.error(f'==> For {name}, unable to process return from LLM into needed variables; got error: {e} ~ Value of content: {content}')
-    return summary, date_started, date_ended, corp_fam, category
+    return summary, date_started, date_ended, corp_fam, category, ent_url
+
+
+CREATE_URL_CONTENT_TEMPLATE = """
+Objective is to return the authoritative single main URL for the entity "{entity}" on the internet. 
+If URL is not mentioned or it is not quite clear what it is, no guesses, just return "UNK".
+
+Format response _must_ be json, like for example: 
+{{
+  "ent_url": "http://www.example.com/index"
+}}
+
+Entity in question is: {entity}
+"Seed" text (may not be any): {seed_text}
+Brief summary of entity (may not be any): {summary}
+Corporate family (may not be any): {corp_fam}
+Category (may not be any): {category}
+Web search results: {ddg_results}
+
+For entity "{entity}" return ent_url in JSON format.
+"""
+
+
+def create_ent_url_content(entity):
+    """ web search and LLM call to find entity URL """
+    name = entity.name
+    ent_url = None
+    ddg_results = ''
+    try:
+        search = DuckDuckGoSearchRun()
+        ddg_results = search.run(f'official website for "{name}"')
+        logging.info(f'==> ddg_results results for {name}: {ddg_results}.')
+    except Exception as e:
+        logging.error(f'==> ddg search errored: {e}')
+    content_prompt = ChatPromptTemplate.from_template(CREATE_URL_CONTENT_TEMPLATE)
+    chain = ( content_prompt
+            | large_lang_model 
+            | JsonOutputParser()
+            )
+    try:
+        content = chain.invoke({"entity": name, 
+                                "seed_text": entity.seed, 
+                                "summary": entity.summary, 
+                                "corp_fam": entity.corp_fam, 
+                                "category": entity.category, 
+                                "ddg_results": ddg_results})
+        logging.info(f'==> Raw content return (which should be json) for {name}:\n{content}')
+    except Exception as e:
+        content = ''
+        logging.error(f'==> chain.invoke LLM failed: {e}')
+    try:
+        ent_url = content.get('ent_url')
+    except Exception as e:
+        ent_url = None
+        logging.error(f'==> For {name}, unable to process return from LLM into needed variables; got error: {e}')
+    return ent_url
 
 
 def shrink_news_items(news_items, entity):
@@ -658,7 +723,7 @@ def parse_for_blank_summary(count_max_sm):
                 if entity.summary:
                     continue
                 # if entity is not disabled, and has a blank summary, then try to fill in blanks
-                summary, date_started, date_ended, corp_fam, category = create_summary_content(name = entity.name)
+                summary, date_started, date_ended, corp_fam, category, ent_url = create_summary_content(name = entity.name)
                 if not summary:
                     # if summary comes back None, then go to next entity
                     logging.info(f'==> Tried, but unable to get content for {entity.name}. ')
@@ -666,10 +731,13 @@ def parse_for_blank_summary(count_max_sm):
                 entity.summary = summary
                 entity.date_started = dt_parse(date_started)
                 entity.date_ended = dt_parse(date_ended)
+                # don't overwrite existing content for these
                 if not entity.corp_fam:
                     entity.corp_fam = corp_fam
                 if not entity.category:
                     entity.category = category
+                if (not entity.ent_url) or (entity.ent_url == "UNK"):
+                    entity.ent_url = ent_url
                 db.session.commit()
                 logging.info(f'==> Populated blanks for {entity.name}:\n summary = {summary}\n date_started = {date_started}\n date_ended = {date_ended}\n corp_fam = {corp_fam}\n category = {category}')
                 count_summeried += 1
@@ -741,6 +809,37 @@ def parse_for_blank_data_map(count_max_dm):
     return None
 
 
+def parse_for_blank_url(count_max_ur):
+    """
+    Pulls all entities from DB; skips disabled; if ent_url None (blank) or "UNK" then call create_content.
+    If create_content returns None then logs and continues, otherwise sets value for ent_url and commits.
+    """
+    count_mapped = 0
+    count_skipped = 0
+    logging.info(f'==> ++++++++++ parse_for_blank_URL +++++++++++')
+    with app.app_context():
+        entities = Entity.query.all()
+        for entity in entities:
+            if count_mapped >= count_max_ur:
+                count_skipped += 1
+                continue
+            if entity.status != 'disabled':
+                if entity.ent_url and (entity.ent_url != "UNK"):
+                    continue
+                # if entity is not disabled, and has a blank or "UNK" ent_url, then try to fill in the ent_url
+                ent_url = create_ent_url_content(entity)
+                if not ent_url:
+                    # if ent_url comes back None, then go to next entity
+                    logging.info(f'==> Tried, but unable to get URL for {entity.name}. ')
+                    continue
+                entity.ent_url = ent_url
+                db.session.commit()
+                logging.info(f'==> Populated URL for {entity.name}! {ent_url}')
+                count_mapped += 1
+    logging.info(f'==> URL populated for a total of {count_mapped} entities; skipped {count_skipped}')
+    return None
+
+
 def create_data_map_for_entity(entity_name_str):
     logging.info(f'==> ++++++++++ create_data_map_for_entity +++++++++++')
     with app.app_context():
@@ -763,19 +862,22 @@ def create_timeline_for_entity(entity_name_str):
     with app.app_context():
         entity = Entity.query.filter_by(name=entity_name_str).first()
         if entity.summary == None:
-            summary, date_started, date_ended, corp_fam, category = create_summary_content(name = entity_name_str)
+            summary, date_started, date_ended, corp_fam, category, ent_url = create_summary_content(name = entity_name_str)
             if not summary:
                 logging.info(f'==> Tried, but unable to get content for {entity.name}. ')
                 logging.info(f'==> Summary needed for timeline, exited before timeline creation. ')
                 return None
             entity.summary = summary
             entity.date_started = dt_parse(date_started)
+            # if something came back, use it
             if date_ended:
                 entity.date_ended = dt_parse(date_ended)
             if corp_fam:
                 entity.corp_fam = corp_fam
             if category:
                 entity.category = category
+            if ent_url:
+                entity.ent_url = ent_url
             db.session.commit()
             logging.info(f'==> Populated blanks for {entity.name}:\n summary = {summary}\n date_started = {date_started}\n date_ended = {date_ended}\n corp_fam = {corp_fam}\n category = {category}')
         timeline = create_timeline_content(entity)
@@ -792,6 +894,7 @@ def main():
     parse_for_blank_summary(count_max_sm)
     parse_for_blank_timeline(count_max_tl)
     parse_for_blank_data_map(count_max_dm)
+    parse_for_blank_url(count_max_ur)
     logging.info(f'==> ++++++++++ filling blanks done +++++++++++\n')
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ from flask_mail import Mail, Message
 from dotenv import load_dotenv
 from urllib.parse import urlsplit
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 import json
 import dateparser
@@ -403,7 +403,7 @@ def login():
             login_user(user, remember=form.remember_me.data)
             # Flask-Login sets 365 day (default) expiration time for "remember me" cookie.
             flash("If you haven't done it yet, please take the survey when you get a chance.")
-            user.last_access = datetime.now(datetime.timezone.utc).strftime('%Y %b %d') # ex: '2024 Sep 26'
+            user.last_access = datetime.now(timezone.utc).strftime('%Y %b %d %H:%M:%S') # ex: '2024 Sep 26 23:06:55'
             db.session.commit()
             logging.info(f'=*=*=*> User "{current_user.username}" logged in.')
             ip_addr = get_client_ip()
