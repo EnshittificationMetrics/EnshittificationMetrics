@@ -18,21 +18,22 @@ logging.basicConfig(level=logging.INFO,
                     filename = logpath,
                     filemode = 'a',
                     format='%(asctime)s -%(levelname)s - %(message)s')
-import imaplib
-import email
-from email.policy import default
-from email.header import decode_header
-import smtplib
-from email.mime.text import MIMEText
-import re
-import socket
-from dotenv import load_dotenv
-from datetime import datetime, timedelta
 from app import app, db
 from app.models import User
+from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+import imaplib
+import email
+from email.header import decode_header
+from email.mime.text import MIMEText
+from email.policy import default
+from email.utils import parsedate_to_datetime
 from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_mistralai.chat_models import ChatMistralAI
+import re
+import smtplib
+import socket
 
 load_dotenv('.env')
 
@@ -57,7 +58,7 @@ llm_temp = 0.25
 def fetch_unseen_imap():
     """ only reads single unseen """
     """ Connect to an IMAP server, authenticate """
-    current_date = datetime.today()
+    current_date = datetime.now(timezone.utc)
     mail = imaplib.IMAP4_SSL(IMAP_SERVER)
     with imaplib.IMAP4_SSL(IMAP_SERVER) as mail:
         mail.login(MAIL_USERNAME, MAIL_PASSWORD)
@@ -82,10 +83,11 @@ def fetch_unseen_imap():
                     msg = email.message_from_bytes(response_part[1], policy=default) # Extract & clean email content
                     """ extracts key headers. """
                     email_uid = oldest_unread_email_id.decode() # Convert UID from bytes to string
-                    date_sent = msg["Date"]
+                    date_sent = str(msg["Date"]) # convert _UniqueDateHeader to a str
                     from_header = msg["From"]
                     from_header_match = re.search(r"<([^<>]+)>", from_header)
                     from_header = from_header_match.group(1) if from_header_match else from_header
+                    logging.info(f'Processing email UID {email_uid} sent {date_sent} from {from_header}')
                     return_path = msg["Return-Path"]
                     return_path_match = re.search(r"<([^<>]+)>", return_path)
                     return_path = return_path_match.group(1) if return_path_match else return_path
@@ -96,24 +98,25 @@ def fetch_unseen_imap():
                     if from_header != return_path:
                         spoof += f'Potential Spoofing: From "{from_header}" and Return-Path "{return_path}" do not match! '
                     # If the sending domain (From address) and IP location don't match, it could be a spoof.
-                    sender_domain = from_header.split("@")[-1]
-                    if received_headers:
-                        first_received = received_headers[-1]  # The first Received header in the chain
-                        ip_match = re.search(r"\[([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", first_received)
-                        if ip_match:
-                            sending_ip = ip_match.group(1)
-                            # Get the domain of the sending IP
-                            try:
-                                sending_domain = socket.gethostbyaddr(sending_ip)[0]
-                            except socket.herror:
-                                sending_domain = "Unknown"
-                    if sender_domain.lower() not in sending_domain.lower():
-                        spoof += f'Possible Spoofing Detected: Sender domain "{sender_domain}" and sending IP domain "{sending_domain}" do not match! Sending IP is {sending_ip}. '
+                    ### this section doesn't work quite right - gets for example, sending_domain == "LAPTOP-VLGID64J" and sending_ip == 192.168.50.180
+                    ### sender_domain = from_header.split("@")[-1]
+                    ### if received_headers:
+                    ###     first_received = received_headers[-1]  # The first Received header in the chain
+                    ###     ip_match = re.search(r"\[([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", first_received)
+                    ###     if ip_match:
+                    ###         sending_ip = ip_match.group(1)
+                    ###         # Get the domain of the sending IP
+                    ###         try:
+                    ###             sending_domain = socket.gethostbyaddr(sending_ip)[0]
+                    ###         except socket.herror:
+                    ###             sending_domain = "Unknown"
+                    ### if sender_domain.lower() not in sending_domain.lower():
+                    ###     spoof += f'Possible Spoofing Detected: Sender domain "{sender_domain}" and sending IP domain "{sending_domain}" do not match! Sending IP is {sending_ip}. '
                     if not dkim_header:
                         spoof += "No DKIM Signature: Email may be spoofed! "
                     if "spf=fail" in spf_header.lower():
                         spoof += f'SPF Failed: This email may be spoofed! "{spf_header}". '
-                    if date_sent > current_date + timedelta(days = 2 * 365.25):
+                    if parsedate_to_datetime(date_sent) > current_date + timedelta(days = 2 * 365.25):
                         spoof += f'Likely SPAM - date at least two years in future; {date_sent}. '
                     """ parses subject & body (handles plain text & multipart emails) """
                     subject, encoding = decode_header(msg["Subject"])[0]
@@ -192,20 +195,30 @@ def disable_alerts(target):
 
 def move_email(email_from, email_uid, email_to):
     with imaplib.IMAP4_SSL(IMAP_SERVER) as mail:
-        mail.login(EMAIL_ACCOUNT, EMAIL_PASSWORD)
-        mail.select(email_from)
+        mail.login(MAIL_USERNAME, MAIL_PASSWORD)
+        status, _ = mail.select(email_from)
+        if status != "OK":
+            raise Exception(f"Failed to select source folder: {email_from}")
         status, email_ids = mail.uid("search", None, f"UID {email_uid}")
         if email_ids[0]:
-            email_id = email_ids[0].split()[0]
+            email_id = email_ids[0].split()[0] # Extract the actual email UID
             # Copy email to the target folder
-            mail.uid("copy", email_id, email_to)
+            status, _ = mail.uid("copy", email_id, email_to)
+            if status != "OK":
+                raise Exception(f"Failed to copy email to {email_to}")
             # Mark email as unread in the target folder
-            mail.select(email_to)
+            status, _ = mail.select(email_to)
+            if status != "OK":
+                raise Exception(f"Failed to select target folder: {email_to}")
             status, new_email_ids = mail.uid("search", None, "ALL")
+            if status != "OK" or not new_email_ids[0]:
+                raise Exception("Failed to find copied email in target folder.")
             new_email_uid = new_email_ids[0].split()[-1] # last added email should be copied one
             mail.uid("store", new_email_uid, "-FLAGS", "\\Seen") # Remove \Seen flag (mark as unread)
             # Delete original email from INBOX (to complete move)
-            mail.select(email_from)
+            status, _ = mail.select(email_from)
+            if status != "OK":
+                raise Exception(f"Failed to re-select source folder: {email_from}")
             mail.uid("store", email_id, "+FLAGS", "\\Deleted") # Mark as deleted
             mail.expunge() # Permanently remove deleted emails
 
@@ -307,7 +320,7 @@ Email body content:
 def main():
     salutation_text = f"""Salutations, \n"""
     signature_text = f"""Thanks, \nEnshittificationMetrics.com\n"""
-    current_date = datetime.today()
+    current_date = datetime.now(timezone.utc)
     logging.info(f'')
     logging.info(f'Starting email automations run')
     # loop thru getting oldest unseen emails from inbox till all read
@@ -336,7 +349,7 @@ def main():
             logging.info(f'Generic email reply to reply to OTP email sent.')
             continue
         """ Try to deal with replies to Notification Alert emails """
-        if (subject.lower() == "stop" or "unsubscribe") or (body.lower() == "stop" or "unsubscribe"):
+        if (subject.lower() == "stop" or subject.lower() == "unsubscribe") or (body.lower() == "stop" or body.lower() == "unsubscribe"):
             mess = disable_alerts(target = from_header)
             email_to = from_header
             email_subj = f'Re: {subject}'
