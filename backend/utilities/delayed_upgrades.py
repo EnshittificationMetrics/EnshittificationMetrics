@@ -229,7 +229,6 @@ def main():
         case 'no upgrade':
             pass
         case 'full upgrade':
-            pass
             """ II. apt install """
             try:
                 run_command(command = "sudo apt update", cwd_loc = cwd_loc)
@@ -238,13 +237,17 @@ def main():
                 # sudo apt full-upgrade -y # Removes packages if needed for dependency resolution; Installs new dependencies that are required for updates
                 # sudo apt list --upgradable
                 # sudo apt full-upgrade --dry-run
+                logging.info(f'Ran apt update, apt upgrade.')
             except Exception as e:
-                logging.error(f'Failed to run apt update, apt full-upgrade with error: {e}')
+                # prob never hits this as try/except in run_command() will be triggered
+                logging.error(f'Failed to run apt update, apt upgrade with error: {e}')
             """ III. pipenv update """
             try:
                 for pipfile_loc in pipfile_locs:
                     run_command(command = "pipenv update", cwd_loc = pipfile_loc)
+                    logging.info(f'Ran pipenv update at {pipfile_loc}.')
             except Exception as e:
+                # prob never hits this as try/except in run_command() will be triggered
                 logging.error(f'Failed to run pipenv update with error: {e}')
         case 'delayed upgrade':
             """ II. if needed and old enough, apt install package_name """

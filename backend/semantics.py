@@ -36,7 +36,7 @@ import dateparser
 hostn = socket.gethostname()
 
 # posts on judgments made
-ntfypost = True
+ntfypost = False
 alert_title = f'EM on {hostn} judgment'
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
@@ -50,7 +50,7 @@ decay_factor = 30
 JUDGMENT_TEMPLATE = """
 Judge the enshittification stage of the entity/entities: {entities}.
 (Note that there may be some tricky entity names, for example: 
-"X" is what "Twitter" was renamed to and is ofter refered to as "X, formerly Twitter" as just the letter x is vague and may not be referring to the entity at all, 
+"X" is what "Twitter" was renamed to and is often referred to as "X, formerly Twitter" as just the letter x is vague and may not be referring to the entity at all, 
 "Nothing" is a common word, so will need to reference content to see if this is the smartphone hardware vendor or not, 
 "EA" is a common letter combination, so need to reference content to see if this is the video game company or not, 
 "Ring" is a common word, so reference content to see if this is the smart doorbell company or not.)
