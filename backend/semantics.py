@@ -37,7 +37,7 @@ import dateparser
 hostn = socket.gethostname()
 
 # posts on judgments made
-ntfypost = True
+ntfypost = False
 alert_title = f'EM on {hostn} judgment'
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
