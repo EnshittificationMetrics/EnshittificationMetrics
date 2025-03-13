@@ -23,20 +23,21 @@ from dotenv import load_dotenv
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough
+from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_mistralai.chat_models import ChatMistralAI
 # from langchain_community.llms import Ollama
 import re
 import requests
 import socket
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from populate_blanks import create_timeline_content, create_data_map_content
 import dateparser
 
 hostn = socket.gethostname()
 
 # posts on judgments made
-ntfypost = False
+ntfypost = True
 alert_title = f'EM on {hostn} judgment'
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
@@ -91,6 +92,101 @@ def semantic_judgment(enshit_hit, text, entities):
     return stage
 
 
+SINGLE_JUDGMENT_TEMPLATE = """
+Judge the enshittification stage of the specific entity {entity} based on the news item text.
+
+Please return valid JSON with NO additional text; 
+"skip" is a true/false boolean, 
+"judgment" is an integer of value 1, 2, 3, or, 4, 
+"notes" is an optional string - if using new line codes these must be escaped, 
+like \\n (back-slash back-slash n) or \\r\\n (back-slash back-slash r back-slash back-slash n).
+(Underscore characters, if used, do NOT get a backslash escape, as this will break JSON loads.)
+
+Example JSON response:
+{{
+  "skip": true, 
+  "judgment": 0, 
+  "notes": "Don't blame the messenger! Entity X simply vehicle sharing the story, Y is the enshittification agent here."
+}}
+
+Example JSON response:
+{{
+  "skip": false, 
+  "judgment": 3, 
+  "notes": "Clear situation of pitting service customers and service providers on this platform against each other so as to make more money for the platform."
+}}
+
+Example JSON response:
+{{
+  "skip": false, 
+  "judgment": 2, 
+  "notes": ""
+}}
+
+Setting "skip" to true will skip over and NOT assign any judgment to {entity} for this situation. 
+(Other entities may be judged on their own separate pass.)
+Setting "skip" to false will assign a judgment to {entity} for this situation. (Either {stage_judgement} or what is assigned in "judgment".)
+Set "judgment" to 1, 2, 3, or, 4, to override default of {stage_judgement} (in this case); 
+"judgment" is only germane if "skip" is true, otherwise can set to 0 (zero) or even leave blank.
+Value of "notes" is not shared with users, it is only used internally by site administrators, 
+some human in the loop, or possibly other GenAI processes.
+
+Do not 'blame the messenger', a news story might be delivered on X or on Slashdot, 
+as such this is just the news aggregator, not the entity to be judged; be sure to check this.
+
+Enshittification stages / life-cycle is defined as follows.
+0 - Irrelevant text insofar as enshittification.
+1 - Attraction - great UX; innovation and features
+2 - Monetization - introduce ads, premium features, subscription models; increased data collection
+3 - Exploitation - algorithms tweaked for revenue, terms for creators less favorable, intrusive ads, paywalls
+4 - Exodus - dissatisfied users, negative reviews, migration to alternatives, platform doubles down on profit maximization
+
+Authoritative notes on {entity} to help guide judgment:
+{seed}
+
+Today is {date_today}, this news story text date is {news_date}.
+
+Previous LLM inference judgment about this same text but against all listed entities is {stage_judgement}.
+
+Text to judge: 
+{text}
+"""
+
+
+def single_semantic_judgment(text, entity_name, seed, stage_int_value, date):
+    logging.info(f'==> +++++++++ single_semantic_judgment - against {entity_name} +++++++++++')
+    prompt_judgment = ChatPromptTemplate.from_template(SINGLE_JUDGMENT_TEMPLATE)
+    chain = ( prompt_judgment
+            | large_lang_model 
+            | JsonOutputParser() 
+            )
+    try:
+        single_judgment = chain.invoke({"entity": entity_name, 
+                                        "text": text, 
+                                        "seed": seed, 
+                                        "stage_judgement": stage_int_value, 
+                                        "news_date": date, 
+                                        "date_today": datetime.now(timezone.utc)})
+    except Exception as e:
+        logging.error(f'LLM single_semantic_judgment INVOKE failed w/ error {e}')
+        single_judgment = {"skip": True, "judgment": 0, "notes": "LLM single_semantic_judgment invoke failed"}
+    # needs to return False, 1, 2, 3, or, 4
+    try:
+        skip = single_judgment.get('skip')
+        judgment = single_judgment.get('judgment')
+        notes = single_judgment.get('notes')
+    except Exception as e:
+        logging.error(f'Reading from LLM JSON reply failed w/ error {e}')
+        skip = True
+        judgment = 0
+        notes = "Reading from LLM JSON reply failed"
+    logging.info(f'Skip = {skip}; judgment = {judgment}; notes = {notes}')
+    if skip:
+        return False # return False to skip judging this entity
+    else:
+        return judgment
+
+
 def write_summary(text):
     logging.info(f'==> +++++++++ write_summary +++++++++++')
     prompt_summary = ChatPromptTemplate.from_template(SUMMARY_TEMPLATE)
@@ -131,10 +227,10 @@ def semantic_processing(title, url, date, content):
         for result in entities:
             if result.status != 'disabled':
                 items.append(result.name)
-        # items = [result.name for result in entities] # orig line before weeding out disableds
+        # was, before weeding out disableds: items = [result.name for result in entities]
     escaped_items = [re.escape(item) for item in items]
     pattern = '|'.join(escaped_items)
-    logging.info(f'==> Entities searching for in post text: {pattern}') # Comment this logging if all works and it clutters up scrape.log too much
+    logging.info(f'==> Entities searching for in post text: {pattern}') ### Comment this logging if all works and it clutters up scrape.log too much
     matches = re.findall(pattern, text, re.IGNORECASE)
     if not matches:
         """ if no relevant entity listed, do nothing """
@@ -155,49 +251,59 @@ def semantic_processing(title, url, date, content):
     judgment += f'judgment rendered: {stage}. '
     """ write up a summary """
     summary = write_summary(text)
-    stage_str_from_llm = matches[0] ### moved here
-    stage_int_value = int(stage_str_from_llm[-1]) # convert from str 'stage 1' to int '1' ### moved here
+    stage_str_from_llm = matches[0]
+    stage_int_value = int(stage_str_from_llm[-1]) # convert from str 'stage 1' to int '1'
     """ add news item to DB """
     with app.app_context():
         new_record = News(date_pub = date, 
                           url = url, 
-                          text = title, ### is this including 'post_text' ? ### where is the title combine w/ URL in parens? (need to add a space)
+                          text = title, ### is this including 'post_text'? where is the title combine w/ URL in parens? (need to add a space)
                           summary = summary, 
                           ent_names = entities, # entities includes count of # of items
-                          judgment = judgment, # added to models.py News
-                          stage_int_value = stage_int_value) # added to models.py News
+                          judgment = judgment, 
+                          stage_int_value = stage_int_value)
         db.session.add(new_record)
-        db.session.commit() # created new News object (in DB)
+        db.session.commit()
         """ Add news item's id to each entity's stage_history """
         news_item_id = new_record.id
-        ### old location, moved from here # stage_str_from_llm = matches[0]
-        ### old location, moved from here # stage_int_value = int(stage_str_from_llm[-1]) # convert from str 'stage 1' to int '1'
         for entity in entities:
+            per_ent_stage_judge = stage_int_value # this line may be frivolous
             record = Entity.query.filter_by(name=entity).first()
             if record:
-                # add stage to entity stage history
+                """ call here to check story and judgment against each entity; "continue" if not relevant, otherwise do code below """
+                per_ent_stage_judge = single_semantic_judgment(text = text, entity_name = entity, seed = record.seed, stage_int_value = stage_int_value, date = date)
+                if per_ent_stage_judge == False:
+                    logging.info(f'Skipping for judgment against {entity}')
+                    continue
+                else:
+                    if not ( (per_ent_stage_judge == 1) or (per_ent_stage_judge == 2) or (per_ent_stage_judge == 3) or (per_ent_stage_judge == 4) ):
+                        per_ent_stage_judge = stage_int_value
+                """ add stage to entity stage history """
                 logging.info(f'Processing "{entity}" to add stage to entity stage_history and update stage_current.')
                 if record.stage_history is None:
                     record.history = []
-                record.stage_history.append([date, stage_int_value, news_item_id]) 
+                record.stage_history.append([date, per_ent_stage_judge, news_item_id]) 
                 """ set entity stage """
                 record.stage_current = weighted_avg_stage_hist(record.stage_history)
                 # record.stage_current = stage_int_value # older code prior to weighted_avg_stage_hist
                 
                 ### add code to from "Entity.stage_history" pop oldest stuff off list when gets too big (but don't pop foundationals)
+                ### instead of just popping oldest - if over 15 or 20 datapoints/linked news items for an entity, pair down to 10 or 12
+                ### asking LLM which 10 to keep of 15 existing; this is less LLM calls/data then doing which 10 of 11 five times
+                ### then have to archive news item if no longer referenced by any entity.
                 
-                """update (or make for first time) entity timeline to reflect new stage_current and new linked news item"""
+                """ update (or make for first time) entity timeline to reflect new stage_current and new linked news item"""
                 timeline = create_timeline_content(record)
                 if timeline:
                     record.timeline = timeline
-                    logging.info(f'set timeline to: {timeline}') ### comment out if log is too busy - keep "Raw LLM content return (which should be json)" log in populate_blanks.py
+                    logging.info(f'set timeline to: {timeline}') ### comment out if log is too busy - keep "Raw LLM content return" log in populate_blanks.py
                 """ if needed, transition entity from potential to live with stage population """
                 if record.status == 'potential':
                     record.status = 'live'
                     logging.info(f'set status from potential to live')
                 """ generate new data_map for entity as stuff has changed """
                 record.data_map = create_data_map_content(record)
-                alert_data = f'Set {entity} to stage {record.stage_current} (weighted avg), due to new news of stage {stage_int_value}! '
+                alert_data = f'Set {entity} to stage {record.stage_current} (weighted avg), due to new news of stage {per_ent_stage_judge}! '
                 judgment += alert_data
                 alert_data += f'(Per text from "{title}" referencing "{url}".) '
                 alert_data += f'New "{entity}" timeline: {timeline}'
