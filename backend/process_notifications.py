@@ -196,8 +196,30 @@ def send_report_to_user(report, user, now):
                f"{signature_text}\n" \
                f"{footer_text}\n"
     test_print(report=report, snappy_subject=snappy_subject, un=user.username, email=email)
-    mail.send(msg)
-    logging.info(f'==> ++++++++++ {snappy_subject} - report sent +++++++++++')
+    send_attempts = 0
+    not_sent = True
+    while not_sent:
+        try:
+            mail.send(msg)
+            logging.info(f'==> ++++++++++ {snappy_subject} - report sent +++++++++++')
+            not_sent = False
+        except Exception as e:
+            send_attempts += 1
+            logging.error(f'send mail failed with error {e}')
+            time.sleep((3 + send_attempts) * 60)
+            if send_attempts >= 5:
+                not_sent = False
+                freq = 7
+                match user.notification_frequency:
+                    case "daily"    : freq = 1
+                    case "weekly"   : freq = 7
+                    case "fortnight": freq = 10
+                    case "monthly"  : freq = 30.43
+                    case "quarterly": freq = 91.31
+                    case "annually" : freq = 365.25
+                user.last_sent = now - timedelta(days=freq)
+                db.session.commit()
+                logging.info(f'==> ++++++++++ NO report sent, tried {send_attempts}, reverted user.last_sent +++++++++++')
 
 
 def test_print(report, snappy_subject, un, email):
