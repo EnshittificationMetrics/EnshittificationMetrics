@@ -482,6 +482,8 @@ def guest_sign_in():
 @app.route('/alerts', methods=["GET", "POST"])
 @login_required
 def alerts():
+    if current_user.validations = None:
+        current_user.validations = "" # to avoid TypeError: argument of type 'NoneType' is not iterable in alerts.html
     form = NotificationSettingsForm()
     new_captcha_dict = SIMPLE_CAPTCHA.create()
     """ Generate a list of categories as tuples """
