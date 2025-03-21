@@ -33,6 +33,7 @@ from langchain_mistralai.chat_models import ChatMistralAI
 from langchain_core.output_parsers import StrOutputParser
 import dateparser
 import re
+import time
 
 llm_api_key = os.getenv('MISTRAL_API_KEY')
 llm_temp = 0.25
@@ -206,7 +207,7 @@ def send_report_to_user(report, user, now):
         except Exception as e:
             send_attempts += 1
             logging.error(f'send mail failed with error {e}')
-            time.sleep((3 + send_attempts) * 60)
+            time.sleep((2 + send_attempts) * 60)
             if send_attempts >= 5:
                 not_sent = False
                 freq = 7
