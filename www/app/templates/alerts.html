@@ -11,18 +11,19 @@
 		<strong>{{ form.enable_notifications.label }}</strong>
 		<br>
 		(this controls off/on for whole thing, you can set the frequency and categories at will, but nothing will happen unless this is checked)<br>
+		<br>
 		{% if "email" not in current_user.validations %}
 			<div class="flash-mess">
 				Validated email required! 
 			</div>
-			<a href="{{ url_for('user', username=current_user.username) }}">Ensure your email is correct and validated in profile.</a
+			<a href="{{ url_for('user', username=current_user.username) }}">Ensure your email is correct and validated in profile.</a><br>
 			<br>
 		{% endif %}
 		{% if current_user.role == "guest" %}
 			<div class="flash-mess">
 				Guest users unable to set and receive alert subscriptions. 
 			</div>
-			<a href="{{ url_for('user', username=current_user.username) }}">Please logout of guest, register, then return here.</a
+			<a href="{{ url_for('user', username=current_user.username) }}">Please logout of guest, register, then return here.</a><br>
 			<br>
 		{% endif %}
 		<!-- UI w/ password captcha and save settings button shown for guest users / users without email, but process_notifications.py will skip them even if stuff set -->
