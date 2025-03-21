@@ -18,6 +18,14 @@
 			<a href="{{ url_for('user', username=current_user.username) }}">Ensure your email is correct and validated in profile.</a
 			<br>
 		{% endif %}
+		{% if current_user.role == "guest" %}
+			<div class="flash-mess">
+				Guest users unable to set and receive alert subscriptions. 
+			</div>
+			<a href="{{ url_for('user', username=current_user.username) }}">Please logout of guest, register, then return here.</a
+			<br>
+		{% endif %}
+		<!-- UI w/ password captcha and save settings button shown for guest users / users without email, but process_notifications.py will skip them even if stuff set -->
 	</div>
 
 	<br>
