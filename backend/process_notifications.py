@@ -25,7 +25,6 @@ from app import app, db
 from app.models import Entity, News, Art, References, User
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from flask_mail import Mail, Message
 from sqlalchemy import or_, asc, desc, func
 import sqlalchemy as sa
 from langchain_core.prompts import ChatPromptTemplate
@@ -39,14 +38,29 @@ llm_api_key = os.getenv('MISTRAL_API_KEY')
 llm_temp = 0.25
 
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY') # secure Flask session management
-app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-# app.config['MAIL_DEBUG'] = True  # Debug mode quite verbose in logs
 
-mail = Mail(app)
+# "dreamhost" is using SMTP, via flask_mail; works everywhere except on DigitalOcean where SMTP is blocked
+# "twilio_sendgrid" is web rest api to sendgrid, then SMTP (w/ custom DNS CNAMEs on Dreamhost), via SendGridAPIClient - https://github.com/sendgrid/sendgrid-python
+# on current free tier allows to send 100 free emails per day
+# Sendgrid technically works with SMTP (smtp.sendgrid.net, ports 25, 587, or 465 for SSL, username "apikey", password actual API key), but SMTP blocked on DigitalOcean
+SMTP_TO_USE = "twilio_sendgrid" # "twilio_sendgrid" or "dreamhost"
+
+if SMTP_TO_USE == "dreamhost":
+    from flask_mail import Mail, Message
+    app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+    # app.config['MAIL_DEBUG'] = True  # Debug mode quite verbose in logs
+    mail = Mail(app)
+elif SMTP_TO_USE == "twilio_sendgrid":
+    import sendgrid
+    from sendgrid.helpers.mail import *
+    sendgrid_api_key=os.environ.get('SENDGRID_API_KEY')
+    sg = sendgrid.SendGridAPIClient(sendgrid_api_key)
+else:
+    logging.error(f'SMTP_TO_USE set impropperly to "{SMTP_TO_USE}"; needs to be "dreamhost" or "twilio_sendgrid"')
 
 
 def create_report(user):
@@ -185,42 +199,79 @@ def send_report_to_user(report, user, now):
     ### Eventually will add a reply with UNSUBSCRIBE or STOP feature.
     
     logging.info(f'==> ++++++++++ sending report to {user.username} +++++++++++')
-    ### need to tweak the reply-to on this email!?
     email = user.email
     snappy_subject = generate_snappy_subject(report=report)
     if not snappy_subject:
         snappy_subject = default_subject_text
-    msg = Message(snappy_subject, sender = app.config['MAIL_USERNAME'], recipients = [email])
-    msg.body = f'{salutation_text}\n' \
-               f"{timerange_text}\n" \
-               f"{report}\n" \
-               f"{signature_text}\n" \
-               f"{footer_text}\n"
-    test_print(report=report, snappy_subject=snappy_subject, un=user.username, email=email)
-    send_attempts = 0
-    not_sent = True
-    while not_sent:
-        try:
-            mail.send(msg)
-            logging.info(f'==> ++++++++++ {snappy_subject} - report sent +++++++++++')
-            not_sent = False
-        except Exception as e:
-            send_attempts += 1
-            logging.error(f'send mail failed with error {e}')
-            time.sleep((2 + send_attempts) * 60)
-            if send_attempts >= 5:
+    email_body_copy = f'{salutation_text}\n' \
+                      f"{timerange_text}\n" \
+                      f"{report}\n" \
+                      f"{signature_text}\n" \
+                      f"{footer_text}\n"
+    if SMTP_TO_USE == "dreamhost":
+        msg = Message(snappy_subject, sender = app.config['MAIL_USERNAME'], recipients = [email])
+        msg.body = email_body_copy
+        test_print(report=report, snappy_subject=snappy_subject, un=user.username, email=email)
+        send_attempts = 0
+        not_sent = True
+        while not_sent:
+            try:
+                mail.send(msg)
+                logging.info(f'==> ++++++++++ {snappy_subject} - report sent +++++++++++')
                 not_sent = False
-                freq = 7
-                match user.notification_frequency:
-                    case "daily"    : freq = 1
-                    case "weekly"   : freq = 7
-                    case "fortnight": freq = 10
-                    case "monthly"  : freq = 30.43
-                    case "quarterly": freq = 91.31
-                    case "annually" : freq = 365.25
-                user.last_sent = now - timedelta(days=freq)
-                db.session.commit()
-                logging.info(f'==> ++++++++++ NO report sent, tried {send_attempts}, reverted user.last_sent +++++++++++')
+            except Exception as e:
+                send_attempts += 1
+                logging.error(f'send mail failed with error {e}')
+                time.sleep((2 + send_attempts) * 60)
+                if send_attempts >= 5:
+                    not_sent = False
+                    freq = 7
+                    match user.notification_frequency:
+                        case "daily"    : freq = 1
+                        case "weekly"   : freq = 7
+                        case "fortnight": freq = 10
+                        case "monthly"  : freq = 30.43
+                        case "quarterly": freq = 91.31
+                        case "annually" : freq = 365.25
+                    user.last_sent = now - timedelta(days=freq)
+                    db.session.commit()
+                    logging.info(f'==> ++++++++++ NO report sent, tried {send_attempts}, reverted user.last_sent +++++++++++')
+    elif SMTP_TO_USE == "twilio_sendgrid":
+        from_email = Email(app.config['MAIL_USERNAME'])
+        to_email = To(email)
+        subject = snappy_subject
+        content = Content('text/plain', email_body_copy)
+        mail = Mail(from_email, to_email, subject, content)
+        send_attempts = 0
+        not_sent = True
+        while not_sent:
+            response = sg.client.mail.send.post(request_body=mail.get())
+            ### put above in try except?
+            send_attempts += 1
+            rspns = response.status_code # int; 200 = No error, 201 = Successfully created, 202 = Accepted, 204 = Successfully deleted, 4xx status codes indicate a client-side error, 5xx status codes which indicate server-side errors
+            if rspns < 300:
+                logging.info(f'response.status_code: {rspns}')
+                not_sent = False
+                # logging.info(f'response.body: {response.body})
+                # logging.info(f'response.headers: {response.headers})
+            else:
+                logging.error(f'response.status_code: {rspns}')
+                time.sleep((2 + send_attempts) * 60)
+                if send_attempts >= 5:
+                    not_sent = False
+                    freq = 7
+                    match user.notification_frequency:
+                        case "daily"    : freq = 1
+                        case "weekly"   : freq = 7
+                        case "fortnight": freq = 10
+                        case "monthly"  : freq = 30.43
+                        case "quarterly": freq = 91.31
+                        case "annually" : freq = 365.25
+                    user.last_sent = now - timedelta(days=freq)
+                    db.session.commit()
+                    logging.info(f'==> ++++++++++ NO report sent, tried {send_attempts}, reverted user.last_sent +++++++++++')
+    else:
+        logging.error(f'SMTP_TO_USE set impropperly to "{SMTP_TO_USE}"; needs to be "dreamhost" or "twilio_sendgrid"')
 
 
 def test_print(report, snappy_subject, un, email):

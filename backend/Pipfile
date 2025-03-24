@@ -33,6 +33,7 @@ marshmallow = "*"
 sqlalchemy = "*"
 huggingface-hub = "*"
 dateparser = "*"
+sendgrid = "*"
 
 [dev-packages]
 
