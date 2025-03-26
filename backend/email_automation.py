@@ -32,15 +32,31 @@ from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_mistralai.chat_models import ChatMistralAI
 import re
-import smtplib
 import socket
 
 load_dotenv('.env')
 
+# LLM stuff
+llm_api_key = os.getenv('MISTRAL_API_KEY')
+llm_temp = 0.25
+
+SMTP_TO_USE = "sendgrid" # "sendgrid" or "smtp"
+
 # Email Server Settings
 IMAP_SERVER   = os.getenv('IMAP_SERVER')
-MAIL_SERVER   = os.getenv('MAIL_SERVER') # SMTP
-SMTP_SSL_PORT = os.getenv('SMTP_SSL_PORT')
+if SMTP_TO_USE == "smtp":
+    import smtplib
+    MAIL_SERVER   = os.getenv('MAIL_SERVER') # SMTP
+    SMTP_SSL_PORT = os.getenv('SMTP_SSL_PORT')
+elif SMTP_TO_USE == "sendgrid":
+    import sendgrid
+    # was from sendgrid.helpers.mail import *, but Email conflicted w/ import email
+    from sendgrid.helpers.mail import To, Content, Mail
+    from sendgrid.helpers.mail import Email as SGEmail
+    sendgrid_api_key=os.environ.get('SENDGRID_API_KEY')
+    sg = sendgrid.SendGridAPIClient(sendgrid_api_key)
+else:
+    logging.error(f'SMTP_TO_USE set impropperly to "{SMTP_TO_USE}"; needs to be "smtp" or "sendgrid"')
 
 # Email Account Details
 MAIL_USERNAME = os.getenv('MAIL_USERNAME')
@@ -50,10 +66,6 @@ SENT_BOX_NAME = os.getenv('SENT_BOX_NAME') # "Sent" or "[Gmail]/Sent Mail" or "I
 JUNK_BOX_NAME = os.getenv('JUNK_BOX_NAME')
 HITL_BOX_NAME = os.getenv('HITL_BOX_NAME')
 LLM_BOX_NAME = os.getenv('LLM_BOX_NAME')
-
-# LLM stuff
-llm_api_key = os.getenv('MISTRAL_API_KEY')
-llm_temp = 0.25
 
 
 def fetch_unseen_imap():
@@ -143,20 +155,46 @@ def send_email(email_to, email_subj, email_body):
     """ Send via SMTP & Store via IMAP """
     """ If provider does not automatically store sent emails, need to save them manually using IMAP """
     logging.info(f'Sending email to {email_to}')
-    # Set email content
+    # Set email content - for both smtp and save imap sent
     msg = MIMEText(email_body)
     msg["From"] = MAIL_USERNAME
     msg["To"] = email_to
     msg["Subject"] = email_subj
-    # Send via SMTP
-    with smtplib.SMTP_SSL(MAIL_SERVER, SMTP_SSL_PORT) as smtp:
-        smtp.login(MAIL_USERNAME, MAIL_PASSWORD)
-        failed_recipients = smtp.sendmail(MAIL_USERNAME, email_to, msg.as_string())
-        if failed_recipients:
-            logging.error(f"Some recipients failed: {failed_recipients}")
-            ### should do something else here, resend later, or abort and set the inbound email to unread again for the next script run
-        else:
-            logging.info("Email successfully handed off to SMTP server.")
+    if SMTP_TO_USE == "smtp":
+        # Send via SMTP
+        with smtplib.SMTP_SSL(MAIL_SERVER, SMTP_SSL_PORT) as smtp:
+            smtp.login(MAIL_USERNAME, MAIL_PASSWORD)
+            failed_recipients = smtp.sendmail(MAIL_USERNAME, email_to, msg.as_string())
+            if failed_recipients:
+                logging.error(f"Some recipients failed: {failed_recipients}")
+                ### should do something else here, resend later, or abort and set the inbound email to unread again for the next script run
+            else:
+                logging.info("Email successfully handed off to SMTP server.")
+    elif SMTP_TO_USE == "sendgrid":
+        from_email = SGEmail(MAIL_USERNAME)
+        to_email = To(email_to)
+        subject = email_subj
+        content = Content('text/plain', email_body)
+        mail = Mail(from_email, to_email, subject, content)
+        send_attempts = 0
+        not_sent = True
+        while not_sent:
+            response = sg.client.mail.send.post(request_body=mail.get())
+            send_attempts += 1
+            rspns = response.status_code # int; 200 = No error, 201 = Successfully created, 202 = Accepted, 204 = Successfully deleted, 4xx status codes indicate a client-side error, 5xx status codes which indicate server-side errors
+            if rspns < 300:
+                logging.info(f'response.status_code: {rspns}')
+                not_sent = False
+                # logging.info(f'response.body: {response.body})
+                # logging.info(f'response.headers: {response.headers})
+            else:
+                logging.error(f'response.status_code: {rspns}')
+                time.sleep((2 + send_attempts) * 60)
+                if send_attempts >= 5:
+                    not_sent = False
+                    logging.info(f'==> ++++++++++ Email NOT sent, tried {send_attempts} +++++++++++')
+    else:
+        logging.error(f'SMTP_TO_USE set impropperly to "{SMTP_TO_USE}"; needs to be "smtp" or "sendgrid"')
     # Save Sent Email to IMAP "Sent" Folder
     with imaplib.IMAP4_SSL(IMAP_SERVER) as mail:
         mail.login(MAIL_USERNAME, MAIL_PASSWORD)
@@ -180,7 +218,7 @@ def send_email(email_to, email_subj, email_body):
 
 
 def list_available_IMAP_folders():
-    """ for testing to figure out name of sent folder """
+    """ for testing to figure out names of folders """
     with imaplib.IMAP4_SSL(IMAP_SERVER) as mail:
         mail.login(MAIL_USERNAME, MAIL_PASSWORD)
         status, folders = mail.list()
@@ -252,6 +290,7 @@ def large_lang_model(query):
 
 EMAIL_REPLY_ACTION_TEMPLATE = """
 Can you compose a reasonable reply end-user's email?
+You are essentially: a calm, polite, technical, customer support agent, representing enshittificationmetrics.com.
 
 Please return valid JSON with NO additional text; 
 "replyable" and "disablealerts" are booleans, 
@@ -416,7 +455,7 @@ def main():
             if mess:
                 email_body += f"{mess} \n"
             email_body += f'\n{reply}\n\n' \
-                          f'\nNote: this responce written by LLM.\n' \
+                          f'\nNote: this response written by LLM.\n' \
                           f'To change / enable / disable alerts, please use the "Alert Subscriptions Notification Settings" ' \
                           f'area in EnshittificationMetrics.com, https://www.enshittificationmetrics.com/alerts. \n' \
                           f"\n~~~Forewarded text~~~\n" \

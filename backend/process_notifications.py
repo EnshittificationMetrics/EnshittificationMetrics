@@ -43,9 +43,9 @@ app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY') # secure Flask session 
 # "twilio_sendgrid" is web rest api to sendgrid, then SMTP (w/ custom DNS CNAMEs on Dreamhost), via SendGridAPIClient - https://github.com/sendgrid/sendgrid-python
 # on current free tier allows to send 100 free emails per day
 # Sendgrid technically works with SMTP (smtp.sendgrid.net, ports 25, 587, or 465 for SSL, username "apikey", password actual API key), but SMTP blocked on DigitalOcean
-SMTP_TO_USE = "twilio_sendgrid" # "twilio_sendgrid" or "dreamhost"
+SMTP_TO_USE = "sendgrid" # "sendgrid" or "smtp"
 
-if SMTP_TO_USE == "dreamhost":
+if SMTP_TO_USE == "smtp":
     from flask_mail import Mail, Message
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
     app.config['MAIL_PORT'] = 587
@@ -54,13 +54,13 @@ if SMTP_TO_USE == "dreamhost":
     app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
     # app.config['MAIL_DEBUG'] = True  # Debug mode quite verbose in logs
     mail = Mail(app)
-elif SMTP_TO_USE == "twilio_sendgrid":
+elif SMTP_TO_USE == "sendgrid":
     import sendgrid
     from sendgrid.helpers.mail import *
     sendgrid_api_key=os.environ.get('SENDGRID_API_KEY')
     sg = sendgrid.SendGridAPIClient(sendgrid_api_key)
 else:
-    logging.error(f'SMTP_TO_USE set impropperly to "{SMTP_TO_USE}"; needs to be "dreamhost" or "twilio_sendgrid"')
+    logging.error(f'SMTP_TO_USE set impropperly to "{SMTP_TO_USE}"; needs to be "smtp" or "sendgrid"')
 
 
 def create_report(user):
@@ -195,7 +195,7 @@ def send_report_to_user(report, user, now):
     
     signature_text = f"""Thanks, \nEnshittificationMetrics.com\n"""
     
-    footer_text = """To change or stop these alerts, please use the "Alert Subscriptions Notification Settings" area in EnshittificationMetrics.com, https://www.enshittificationmetrics.com/alerts."""
+    footer_text = """To change or stop these alerts, please use the "Alert Subscriptions Notification Settings" area in EnshittificationMetrics.com, https://www.enshittificationmetrics.com/alerts"""
     ### Eventually will add a reply with UNSUBSCRIBE or STOP feature.
     
     logging.info(f'==> ++++++++++ sending report to {user.username} +++++++++++')
@@ -208,7 +208,7 @@ def send_report_to_user(report, user, now):
                       f"{report}\n" \
                       f"{signature_text}\n" \
                       f"{footer_text}\n"
-    if SMTP_TO_USE == "dreamhost":
+    if SMTP_TO_USE == "smtp":
         msg = Message(snappy_subject, sender = app.config['MAIL_USERNAME'], recipients = [email])
         msg.body = email_body_copy
         test_print(report=report, snappy_subject=snappy_subject, un=user.username, email=email)
@@ -236,7 +236,7 @@ def send_report_to_user(report, user, now):
                     user.last_sent = now - timedelta(days=freq)
                     db.session.commit()
                     logging.info(f'==> ++++++++++ NO report sent, tried {send_attempts}, reverted user.last_sent +++++++++++')
-    elif SMTP_TO_USE == "twilio_sendgrid":
+    elif SMTP_TO_USE == "sendgrid":
         from_email = Email(app.config['MAIL_USERNAME'])
         to_email = To(email)
         subject = snappy_subject
@@ -271,7 +271,7 @@ def send_report_to_user(report, user, now):
                     db.session.commit()
                     logging.info(f'==> ++++++++++ NO report sent, tried {send_attempts}, reverted user.last_sent +++++++++++')
     else:
-        logging.error(f'SMTP_TO_USE set impropperly to "{SMTP_TO_USE}"; needs to be "dreamhost" or "twilio_sendgrid"')
+        logging.error(f'SMTP_TO_USE set impropperly to "{SMTP_TO_USE}"; needs to be "smtp" or "sendgrid"')
 
 
 def test_print(report, snappy_subject, un, email):
